@@ -1,0 +1,16 @@
+allowBuilds:
+  '@firebase/util': false
+  '@sentry/cli': true
+  esbuild: true
+  protobufjs: false
+  sharp: true
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+overrides:
+  # GHSA-qx2v-qp2m-jg93 / CVE-2026-41305: PostCSS < 8.5.10 doesn't escape
+  # `</style>` when stringifying, an XSS risk only if untrusted CSS is
+  # parsed and re-embedded (this app never does that), pinned anyway
+  # since Next.js's own transitive copy predates the patched version.
+  postcss: '>=8.5.10'

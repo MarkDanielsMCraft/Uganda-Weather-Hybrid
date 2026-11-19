@@ -1,0 +1,26 @@
+{
+  "crons": [
+    {
+      "path": "/api/v1/cron/prefetch-weather?mode=priority",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/v1/cron/prefetch-alerts",
+      "schedule": "30 3 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(self)" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://mcraftportfolio.dev https://www.mcraftportfolio.dev https://mcraftportfolio.vercel.app https://www.mcraftportfolio.vercel.app"
+        }
+      ]
+    }
+  ]
+}

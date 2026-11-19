@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>UNMA CAP Sample</title>
+    <item>
+      <title>Heavy Rain Warning</title>
+      <pubDate>Mon, 06 Jul 2026 10:00:00 +0000</pubDate>
+      <description>Sample alert for parser verification</description>
+      <cap:alert xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2">
+        <identifier>ug-sample-20260706-1</identifier>
+        <sender>Department of Meteorological Services</sender>
+        <sent>2026-07-06T10:00:00+03:00</sent>
+        <status>Actual</status>
+        <msgType>Alert</msgType>
+        <scope>Public</scope>
+        <info>
+          <language>en</language>
+          <category>Met</category>
+          <event>Heavy Rain</event>
+          <urgency>Immediate</urgency>
+          <severity>Severe</severity>
+          <headline>Heavy Rain Warning for Kampala and Wakiso</headline>
+          <description>Heavy rainfall may cause localized flooding in low lying areas.</description>
+          <area>
+            <areaDesc>Kampala, Wakiso</areaDesc>
+          </area>
+          <expires>2026-07-07T06:00:00+03:00</expires>
+        </info>
+      </cap:alert>
+    </item>
+  </channel>
+</rss>

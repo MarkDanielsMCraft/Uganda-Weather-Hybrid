@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Subtle Glass Track -->
+    <item
+        android:top="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#20FFFFFF" />
+            <corners android:radius="2dp" />
+            <size android:height="3dp" />
+        </shape>
+    </item>
+    <!-- Active Range Capsule with Cyan to Brand Amber Gradient -->
+    <item
+        android:left="6dp"
+        android:right="4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#5AC8FA"
+                android:endColor="#80D8FF" />
+            <corners android:radius="2dp" />
+            <size android:height="4dp" />
+        </shape>
+    </item>
+</layer-list>

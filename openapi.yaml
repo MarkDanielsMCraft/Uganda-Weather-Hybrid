@@ -1,0 +1,507 @@
+openapi: 3.1.0
+info:
+  title: Uganda Weather API
+  version: 1.0.0
+  description: |
+    REST API for Uganda Weather — district-level weather, forecasts, alerts,
+    air quality, marine, and agriculture advisories for Uganda.
+  contact:
+    name: Uganda Weather Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://uganda-weather.com/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Development
+
+tags:
+  - name: Districts
+    description: Uganda district metadata and search
+  - name: Weather
+    description: Current conditions and forecasts
+  - name: Alerts
+    description: Weather alerts and warnings
+  - name: Air Quality
+    description: Air quality index and pollutants
+  - name: Marine
+    description: Lake Victoria marine conditions
+  - name: Agriculture
+    description: Agriculture advisories
+
+paths:
+  /districts:
+    get:
+      tags: [Districts]
+      summary: List all Uganda districts
+      operationId: listDistricts
+      parameters:
+        - name: region
+          in: query
+          schema:
+            type: string
+            enum: [central, eastern, northern, western]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 146
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: District list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictListResponse'
+
+  /districts/search:
+    get:
+      tags: [Districts]
+      summary: Search districts
+      operationId: searchDistricts
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /districts/{slug}:
+    get:
+      tags: [Districts]
+      summary: Get district by slug
+      operationId: getDistrict
+      parameters:
+        - $ref: '#/components/parameters/DistrictSlug'
+      responses:
+        '200':
+          description: District details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /weather/current:
+    get:
+      tags: [Weather]
+      summary: Current weather for a district
+      operationId: getCurrentWeather
+      parameters:
+        - $ref: '#/components/parameters/DistrictQuery'
+      responses:
+        '200':
+          description: Current weather
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentWeatherResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /weather/forecast:
+    get:
+      tags: [Weather]
+      summary: Weather forecast for a district
+      operationId: getForecast
+      parameters:
+        - $ref: '#/components/parameters/DistrictQuery'
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 14
+            default: 10
+      responses:
+        '200':
+          description: Forecast data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: Active weather alerts
+      operationId: getAlerts
+      parameters:
+        - $ref: '#/components/parameters/DistrictQuery'
+      responses:
+        '200':
+          description: Active alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsResponse'
+
+  /air-quality:
+    get:
+      tags: [Air Quality]
+      summary: Air quality for a district
+      operationId: getAirQuality
+      parameters:
+        - $ref: '#/components/parameters/DistrictQuery'
+      responses:
+        '200':
+          description: Air quality data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirQualityResponse'
+
+  /marine/lake-victoria:
+    get:
+      tags: [Marine]
+      summary: Lake Victoria marine conditions
+      operationId: getLakeVictoriaMarine
+      parameters:
+        - name: zone
+          in: query
+          schema:
+            type: string
+            enum: [central, eastern, western]
+            default: central
+      responses:
+        '200':
+          description: Marine conditions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarineResponse'
+
+  /agriculture/advisory:
+    get:
+      tags: [Agriculture]
+      summary: Agriculture advisory for a district
+      operationId: getAgricultureAdvisory
+      parameters:
+        - $ref: '#/components/parameters/DistrictQuery'
+        - name: crop
+          in: query
+          schema:
+            type: string
+            enum: [maize, beans, coffee, cassava, banana, millet]
+      responses:
+        '200':
+          description: Agriculture advisory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgricultureResponse'
+
+components:
+  parameters:
+    DistrictQuery:
+      name: district
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+      description: District slug (e.g. kampala, fort-portal)
+    DistrictSlug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Upstream weather provider unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    Meta:
+      type: object
+      properties:
+        requestId:
+          type: string
+        cachedAt:
+          type: string
+          format: date-time
+        stale:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    DistrictSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        region:
+          type: string
+          enum: [central, eastern, northern, western]
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+            lon:
+              type: number
+        agroZone:
+          type: string
+        isCity:
+          type: boolean
+
+    DistrictListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            districts:
+              type: array
+              items:
+                $ref: '#/components/schemas/DistrictSummary'
+            total:
+              type: integer
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    DistrictSearchResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                  region:
+                    type: string
+                  matchScore:
+                    type: number
+
+    DistrictResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/DistrictSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CurrentWeatherResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            district:
+              $ref: '#/components/schemas/DistrictSummary'
+            temperature:
+              type: object
+              properties:
+                celsius:
+                  type: number
+                feelsLike:
+                  type: number
+            condition:
+              type: object
+              properties:
+                code:
+                  type: integer
+                text:
+                  type: string
+                icon:
+                  type: string
+            wind:
+              type: object
+              properties:
+                speedKph:
+                  type: number
+                direction:
+                  type: string
+                degree:
+                  type: number
+            humidity:
+              type: integer
+            uvIndex:
+              type: number
+            precipitation:
+              type: object
+              properties:
+                mm:
+                  type: number
+            daily:
+              type: object
+              properties:
+                high:
+                  type: number
+                low:
+                  type: number
+            updatedAt:
+              type: string
+              format: date-time
+            source:
+              type: string
+            stale:
+              type: boolean
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ForecastResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            district:
+              $ref: '#/components/schemas/DistrictSummary'
+            hourly:
+              type: array
+              items:
+                type: object
+            daily:
+              type: array
+              items:
+                type: object
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AlertsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            alerts:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  severity:
+                    type: string
+                    enum: [advisory, watch, warning, extreme]
+                  source:
+                    type: string
+                  issuedAt:
+                    type: string
+                    format: date-time
+                  expiresAt:
+                    type: string
+                    format: date-time
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AirQualityResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            aqi:
+              type: integer
+            category:
+              type: string
+            healthAdvice:
+              type: string
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    MarineResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            zone:
+              type: string
+            waveHeightM:
+              type: number
+            windSpeedKph:
+              type: number
+            waterTempC:
+              type: number
+            fishingSafety:
+              type: object
+              properties:
+                level:
+                  type: string
+                  enum: [safe, caution, danger]
+                label:
+                  type: string
+                summary:
+                  type: string
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AgricultureResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            recommendations:
+              type: array
+              items:
+                type: string
+        meta:
+          $ref: '#/components/schemas/Meta'

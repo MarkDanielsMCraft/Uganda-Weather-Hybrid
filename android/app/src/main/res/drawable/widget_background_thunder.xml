@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Deep Electric Violet Sky Glass Base -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#1C112C"
+                android:centerColor="#100A1B"
+                android:endColor="#06040C" />
+            <corners android:radius="22dp" />
+            <stroke
+                android:width="1dp"
+                android:color="#25FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- Electric Indigo Atmosphere Glow (Top Right) -->
+    <item
+        android:gravity="top|end"
+        android:width="220dp"
+        android:height="160dp"
+        android:top="-30dp"
+        android:right="-30dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="140dp"
+                android:startColor="#307C4DFF"
+                android:centerColor="#10512DA8"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- Subtle Top Glass Surface Sheen -->
+    <item
+        android:gravity="top|fill_horizontal"
+        android:height="1dp"
+        android:left="22dp"
+        android:right="22dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#28FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

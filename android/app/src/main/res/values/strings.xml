@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Uganda Weather</string>
+    <string name="title_activity_main">Uganda Weather</string>
+    <string name="package_name">com.ugandaweather.app</string>
+    <string name="custom_url_scheme">com.ugandaweather.app</string>
+    <string name="widget_forecast_name">Forecast</string>
+    <string name="widget_forecast_desc">Live weather and 5 hour strip</string>
+    <string name="widget_details_name">Details</string>
+    <string name="widget_details_desc">Precipitation, wind, and humidity</string>
+    <string name="widget_daily_name">5 Day Forecast</string>
+    <string name="widget_daily_desc">5 day weather outlook</string>
+    <string name="widget_sunrise_name">Sunrise and Sunset</string>
+    <string name="widget_sunrise_desc">Dawn, sunrise, sunset, and dusk</string>
+    <string name="widget_agriculture_name">Agriculture</string>
+    <string name="widget_agriculture_desc">Seasonal pattern and planting guidance</string>
+    <string name="widget_air_quality_name">Air Quality</string>
+    <string name="widget_air_quality_desc">Air quality index and health guidance</string>
+</resources>

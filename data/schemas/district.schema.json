@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://uganda-weather.com/schemas/district.json",
+  "title": "Uganda District",
+  "description": "Schema for Uganda administrative district records",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "slug",
+    "region",
+    "coordinates",
+    "rainfallPattern",
+    "hazards"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^UG-[0-9]{3}$",
+      "description": "Unique district identifier"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "URL-safe identifier"
+    },
+    "region": {
+      "type": "string",
+      "enum": ["central", "eastern", "northern", "western"]
+    },
+    "coordinates": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -1.5, "maximum": 4.5 },
+        "lon": { "type": "number", "minimum": 29.5, "maximum": 35.0 }
+      }
+    },
+    "rainfallPattern": {
+      "type": "string",
+      "enum": ["bimodal", "unimodal"]
+    },
+    "agroZone": {
+      "type": "string",
+      "enum": [
+        "banana_coffee",
+        "banana_millet_cotton",
+        "mountain",
+        "teso",
+        "northern",
+        "west_nile",
+        "karamoja",
+        "pastoral"
+      ]
+    },
+    "hazards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["flood", "drought", "landslide", "lightning", "hail", "heat"]
+      }
+    },
+    "isCity": { "type": "boolean", "default": false },
+    "isLakeVictoriaZone": { "type": "boolean", "default": false },
+    "popularRank": { "type": "integer", "minimum": 1 },
+    "population": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

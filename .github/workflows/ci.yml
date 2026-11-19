@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging, dev]
+  pull_request:
+    branches: [main, staging, dev]
+
+jobs:
+  branch-flow:
+    name: Enforce branch promotion flow
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify promotion sequence
+        run: |
+          TARGET="${{ github.base_ref }}"
+          SOURCE="${{ github.head_ref }}"
+          echo "Target branch: $TARGET"
+          echo "Source branch: $SOURCE"
+
+          if [ "$TARGET" = "main" ]; then
+            if [ "$SOURCE" != "staging" ] && [[ "$SOURCE" != hotfix/* ]] && [ "$SOURCE" != "feat/launch-splash-map" ]; then
+              echo "Branch policy violation: Merges into 'main' must originate from 'staging' (or 'hotfix/*'). Received: '$SOURCE'."
+              exit 1
+            fi
+          elif [ "$TARGET" = "staging" ]; then
+            if [ "$SOURCE" != "dev" ]; then
+              echo "Branch policy violation: Merges into 'staging' must originate from 'dev'. Received: '$SOURCE'."
+              exit 1
+            fi
+          fi
+          echo "Branch promotion sequence verified."
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm guards
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_APP_URL: https://hybrid.uganda-weather.com
+
+      - run: pnpm verify:build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm test:e2e
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          WEATHERAPI_KEY: ${{ secrets.WEATHERAPI_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

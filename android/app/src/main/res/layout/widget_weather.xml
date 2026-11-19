@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="10dp">
+
+    <!-- Left Column: Current Conditions Hero -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="42"
+        android:layout_marginEnd="6dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <!-- District Location -->
+        <TextView
+            android:id="@+id/widget_district"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Kampala"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Big Temperature -->
+        <TextView
+            android:id="@+id/widget_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:includeFontPadding="false"
+            android:text="22°"
+            android:textColor="#FFFFFF"
+            android:textSize="38sp"
+            android:textStyle="normal" />
+
+        <!-- Condition Summary -->
+        <TextView
+            android:id="@+id/widget_condition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Chance of Rain"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="normal" />
+
+        <!-- High / Low Range (Available in layout for RemoteViews binding if needed) -->
+        <TextView
+            android:id="@+id/widget_range"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="High 28°  Low 19°"
+            android:textColor="#98A8BD"
+            android:textSize="10sp"
+            android:visibility="gone" />
+
+        <!-- Rain Chance -->
+        <TextView
+            android:id="@+id/widget_rain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Rain chance 80%"
+            android:textColor="#86CCF2"
+            android:textSize="10.5sp" />
+
+        <!-- Active Severe Alert Marquee Ticker -->
+        <LinearLayout
+            android:id="@+id/widget_alert_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/widget_alert_glass_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingTop="1dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="1dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_alert_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/widget_alert_pill"
+                android:paddingStart="4dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="1dp"
+                android:text="ALERT"
+                android:textColor="#FFFFFF"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_alert"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Right Column: 5 Aligned Daily Forecast Rows with Range Bars -->
+    <LinearLayout
+        android:id="@+id/widget_daily_forecast_container"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="58"
+        android:layout_marginStart="6dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <!-- Day Row 0 (Today) -->
+        <LinearLayout
+            android:id="@+id/widget_day_row_0"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_day_0"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Today"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/widget_day_icon_0"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:src="@drawable/ic_weather_sun"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_low_0"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="19°"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_bar_0"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/widget_range_bar_today"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_high_0"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="28°"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Day Row 1 -->
+        <LinearLayout
+            android:id="@+id/widget_day_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_day_1"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Tue"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_icon_1"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:src="@drawable/ic_weather_cloud"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_low_1"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="19°"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_bar_1"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/widget_range_bar"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_high_1"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="27°"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Day Row 2 -->
+        <LinearLayout
+            android:id="@+id/widget_day_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_day_2"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Wed"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_icon_2"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:src="@drawable/ic_weather_rain"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_low_2"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="18°"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_bar_2"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/widget_range_bar"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_high_2"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="26°"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Day Row 3 -->
+        <LinearLayout
+            android:id="@+id/widget_day_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_day_3"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Thu"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_icon_3"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:src="@drawable/ic_weather_cloud"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_low_3"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="19°"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_bar_3"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/widget_range_bar"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_high_3"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="28°"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Day Row 4 -->
+        <LinearLayout
+            android:id="@+id/widget_day_row_4"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/widget_day_4"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Fri"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_icon_4"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="3dp"
+                android:src="@drawable/ic_weather_sun"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_low_4"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="20°"
+                android:textColor="#98A8BD"
+                android:textSize="10.5sp" />
+            <ImageView
+                android:id="@+id/widget_day_bar_4"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/widget_range_bar"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_day_high_4"
+                android:layout_width="20dp"
+                android:layout_height="wrap_content"
+                android:gravity="start"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="29°"
+                android:textColor="#FFFFFF"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,664 @@
+export type SupportedLocale = "en" | "lg";
+
+export type WeatherSourceProvider =
+  | "weatherapi"
+  | "open-meteo"
+  | "open-meteo-fallback"
+  | "pirateweather"
+  | "demo"
+  | "demo-fallback";
+
+export interface TranslationDictionary {
+  common: {
+    appName: string;
+    tagline: string;
+    search: string;
+    searchPlaceholder: string;
+    today: string;
+    tomorrow: string;
+    loading: string;
+    retry: string;
+    retrying: string;
+    couldNotLoadWeather: string;
+    stillLoadingWeather: string;
+    back: string;
+    close: string;
+    now: string;
+    live: string;
+    offline: string;
+    clear: string;
+    downloadApp: string;
+    recent: string;
+    recentDistricts: string;
+    recentPlaces: string;
+    popularDistricts: string;
+    noPlacesFound: string;
+    refreshWeather: string;
+    backToNow: string;
+    unavailable: string;
+    conditionsTitle: string;
+    localTime: string;
+    saved: string;
+    dataSourceLabel: string;
+    updatedAtLabel: string;
+    trySampleDistricts: string;
+    offlineMessage: string;
+    copyPlaceLink: string;
+    copyModuleLink: string;
+    linkCopied: string;
+    previousDay: string;
+    nextDay: string;
+    previousMonth: string;
+    nextMonth: string;
+    gotIt: string;
+    addToHomeScreen: string;
+    installing: string;
+    goToHomeAria: string;
+    clockInDistrict: string;
+    yourLocation: string;
+    nearDistrict: string;
+    districtOfRegion: string;
+    regions: {
+      central: string;
+      eastern: string;
+      northern: string;
+      western: string;
+    };
+    pullToRefresh: string;
+    releaseToRefresh: string;
+    updating: string;
+    solarNoon: string;
+    radarMapAria: string;
+    windCompassAria: string;
+    stillLoadingHintLine1: string;
+    stillLoadingHintLine2: string;
+    globalErrorTitle: string;
+    globalErrorRetry: string;
+    dismiss: string;
+    styleGuardTitle: string;
+    styleGuardBodyPre: string;
+    styleGuardBodyPost: string;
+    styleGuardStopServer: string;
+    weekdayInitials: [string, string, string, string, string, string, string];
+    months: [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+  };
+  eyebrows: {
+    myLocation: string;
+    districtForecast: string;
+    localForecast: string;
+  };
+  conditions: {
+    clear: string;
+    sunny: string;
+    mostlyClear: string;
+    partlyCloudy: string;
+    cloudy: string;
+    overcast: string;
+    mostlyCloudy: string;
+    fog: string;
+    hazy: string;
+    lightDrizzle: string;
+    drizzle: string;
+    heavyDrizzle: string;
+    lightRain: string;
+    rain: string;
+    heavyRain: string;
+    rainShowers: string;
+    chanceOfRain: string;
+    possibleThunderstorms: string;
+    thunderstorms: string;
+    hail: string;
+  };
+  metrics: {
+    feelsLike: string;
+    feelsLikeTitle: string;
+    highLow: string;
+    high: string;
+    low: string;
+    hourlyForecast: string;
+    dailyForecastCount: string;
+    wind: string;
+    windSpeed: string;
+    windDirection: string;
+    humidity: string;
+    humidityComfort: string;
+    uvIndex: string;
+    airQuality: string;
+    aqiGood: string;
+    aqiModerate: string;
+    aqiUnhealthySensitive: string;
+    aqiUnhealthy: string;
+    aqiAdviceGood: string;
+    visibility: string;
+    pressure: string;
+    sunrise: string;
+    sunset: string;
+    rainfall: string;
+    moonPhase: string;
+    averages: string;
+    typical: string;
+    aboveAverage: string;
+    belowAverage: string;
+    atAverage: string;
+    actual: string;
+    dailySummary: string;
+    chanceOfPrecipitation: string;
+    pollutants: {
+      pm25: string;
+      pm10: string;
+      o3: string;
+      no2: string;
+      co: string;
+    };
+  };
+  weatherStatus: {
+    sampleLabel: string;
+    staleMessage: string;
+    updatedAtTemplate: string;
+    hourlyFallbackTitle: string;
+    providers: Record<
+      WeatherSourceProvider,
+      { label: string; shortLabel: string; description: string }
+    >;
+  };
+  marine: {
+    lakeVictoria: string;
+    lakeAlbert: string;
+    lakeKyoga: string;
+    lakeEdward: string;
+    loadingConditions: string;
+    wavesAndWind: string;
+    waveHeight: string;
+    waterTemperature: string;
+    safeForSmallCraft: string;
+    cautionAdvised: string;
+    hazardousConditions: string;
+    dangerForSmallCraft: string;
+    nearestShorelineNote: string;
+    fishingSafetyPrefix: string;
+    wavesLabel: string;
+    estimatedFromWind: string;
+    waterTempLabel: string;
+    estimatedFromAir: string;
+    visibilityLabel: string;
+    thunderstormsNearby: string;
+    shorelineDistricts: string;
+    nextHoursOnLake: string;
+    rainOrStormsPossible: string;
+    noRainInHourly: string;
+    lakeVictoriaNote: string;
+    lakeGeneralNote: string;
+    zones: Record<string, string>;
+  };
+  agriculture: {
+    title: string;
+    soilMoisture: string;
+    plantingRains: string;
+    drySpellRisk: string;
+    irrigationRecommended: string;
+    avoidSpraying: string;
+    goodSowingWindow: string;
+    weeklyTitle: string;
+    avgChance: string;
+    rainChanceTooltip: string;
+    plantingTitle: string;
+    plantingBuilding: string;
+    plantingGood: string;
+    farmingRegionTitle: string;
+    unimodal: string;
+    bimodal: string;
+    seasonTitle: string;
+    soilMoistureTitle: string;
+    todayRainChance: string;
+    keyCropsTitle: string;
+    cropOutlookTitle: string;
+    recommendationsTitle: string;
+    disclaimer: string;
+    phaseLabels: Record<string, string>;
+    mainCropsPrefix: string;
+    seasonLabels: Record<string, string>;
+    soilLabels: Record<"low" | "moderate" | "high", string>;
+    soilSentences: Record<"low" | "moderate" | "high", string>;
+    zones: Record<string, { label: string; description: string }>;
+    cropNames: Record<string, string>;
+    cropStatuses: Record<"good" | "caution" | "hold", string>;
+  };
+  alerts: {
+    severeWeatherAlert: string;
+    noAlerts: string;
+    viewDetails: string;
+    noActiveDistrict: string;
+    issued: string;
+    expires: string;
+    localHazardContext: string;
+    defaultHazardNote: string;
+    hazards: Record<string, string>;
+    pushTitle: string;
+    pushSubtitleNative: string;
+    pushSubtitleWeb: string;
+    pushTurnedOff: string;
+    pushTurnedOffPartial: string;
+    pushAvailableMobile: string;
+    pushEnabled: string;
+    pushDenied: string;
+    pushEnableError: string;
+    pushDisableError: string;
+    pushAriaLabel: string;
+    copyAlertLink: string;
+    alertLinkCopied: string;
+    severityLabels: Record<"advisory" | "watch" | "warning" | "extreme", string>;
+    tapMoreDetails: string;
+    tapFullGuidance: string;
+    demo: {
+      stormTitle: string;
+      stormDesc: string;
+      landslideTitle: string;
+      landslideDesc: string;
+      sourceLabel: string;
+    };
+  };
+  navigation: {
+    home: string;
+    forecast: string;
+    radarMap: string;
+    settings: string;
+    districts: string;
+    places: string;
+    pageTitles: Record<string, string>;
+  };
+  settings: {
+    language: string;
+    english: string;
+    luganda: string;
+    liteMode: string;
+    liteModeDescDefault: string;
+    liteModeDesc: string;
+    pushAlerts: string;
+    about: string;
+  };
+  legal: {
+    attribution: string;
+    privacyPolicy: string;
+    termsOfUse: string;
+    disclaimer: string;
+    privacy: string;
+    terms: string;
+    cookies: string;
+    attributionTitle: string;
+  };
+  places: {
+    title: string;
+    airports: string;
+    mountains: string;
+    nationalParks: string;
+    nearest: string;
+    kmAway: string;
+    peaks: string;
+    parks: string;
+    airportsCount: string;
+    mountainsCaveat: string;
+    airportsUnavailable: string;
+    airportsIntro: string;
+    tempLabel: string;
+    dewPointLabel: string;
+    windLabel: string;
+    visibilityLabel: string;
+    altimeterLabel: string;
+    calmOrUnreported: string;
+    calm: string;
+    atSpeed: string;
+    variableAtSpeed: string;
+    trackingParks: string;
+    trackingPeaks: string;
+    clearAtPoints: string;
+    tapPointConditions: string;
+    airportsClear: string;
+    stationsTracked: string;
+    airportsSubtext: string;
+    flightCategories: Record<string, string>;
+    items: Record<string, { name: string; label: string; blurb?: string }>;
+  };
+  search: {
+    districtsLead: string;
+    approximateLocation: string;
+    searchUnavailable: string;
+    noMatchedPlaces: string;
+    locationOff: string;
+    locationDeclined: string;
+    locationOutsideUganda: string;
+    locationResolveError: string;
+  };
+  legalPages: {
+    disclaimerSubtitle: string;
+    disclaimerParagraphs: readonly string[];
+    privacySubtitle: string;
+    privacyParagraphs: readonly string[];
+    privacyOperatorPrefix: string;
+    privacyOperatorSuffix: string;
+    termsSubtitle: string;
+    termsParagraphs: readonly string[];
+    cookiesSubtitle: string;
+    cookiesEssentialTitle: string;
+    cookiesEssentialBody: string;
+    cookiesAnalyticsTitle: string;
+    cookiesAnalyticsBody: string;
+    attributionSubtitle: string;
+    attributionFooterPre: string;
+    attributionFooterLink: string;
+    attributionFooterPost: string;
+    sourceRoles: Record<string, string>;
+    madeWithPrefix: string;
+    buyMeACoffee: string;
+  };
+  districtRef: {
+    aboutTitle: string;
+    summaryHint: string;
+    rainySeasonsTitle: string;
+    hazardsTitle: string;
+    commonQuestionsTitle: string;
+    nearbyDistrictsTitle: string;
+  };
+  consent: {
+    cookieNoticeStart: string;
+    andWord: string;
+    cookieNoticeEnd: string;
+    essentialOnly: string;
+    acceptAll: string;
+    locationTitle: string;
+    locationBody: string;
+    locationError: string;
+    notNow: string;
+    allowLocation: string;
+    findingLocation: string;
+    pwaTitle: string;
+    pwaSubtitle: string;
+    pwaDismiss: string;
+    pwaIosStep1Pre: string;
+    pwaIosStep1Post: string;
+    pwaIosStep2: string;
+    pwaStep1: string;
+    pwaStep2: string;
+  };
+  sheets: {
+    graphAriaLabel: string;
+    feelsLike: {
+      feelsLikeValue: string;
+      actualValue: string;
+      actualTab: string;
+      feelsLikeTab: string;
+      actualExplain: string;
+      feelsLikeExplain: string;
+      todayPossessive: string;
+      dayPossessive: string;
+      chanceFormat: string;
+      precipitationRow: string;
+      rainfallTotal: string;
+      precipitationTotalLabel: string;
+      warmHotDry: string;
+      warmHotHumid: string;
+      warmBreeze: string;
+      warmMild: string;
+      warmCalm: string;
+      summaryNoData: string;
+      summaryWithRain: string;
+      summaryNoRain: string;
+      uvShort: string;
+      dailyChanceExplain: string;
+      dayLowHighSummary: string;
+      aroundHour: string;
+      feelsRangeClause: string;
+      feelsWarmerClause: string;
+      feelsCoolerClause: string;
+      aboutTitle: string;
+      aboutBody: string;
+    };
+    humidity: {
+      dewPointValue: string;
+      noteVeryHigh: string;
+      noteHigh: string;
+      noteComfortable: string;
+      noteDry: string;
+      summaryText: string;
+      aboutTitle: string;
+      aboutBody: string;
+      ugandaContext: string;
+    };
+    uv: {
+      whoScale: string;
+      bandExtreme: string;
+      bandVeryHigh: string;
+      bandHigh: string;
+      bandModerate: string;
+      bandLow: string;
+      todayWindow: string;
+      todaySteady: string;
+      otherDayWindow: string;
+      otherDayLow: string;
+      protectionTitle: string;
+      protectionVeryHigh: string;
+      protectionModerate: string;
+      protectionLow: string;
+      aboutTitle: string;
+      aboutBody: string;
+      ugandaContext: string;
+    };
+    visibility: {
+      whatLimitsTitle: string;
+      clear: string;
+      good: string;
+      reduced: string;
+      poor: string;
+      ugandaContext: string;
+    };
+    pressure: {
+      rising: string;
+      falling: string;
+      steady: string;
+      summaryText: string;
+      aboutTitle: string;
+      aboutBody1: string;
+      aboutBody2: string;
+    };
+    rainfall: {
+      chanceFormat: string;
+      nextRainExpected: string;
+      noSignificantRain: string;
+      ugandaContext: string;
+    };
+    wind: {
+      upToGust: string;
+      windAndGust: string;
+      averageWind: string;
+      strongestWind: string;
+      topSpeed: string;
+      onWaterTitle: string;
+      onWaterBody: string;
+      beaufortTitle: string;
+      bftCol: string;
+      descCol: string;
+      beaufortIntro: string;
+      todaySummary: string;
+      otherDaySummary: string;
+      beaufortScale: Record<number, string>;
+      compassFullNames: Record<string, string>;
+    };
+    moon: {
+      newMoon: string;
+      fullMoon: string;
+      aboutIlluminationTitle: string;
+      aboutIlluminationBody: string;
+      aboutDistanceTitle: string;
+      aboutDistanceBody: string;
+    };
+    airQuality: {
+      aqiScaleOf: string;
+      healthGuidance: string;
+      advisoryGood: string;
+      advisoryModerate: string;
+      advisorySensitive: string;
+      advisoryUnhealthy: string;
+      primaryPollutantTitle: string;
+      primaryPollutantDesc: string;
+      pollutantBreakdownTitle: string;
+      pollutantsHeading: string;
+      ugsHint: string;
+      aboutTitle: string;
+      aboutBody: string;
+    };
+    sunset: {
+      sunrise: string;
+      daylight: string;
+      sunset: string;
+      leftToday: string;
+      sunRisesIn: string;
+      sunHasSet: string;
+      equatorNote: string;
+      defaultHeadline: string;
+    };
+    radar: {
+      zoomOut: string;
+      zoomIn: string;
+      rainDetected: string;
+      noRainDetected: string;
+      legendExtreme: string;
+      legendHeavy: string;
+      legendModerate: string;
+      legendLight: string;
+      legendNote: string;
+      loadingRadar: string;
+      radarUnavailable: string;
+      forecastAt: string;
+      radarAt: string;
+      noRadarFrames: string;
+      pause: string;
+      play: string;
+      radarTimeline: string;
+      retryRadar: string;
+    };
+    siteHealth: {
+      title: string;
+      footerButton: string;
+      checkingStatus: string;
+      showingLabel: string;
+      weatherChainTitle: string;
+      checkingConnectivity: string;
+      checkFailed: string;
+      otherServicesTitle: string;
+      statusActive: string;
+      statusChecking: string;
+      statusNotConfigured: string;
+      statusReachable: string;
+      statusUnreachable: string;
+      checkedAt: string;
+      briefCache: string;
+      serviceRoles: Record<string, string>;
+    };
+  };
+  lugandaBeta: {
+    badge: string;
+    noticeTitle: string;
+    noticeBody: string;
+    reportButton: string;
+    dismissAria: string;
+    sheetTitle: string;
+    formIntro: string;
+    categoryLabel: string;
+    categories: {
+      translation: string;
+      grammar: string;
+      layout: string;
+      other: string;
+    };
+    currentTextLabel: string;
+    currentTextPlaceholder: string;
+    suggestedTextLabel: string;
+    suggestedTextPlaceholder: string;
+    detailsLabel: string;
+    detailsPlaceholder: string;
+    contactEmailLabel: string;
+    contactEmailPlaceholder: string;
+    submitButton: string;
+    submittingButton: string;
+    successTitle: string;
+    successBody: string;
+    sendAnotherButton: string;
+    failedTitle: string;
+    failedBody: string;
+    tryAgainButton: string;
+    errorValidation: string;
+    errorEmail: string;
+    errorTurnstile: string;
+    errorSubmit: string;
+  };
+  notFoundPage: {
+    title: string;
+    body: string;
+    homeButton: string;
+    searchButton: string;
+    popularDistrictsTitle: string;
+  };
+  hybridAdvisor: {
+    launcherLabel: string;
+    title: string;
+    greeting: string;
+    teaserPrompt: string;
+    newChatAria: string;
+    loadingWeather: string;
+    statusOnDeviceReady: string;
+    statusCloudReady: string;
+    statusOfflineUnavailable: string;
+    statusOfflineOnDeviceReady: string;
+    statusUnconfigured: string;
+    statusChecking: string;
+    phaseThinking: string;
+    phaseWriting: string;
+    stepReading: string;
+    stepChecking: string;
+    stepDrafting: string;
+    stopButton: string;
+    followUps: {
+      bestHours: string;
+      tonightRisk: string;
+    };
+    sourceOnDevice: string;
+    sourceCloud: string;
+    modeOnline: string;
+    modeOffline: string;
+    forecastSaved: string;
+    forecastNotSaved: string;
+    dataCached: string;
+    dataLive: string;
+    audiences: {
+      farmer: string;
+      fisher: string;
+      mountain_park: string;
+      general: string;
+    };
+    quickQuestions: {
+      farmer: string;
+      fisher: string;
+      mountain_park: string;
+      general: string;
+    };
+    questionLabel: string;
+    questionPlaceholder: string;
+    sendButton: string;
+    clearButton: string;
+    closeAria: string;
+    offlineHint: string;
+    disclaimer: string;
+  };
+}

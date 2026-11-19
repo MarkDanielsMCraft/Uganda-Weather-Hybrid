@@ -1,0 +1,2640 @@
+{
+  "meta": {
+    "version": "1.2.0",
+    "count": 152,
+    "note": "146 EC districts + 6 supplementary entries (Entebbe, Tororo City, Mukuju, Mulanda, Kisoko, Bughendera). Re-run scripts/build-districts.mjs to refresh.",
+    "source": "Uganda-Open-Data/kalulu, OpenStreetMap Overpass",
+    "lastUpdated": "2026-07-07"
+  },
+  "districts": [
+    {
+      "id": "UG-314",
+      "name": "Abim",
+      "slug": "abim",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.8044,
+        "lon": 33.7784
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-301",
+      "name": "Adjumani",
+      "slug": "adjumani",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.2369,
+        "lon": 31.7316
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-322",
+      "name": "Agago",
+      "slug": "agago",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.9478,
+        "lon": 33.3084
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-323",
+      "name": "Alebtong",
+      "slug": "alebtong",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.2678,
+        "lon": 33.2637
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-315",
+      "name": "Amolatar",
+      "slug": "amolatar",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.6377,
+        "lon": 32.6555
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "kyoga"
+    },
+    {
+      "id": "UG-324",
+      "name": "Amudat",
+      "slug": "amudat",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.8268,
+        "lon": 34.8112
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-216",
+      "name": "Amuria",
+      "slug": "amuria",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.9819,
+        "lon": 33.6239
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-316",
+      "name": "Amuru",
+      "slug": "amuru",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.1289,
+        "lon": 31.8621
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-302",
+      "name": "Apac",
+      "slug": "apac",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.934,
+        "lon": 32.3773
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-303",
+      "name": "Arua",
+      "slug": "arua",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.8355,
+        "lon": 30.9981
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-303",
+      "name": "Arua City",
+      "slug": "arua-city",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.8355,
+        "lon": 30.9981
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-217",
+      "name": "Budaka",
+      "slug": "budaka",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.0658,
+        "lon": 33.9941
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-218",
+      "name": "Bududa",
+      "slug": "bududa",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.0274,
+        "lon": 34.4044
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-WES-BGH",
+      "name": "Bughendera",
+      "slug": "bughendera",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.848,
+        "lon": 30.214
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-201",
+      "name": "Bugiri",
+      "slug": "bugiri",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.5208,
+        "lon": 33.7952
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-235",
+      "name": "Bugweri",
+      "slug": "bugweri",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.6246,
+        "lon": 33.6128
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-420",
+      "name": "Buhweju",
+      "slug": "buhweju",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.3203,
+        "lon": 30.3078
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-117",
+      "name": "Buikwe",
+      "slug": "buikwe",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.3036,
+        "lon": 33.0766
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true
+    },
+    {
+      "id": "UG-219",
+      "name": "Bukedea",
+      "slug": "bukedea",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.3708,
+        "lon": 34.0963
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-118",
+      "name": "Bukomansimbi",
+      "slug": "bukomansimbi",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.1267,
+        "lon": 31.6279
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-220",
+      "name": "Bukwo",
+      "slug": "bukwo",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.2548,
+        "lon": 34.6918
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-106",
+      "name": "Bulambuli",
+      "slug": "bulambuli",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.1667,
+        "lon": 34.2833
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide",
+        "flood"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 20
+    },
+    {
+      "id": "UG-416",
+      "name": "Buliisa",
+      "slug": "buliisa",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.9224,
+        "lon": 31.4133
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "albert"
+    },
+    {
+      "id": "UG-401",
+      "name": "Bundibugyo",
+      "slug": "bundibugyo",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.6606,
+        "lon": 30.0596
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-430",
+      "name": "Bunyangabu",
+      "slug": "bunyangabu",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.4784,
+        "lon": 30.1382
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-402",
+      "name": "Bushenyi",
+      "slug": "bushenyi",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.4819,
+        "lon": 30.1067
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-042",
+      "name": "Busia",
+      "slug": "busia",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.3716,
+        "lon": 34.1723
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-221",
+      "name": "Butaleja",
+      "slug": "butaleja",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.8654,
+        "lon": 33.9437
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-119",
+      "name": "Butambala",
+      "slug": "butambala",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.1643,
+        "lon": 32.0584
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-233",
+      "name": "Butebo",
+      "slug": "butebo",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.1732,
+        "lon": 33.9952
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-120",
+      "name": "Buvuma",
+      "slug": "buvuma",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.3203,
+        "lon": 33.1817
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true
+    },
+    {
+      "id": "UG-226",
+      "name": "Buyende",
+      "slug": "buyende",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.2355,
+        "lon": 33.1295
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-317",
+      "name": "Dokolo",
+      "slug": "dokolo",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.91,
+        "lon": 33.0749
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-CEN-ENB",
+      "name": "Entebbe",
+      "slug": "entebbe",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.0512,
+        "lon": 32.4634
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": true,
+      "popularRank": 6
+    },
+    {
+      "id": "UG-139",
+      "name": "Fort Portal City",
+      "slug": "fort-portal-city",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.638,
+        "lon": 30.246
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-121",
+      "name": "Gomba",
+      "slug": "gomba",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.2043,
+        "lon": 31.729
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-105",
+      "name": "Gulu",
+      "slug": "gulu",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.7746,
+        "lon": 32.298
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 5
+    },
+    {
+      "id": "UG-304",
+      "name": "Gulu City",
+      "slug": "gulu-city",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.0346,
+        "lon": 32.4226
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false,
+      "popularRank": 5
+    },
+    {
+      "id": "UG-403",
+      "name": "Hoima",
+      "slug": "hoima",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.5653,
+        "lon": 31.1936
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "albert"
+    },
+    {
+      "id": "UG-403",
+      "name": "Hoima City",
+      "slug": "hoima-city",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.5653,
+        "lon": 31.1936
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-417",
+      "name": "Ibanda",
+      "slug": "ibanda",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.0612,
+        "lon": 30.443
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-203",
+      "name": "Iganga",
+      "slug": "iganga",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.7222,
+        "lon": 33.4703
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-418",
+      "name": "Isingiro",
+      "slug": "isingiro",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.8389,
+        "lon": 30.8716
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-103",
+      "name": "Jinja",
+      "slug": "jinja",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.4233,
+        "lon": 33.2067
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true,
+      "popularRank": 3
+    },
+    {
+      "id": "UG-204",
+      "name": "Jinja City",
+      "slug": "jinja-city",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.5682,
+        "lon": 33.2107
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": true,
+      "popularRank": 3
+    },
+    {
+      "id": "UG-318",
+      "name": "Kaabong",
+      "slug": "kaabong",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.6583,
+        "lon": 34.1781
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-404",
+      "name": "Kabale",
+      "slug": "kabale",
+      "region": "western",
+      "coordinates": {
+        "lat": -1.3362,
+        "lon": 30.0261
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-405",
+      "name": "Kabarole",
+      "slug": "kabarole",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.6213,
+        "lon": 30.3409
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-213",
+      "name": "Kaberamaido",
+      "slug": "kaberamaido",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.6874,
+        "lon": 33.1281
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-427",
+      "name": "Kagadi",
+      "slug": "kagadi",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.023,
+        "lon": 30.8349
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-428",
+      "name": "Kakumiro",
+      "slug": "kakumiro",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.9625,
+        "lon": 31.3055
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-237",
+      "name": "Kalaki",
+      "slug": "kalaki",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.8327,
+        "lon": 33.3301
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-107",
+      "name": "Kalangala",
+      "slug": "kalangala",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.3167,
+        "lon": 32.2333
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true,
+      "popularRank": 15
+    },
+    {
+      "id": "UG-222",
+      "name": "Kaliro",
+      "slug": "kaliro",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.0828,
+        "lon": 33.4851
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-122",
+      "name": "Kalungu",
+      "slug": "kalungu",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.0904,
+        "lon": 31.8229
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-101",
+      "name": "Kampala",
+      "slug": "kampala",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.3476,
+        "lon": 32.5825
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 1,
+      "population": 1507082
+    },
+    {
+      "id": "UG-205",
+      "name": "Kamuli",
+      "slug": "kamuli",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.9422,
+        "lon": 33.1173
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true
+    },
+    {
+      "id": "UG-413",
+      "name": "Kamwenge",
+      "slug": "kamwenge",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.3371,
+        "lon": 30.5717
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-414",
+      "name": "Kanungu",
+      "slug": "kanungu",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.7064,
+        "lon": 29.7419
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-206",
+      "name": "Kapchorwa",
+      "slug": "kapchorwa",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.331,
+        "lon": 34.4217
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-236",
+      "name": "Kapelebyong",
+      "slug": "kapelebyong",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 2.1971,
+        "lon": 33.7021
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-335",
+      "name": "Karenga",
+      "slug": "karenga",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.7089,
+        "lon": 33.7637
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-406",
+      "name": "Kasese",
+      "slug": "kasese",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.1311,
+        "lon": 30.0046
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "edward"
+    },
+    {
+      "id": "UG-126",
+      "name": "Kassanda",
+      "slug": "kassanda",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.5331,
+        "lon": 31.7603
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-207",
+      "name": "Katakwi",
+      "slug": "katakwi",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.9736,
+        "lon": 34.0114
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-112",
+      "name": "Kayunga",
+      "slug": "kayunga",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.9921,
+        "lon": 32.8898
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true,
+      "lakeZone": "kyoga"
+    },
+    {
+      "id": "UG-433",
+      "name": "Kazo",
+      "slug": "kazo",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.0256,
+        "lon": 30.8122
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-407",
+      "name": "Kibaale",
+      "slug": "kibaale",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.8224,
+        "lon": 31.0594
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-103",
+      "name": "Kiboga",
+      "slug": "kiboga",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.858,
+        "lon": 31.9326
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-227",
+      "name": "Kibuku",
+      "slug": "kibuku",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.0571,
+        "lon": 33.7811
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-432",
+      "name": "Kikuube",
+      "slug": "kikuube",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.3104,
+        "lon": 30.9838
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-419",
+      "name": "Kiruhura",
+      "slug": "kiruhura",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.3248,
+        "lon": 30.8808
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-421",
+      "name": "Kiryandongo",
+      "slug": "kiryandongo",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.9936,
+        "lon": 32.056
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-EAS-KSK",
+      "name": "Kisoko",
+      "slug": "kisoko",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.758,
+        "lon": 34.098
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-408",
+      "name": "Kisoro",
+      "slug": "kisoro",
+      "region": "western",
+      "coordinates": {
+        "lat": -1.199,
+        "lon": 29.6974
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-434",
+      "name": "Kitagwenda",
+      "slug": "kitagwenda",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.0131,
+        "lon": 30.3454
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-305",
+      "name": "Kitgum",
+      "slug": "kitgum",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.4439,
+        "lon": 33.2357
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-319",
+      "name": "Koboko",
+      "slug": "koboko",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.5351,
+        "lon": 30.9746
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-325",
+      "name": "Kole",
+      "slug": "kole",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.2989,
+        "lon": 32.7504
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-306",
+      "name": "Kotido",
+      "slug": "kotido",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.9946,
+        "lon": 33.9733
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-208",
+      "name": "Kumi",
+      "slug": "kumi",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.4565,
+        "lon": 33.9782
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-333",
+      "name": "Kwania",
+      "slug": "kwania",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.9005,
+        "lon": 32.743
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-228",
+      "name": "Kween",
+      "slug": "kween",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.3516,
+        "lon": 34.5734
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-123",
+      "name": "Kyankwanzi",
+      "slug": "kyankwanzi",
+      "region": "central",
+      "coordinates": {
+        "lat": 1.0933,
+        "lon": 31.6025
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-422",
+      "name": "Kyegegwa",
+      "slug": "kyegegwa",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.4821,
+        "lon": 31.0132
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-415",
+      "name": "Kyenjojo",
+      "slug": "kyenjojo",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.644,
+        "lon": 30.6607
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-125",
+      "name": "Kyotera",
+      "slug": "kyotera",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.7143,
+        "lon": 31.6439
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-326",
+      "name": "Lamwo",
+      "slug": "lamwo",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.5243,
+        "lon": 32.7621
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-307",
+      "name": "Lira",
+      "slug": "lira",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.3321,
+        "lon": 32.969
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-307",
+      "name": "Lira City",
+      "slug": "lira-city",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.3321,
+        "lon": 32.969
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-229",
+      "name": "Luuka",
+      "slug": "luuka",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.8208,
+        "lon": 33.3261
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-104",
+      "name": "Luweero",
+      "slug": "luweero",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.8484,
+        "lon": 32.557
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-124",
+      "name": "Lwengo",
+      "slug": "lwengo",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.4441,
+        "lon": 31.418
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-114",
+      "name": "Lyantonde",
+      "slug": "lyantonde",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.2593,
+        "lon": 31.1999
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-336",
+      "name": "Madi-okollo",
+      "slug": "madi-okollo",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.8671,
+        "lon": 31.2578
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-223",
+      "name": "Manafwa",
+      "slug": "manafwa",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.8813,
+        "lon": 34.2685
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-320",
+      "name": "Maracha",
+      "slug": "maracha",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.2473,
+        "lon": 30.9379
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-105",
+      "name": "Masaka",
+      "slug": "masaka",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.4835,
+        "lon": 31.8589
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-105",
+      "name": "Masaka City",
+      "slug": "masaka-city",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.4835,
+        "lon": 31.8589
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-409",
+      "name": "Masindi",
+      "slug": "masindi",
+      "region": "western",
+      "coordinates": {
+        "lat": 1.6918,
+        "lon": 31.7843
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-214",
+      "name": "Mayuge",
+      "slug": "mayuge",
+      "region": "eastern",
+      "coordinates": {
+        "lat": -0.197,
+        "lon": 33.4957
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true
+    },
+    {
+      "id": "UG-209",
+      "name": "Mbale",
+      "slug": "mbale",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.9766,
+        "lon": 34.2094
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 7
+    },
+    {
+      "id": "UG-209",
+      "name": "Mbale City",
+      "slug": "mbale-city",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.9766,
+        "lon": 34.2094
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false,
+      "popularRank": 7
+    },
+    {
+      "id": "UG-104",
+      "name": "Mbarara",
+      "slug": "mbarara",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.6133,
+        "lon": 30.6583
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "drought",
+        "hail"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 4
+    },
+    {
+      "id": "UG-410",
+      "name": "Mbarara City",
+      "slug": "mbarara-city",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.4179,
+        "lon": 30.6083
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false,
+      "popularRank": 4
+    },
+    {
+      "id": "UG-423",
+      "name": "Mitooma",
+      "slug": "mitooma",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.6061,
+        "lon": 30.0259
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-115",
+      "name": "Mityana",
+      "slug": "mityana",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.456,
+        "lon": 32.0347
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-108",
+      "name": "Moroto",
+      "slug": "moroto",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.534,
+        "lon": 34.666
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "popularRank": 12
+    },
+    {
+      "id": "UG-309",
+      "name": "Moyo",
+      "slug": "moyo",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.6668,
+        "lon": 31.7588
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-106",
+      "name": "Mpigi",
+      "slug": "mpigi",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.1279,
+        "lon": 32.1485
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-107",
+      "name": "Mubende",
+      "slug": "mubende",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.5153,
+        "lon": 31.3387
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-108",
+      "name": "Mukono",
+      "slug": "mukono",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.0706,
+        "lon": 32.7419
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true,
+      "popularRank": 8
+    },
+    {
+      "id": "UG-EAS-MKJ",
+      "name": "Mukuju",
+      "slug": "mukuju",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.646,
+        "lon": 34.214
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-EAS-MLD",
+      "name": "Mulanda",
+      "slug": "mulanda",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.724,
+        "lon": 34.252
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-334",
+      "name": "Nabilatuk",
+      "slug": "nabilatuk",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.0382,
+        "lon": 34.5098
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-311",
+      "name": "Nakapiripirit",
+      "slug": "nakapiripirit",
+      "region": "northern",
+      "coordinates": {
+        "lat": 1.8492,
+        "lon": 34.5508
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-116",
+      "name": "Nakaseke",
+      "slug": "nakaseke",
+      "region": "central",
+      "coordinates": {
+        "lat": 1.003,
+        "lon": 32.1602
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-109",
+      "name": "Nakasongola",
+      "slug": "nakasongola",
+      "region": "central",
+      "coordinates": {
+        "lat": 1.3198,
+        "lon": 32.3838
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-230",
+      "name": "Namayingo",
+      "slug": "namayingo",
+      "region": "eastern",
+      "coordinates": {
+        "lat": -0.2539,
+        "lon": 33.8207
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood",
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true
+    },
+    {
+      "id": "UG-234",
+      "name": "Namisindwa",
+      "slug": "namisindwa",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.8679,
+        "lon": 34.3817
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-224",
+      "name": "Namutumba",
+      "slug": "namutumba",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.8892,
+        "lon": 33.6965
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-327",
+      "name": "Napak",
+      "slug": "napak",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.3982,
+        "lon": 34.1107
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "karamoja",
+      "hazards": [
+        "drought",
+        "heat"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-310",
+      "name": "Nebbi",
+      "slug": "nebbi",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.4337,
+        "lon": 31.1549
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-231",
+      "name": "Ngora",
+      "slug": "ngora",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.4987,
+        "lon": 33.7275
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-424",
+      "name": "Ntoroko",
+      "slug": "ntoroko",
+      "region": "western",
+      "coordinates": {
+        "lat": 0.9913,
+        "lon": 30.3526
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "albert"
+    },
+    {
+      "id": "UG-411",
+      "name": "Ntungamo",
+      "slug": "ntungamo",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.9549,
+        "lon": 30.3113
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-328",
+      "name": "Nwoya",
+      "slug": "nwoya",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.5271,
+        "lon": 31.849
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-337",
+      "name": "Obongi",
+      "slug": "obongi",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.3636,
+        "lon": 31.5983
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-331",
+      "name": "Omoro",
+      "slug": "omoro",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.6443,
+        "lon": 32.4765
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-329",
+      "name": "Otuke",
+      "slug": "otuke",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.4787,
+        "lon": 33.3291
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-321",
+      "name": "Oyam",
+      "slug": "oyam",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.3489,
+        "lon": 32.5145
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-312",
+      "name": "Pader",
+      "slug": "pader",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.888,
+        "lon": 32.8474
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "northern",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-332",
+      "name": "Pakwach",
+      "slug": "pakwach",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.4676,
+        "lon": 31.3897
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-210",
+      "name": "Pallisa",
+      "slug": "pallisa",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.2198,
+        "lon": 33.6381
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-110",
+      "name": "Rakai",
+      "slug": "rakai",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.7264,
+        "lon": 31.3055
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-429",
+      "name": "Rubanda",
+      "slug": "rubanda",
+      "region": "western",
+      "coordinates": {
+        "lat": -1.1733,
+        "lon": 29.8797
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-425",
+      "name": "Rubirizi",
+      "slug": "rubirizi",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.256,
+        "lon": 29.9921
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false,
+      "lakeZone": "edward"
+    },
+    {
+      "id": "UG-431",
+      "name": "Rukiga",
+      "slug": "rukiga",
+      "region": "western",
+      "coordinates": {
+        "lat": -1.1456,
+        "lon": 30.1097
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-412",
+      "name": "Rukungiri",
+      "slug": "rukungiri",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.6974,
+        "lon": 29.8868
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-435",
+      "name": "Rwampara",
+      "slug": "rwampara",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.7349,
+        "lon": 30.4853
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-045",
+      "name": "Sembabule",
+      "slug": "sembabule",
+      "region": "central",
+      "coordinates": {
+        "lat": -0.0895,
+        "lon": 31.4574
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-232",
+      "name": "Serere",
+      "slug": "serere",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.4924,
+        "lon": 33.3606
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-426",
+      "name": "Sheema",
+      "slug": "sheema",
+      "region": "western",
+      "coordinates": {
+        "lat": -0.5919,
+        "lon": 30.2953
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_millet_cotton",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-215",
+      "name": "Sironko",
+      "slug": "sironko",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.1879,
+        "lon": 34.3486
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "mountain",
+      "hazards": [
+        "landslide"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-211",
+      "name": "Soroti",
+      "slug": "soroti",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.7878,
+        "lon": 33.6031
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "teso",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-211",
+      "name": "Soroti City",
+      "slug": "soroti-city",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 1.7878,
+        "lon": 33.6031
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-143",
+      "name": "Terego",
+      "slug": "terego",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.1824,
+        "lon": 31.1699
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-212",
+      "name": "Tororo",
+      "slug": "tororo",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.7406,
+        "lon": 34.0944
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-EAS-TCC",
+      "name": "Tororo City",
+      "slug": "tororo-city",
+      "region": "eastern",
+      "coordinates": {
+        "lat": 0.6927,
+        "lon": 34.1809
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "lightning"
+      ],
+      "isCity": true,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-102",
+      "name": "Wakiso",
+      "slug": "wakiso",
+      "region": "central",
+      "coordinates": {
+        "lat": 0.4044,
+        "lon": 32.4594
+      },
+      "rainfallPattern": "bimodal",
+      "agroZone": "banana_coffee",
+      "hazards": [
+        "flood"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": true,
+      "popularRank": 2
+    },
+    {
+      "id": "UG-313",
+      "name": "Yumbe",
+      "slug": "yumbe",
+      "region": "northern",
+      "coordinates": {
+        "lat": 3.4886,
+        "lon": 31.293
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    },
+    {
+      "id": "UG-330",
+      "name": "Zombo",
+      "slug": "zombo",
+      "region": "northern",
+      "coordinates": {
+        "lat": 2.5231,
+        "lon": 30.9074
+      },
+      "rainfallPattern": "unimodal",
+      "agroZone": "west_nile",
+      "hazards": [
+        "drought"
+      ],
+      "isCity": false,
+      "isLakeVictoriaZone": false
+    }
+  ]
+}

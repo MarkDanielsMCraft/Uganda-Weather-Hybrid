@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand accent: identity only. The wordmark, the primary action in a
+     card, a link, the selected day, the current location pin. Declared
+     once so every one of those surfaces follows from a single value.
+
+     Sampled from the logo artwork rather than guessed.
+
+     `BRAND_GREEN` in `src/lib/design/brand-mark.ts` carries the same value
+     for the icon files and the share card, which are rendered without a
+     stylesheet and so cannot read this. `brand-mark.test.ts` fails if the
+     two drift. */
+  --color-brand-green: #0d903b;
+  /* Label colour for text sitting on the accent. A mid green is not light
+     enough behind the near black labels the old gold carried, so this
+     keeps those labels readable. */
+  --color-on-brand: #ffffff;
+
+  /* The middle step of a status scale: air quality moderate, a watch level
+     alert, crops to keep an eye on, lake conditions to respect, weather
+     served from a backup source. Named for what it means rather than for
+     the hue, so it does not get swapped for the brand colour. Green reads
+     as "all clear" to everyone, which is the wrong thing to say here. */
+  --color-caution: #e8a838;
+  /* Severe weather warning accent used on the floating hero warning pill. */
+  --color-alert-red: #ff4d4f;
+}
+
+:root {
+  --bg-deep: #12101a;
+  --bg-plum: #1a1524;
+  --text-primary: #f7f4ef;
+  --text-muted: rgba(247, 244, 239, 0.68);
+  --accent-lake: #1b8a7a;
+  --accent-coral: #e07a5f;
+  --accent-forest: #2d6a4f;
+}
+
+html,
+body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.main-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/**
+ * Glass scrollbars everywhere: near-invisible at rest, a faint translucent
+ * thumb on hover, never the OS's default opaque gray bar, which reads as
+ * a jarring element on top of the glass UI.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(247, 244, 239, 0.14) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(247, 244, 239, 0.14);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(247, 244, 239, 0.32);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/**
+ * Tailwind's own preflight deliberately leaves buttons at the browser
+ * default `cursor: auto` (no hand cursor), unlike links — every clickable
+ * tile, day, hour, toggle, and sheet control in this app is a `<button>`,
+ * so without this the whole site would show the plain arrow cursor over
+ * everything clickable. One global rule instead of a `cursor-pointer`
+ * class on every button in every file; disabled buttons get the "not
+ * allowed" cursor instead, matching that they're intentionally inert.
+ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand-green) 35%, transparent);
+}
+
+/* Keeps hero and sky-overlay copy readable on bright backgrounds */
+.text-on-sky {
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.88),
+    0 2px 10px rgba(0, 0, 0, 0.68),
+    0 4px 24px rgba(0, 0, 0, 0.48);
+}
+
+.text-on-sky-strong {
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.92),
+    0 3px 14px rgba(0, 0, 0, 0.72),
+    0 6px 32px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(18px, -6px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes glow {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/**
+ * TopBar city-weather chips drift right to left, toward the wordmark, in a
+ * seamless loop (the chip list is rendered twice back to back; animating
+ * to -50% brings the second copy exactly into the first copy's start
+ * position). Paused on hover/focus so chips are still reliably clickable.
+ */
+@keyframes chip-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.chip-marquee-track {
+  /* Duration scaled up from an earlier 8-chip pass (38s) to match the
+     full city list (19+ chips) — same duration with 2x+ more content to
+     cover made the drift look rushed/jerky rather than smooth. */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation: chip-marquee 95s linear infinite;
+}
+
+.chip-marquee-track:hover,
+.chip-marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
+/* =========================================================================
+   Weather Icon Vector Micro-Animations
+   ========================================================================= */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Sun: Gentle continuous rotation around the 32x32 viewBox center */
+  @keyframes sun-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Cloud: Subtle vertical buoyancy without layout shift */
+  @keyframes cloud-float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-1.2px);
+    }
+  }
+
+  /*
+   * Rain: Down-left diagonal translation and opacity wave.
+   * Declares transform-box: fill-box and transform-origin: center so CSS
+   * rotate(20deg) pivots around each individual raindrop center.
+   */
+  @keyframes rain-fall {
+    0% {
+      opacity: 0;
+      transform: translate(1.2px, -2.5px) rotate(20deg);
+    }
+    35% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-1.8px, 3.5px) rotate(20deg);
+    }
+  }
+
+  /* Lightning: Double-pulse stroboscopic electric flicker */
+  @keyframes lightning-flash {
+    0%, 86%, 100% {
+      opacity: 1;
+      filter: drop-shadow(0 0 1.5px rgba(255, 214, 10, 0.6));
+    }
+    89% {
+      opacity: 0.15;
+      filter: none;
+    }
+    92% {
+      opacity: 1;
+      filter: drop-shadow(0 0 5px rgba(255, 214, 20, 0.95));
+    }
+    95% {
+      opacity: 0.35;
+      filter: none;
+    }
+  }
+
+  /* Wind and Fog: Streamer horizontal breathing */
+  @keyframes wind-drift {
+    0%, 100% {
+      transform: translateX(0px);
+    }
+    50% {
+      transform: translateX(1.5px);
+    }
+  }
+
+  .animate-sun-rays {
+    transform-box: view-box;
+    transform-origin: 16px 16px;
+    animation: sun-spin 24s linear infinite;
+  }
+
+  .animate-cloud-float {
+    animation: cloud-float 4.5s ease-in-out infinite;
+  }
+
+  .animate-rain-drop-1,
+  .animate-rain-drop-2,
+  .animate-rain-drop-3 {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .animate-rain-drop-1 {
+    animation: rain-fall 1.35s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-rain-drop-2 {
+    animation: rain-fall 1.35s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.45s;
+  }
+
+  .animate-rain-drop-3 {
+    animation: rain-fall 1.35s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.9s;
+  }
+
+  .animate-lightning {
+    animation: lightning-flash 4s ease-in-out infinite;
+  }
+
+  .animate-wind {
+    animation: wind-drift 3s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+  }
+}

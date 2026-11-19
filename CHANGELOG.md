@@ -1,0 +1,244 @@
+# Changelog
+
+All notable changes to Uganda Weather are documented in this file.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- Hybrid offline and cloud Weather Safety Advisor (`src/lib/ai/` and `src/components/advisor/HybridWeatherAdvisor.tsx`) powered by Firebase AI Logic (`InferenceMode.PREFER_ON_DEVICE` online, `InferenceMode.ONLY_ON_DEVICE` offline), Firebase Remote Config (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`), and Firebase App Check, featuring a live Hybrid Runtime Inspector, district geography aware quick actions, cross district lookup with spelling correction, exact Uganda local timestamps on cached forecasts, English and Luganda localization, prompt injection filtering, and sliding window rate limiting.
+- Translucent glass floating dropdown (`src/components/glass/GlassSelect.tsx`) with keyboard navigation, accessible combobox semantics, and brand green pill selection.
+- Clickable place navigation across National Parks, Mountain Peaks, Airports, Lake Shorelines, and Nearby Districts, plus URL query hydration for direct place links.
+- Outward fading bold red floating severe weather warning pill (`SevereAlertBanner.tsx`), uniform card and detail sheet typography, divider free cards and sheets, and strengthened sunny sky text legibility.
+- Custom glass 404 Not Found page (`src/app/not-found.tsx` and `src/components/layout/NotFoundView.tsx`) localized in both English and Luganda with live atmospheric weather backdrop, brand mark, direct home and search actions, and quick links to major Ugandan cities and districts.
+- Luganda beta notice banner and modern glass issue reporting form (`POST /api/v1/feedback/luganda`) allowing users in Luganda mode to report translation, grammar, or layout issues directly to the language review inbox without exposing internal email addresses in client code.
+- Comprehensive Luganda language support with reactive English to Luganda switching across desktop and mobile interfaces, dark mode glass switcher control, centralized typed translation dictionary, and authentic meteorological phrasing calibrated against standard Luganda orthography (Empandiika y Oluganda Entongole).
+
+- Dedicated Android notification channel (`weather_alerts`) for severe weather alerts with high importance, vibration, amber notification tint, and a monochrome status bar storm icon (`ic_stat_weather_alert`).
+- Android home screen widget suite expanded to six native widgets: Forecast, Details, 5 Day Forecast, Air Quality, Agriculture, and Sunrise and Sunset, with dedicated titles, concise subtitles, and dynamic layout previews (`previewLayout`) displaying real glass cards, metrics, and icons in the widget picker.
+- Continuous horizontal marquee ticker for severe weather alerts in the Android Forecast widget with amber badge and smooth scrolling text.
+- Compact two row card profile for the Android Forecast widget and unified dark mode obsidian glass backgrounds with celestial glow and specular rim highlights.
+- Android network security configuration (`network_security_config.xml`) enforcing encrypted HTTPS across all domains while safely permitting local development loopback addresses.
+- Android data extraction rules (`data_extraction_rules.xml` and `backup_rules.xml`) securing persistent widget preferences against unintended cloud backups.
+- Comprehensive R8 minification and ProGuard configuration preserving Capacitor framework reflection, plugin constructors, JavaScript interfaces, and native widgets during release builds.
+- Dedicated offline fallback screen (`public/offline.html`) linked through Capacitor server error routing to handle dropped connectivity gracefully.
+- Debounced iOS home screen widget update pipeline preventing daily operating system timeline budget exhaustion.
+- Synchronized native widget payload exporting air quality index, agricultural season, and lake zone flags for specialized widgets.
+- Explicit registration of the iOS Privacy Manifest (`PrivacyInfo.xcprivacy`) in project build resources with performance, analytics, and push notification disclosures.
+- Automation build scripts `cap:bundle:android` and `cap:build:android` for generating optimized Android App Bundles and release binaries.
+- Native multi resolution desktop application icon bundle (`public/icons/UgandaWeather.icns`) built from the transparent silhouette emblem with zero background for desktop dock alignment.
+- Expanded desktop and native widget suite with dedicated Weather Details, compact Daily Forecast, and celestial Sunrise and Sunset widgets matching glanceable desktop and mobile layouts.
+- Dynamic live weather card backgrounds for widgets that adapt atmospheric gradients and specular rim lighting to live conditions (radiant sunlit clear day, stormy rain slate, overcast blue grey, tempest violet, and celestial obsidian night).
+- Transparent application icons across web and desktop touch marks ensuring the Uganda silhouette and weather emblem render without artificial dark background tiles in desktop docks and home screens.
+- Home screen widget suite matching modern glanceable layouts across small, medium, and large families with horizontal hourly forecasts, five day outlook range bars, and specialized Agriculture and Air Quality widgets.
+- Card free download action in the application footer with vector icons and solid brand green navigation buttons that automatically reappear if the application is uninstalled.
+
+- Wind compass dial with a fine degree bezel, cardinal letters, a marker pinned to the exact bearing, and a center readout of the degree and compass point. The wind detail sheet shows a large dial with numerals every 30 degrees.
+- The cookie banner no longer appears inside the native mobile apps.
+- The mobile header now respects the top safe area so it never sits under the system status bar.
+- Canonical URL declaration on root metadata and homepage metadata.
+- Navigation breadcrumb list and direct map reference in district structured data.
+- Structured data for four lakes (Victoria, Kyoga, Albert, and Edward) to assist local and geographic search.
+- User engagement triggers to start weather canvas animation only after initial interaction, keeping the main thread quiet during initial load.
+- Native mobile platforms via Capacitor with live data synchronization and shared code architecture.
+- Hardware back button integration on mobile devices dismissing open detail sheets before navigating backwards or exiting.
+- Live weather resume handler refreshing stale queries when the mobile application returns to the foreground.
+- Widget data bridge syncing current district conditions, temperatures, high and low ranges, and storm alerts for native home screen widgets.
+- Native weather widgets now show hourly forecasts, precipitation chances, active alerts, and open the app when tapped.
+- Analytics telemetry integration with privacy compliant IP anonymization and consent gating.
+- High resolution icon suite with PNG fallbacks, mobile touch icon, and multi resolution favicon ico.
+- Native startup permission dialog requesting location and push notifications on first launch.
+- Documented the local Android push configuration required to enable push delivery in release builds.
+- Continuous movement detection with a two kilometer threshold that automatically switches the local forecast when travelling between districts.
+- Full screen OpenStreetMap Uganda launch background covering the entire viewport on startup, with the centered national weather emblem.
+- Twelve hour predictive timeline batch serialized into native widget storage, allowing mobile widgets to step through hourly forecast intervals without cellular radio wakeups.
+- Scroll collapsing header in main scroll area using GPU accelerated translate3d and opacity transitions that fade district title and temperature into the compact sticky top bar.
+- Equatorial solar ephemeris model calibrated for Uganda (0 to 4 degrees North) with realistic diurnal sun elevation and azimuth paths across WebGL and canvas atmospheric scenes.
+- Dedicated documentation on African meteorological realities covering Lake Victoria convective squall dynamics, UNMA early warning alerts, and agro-pastoral seasons.
+- Comprehensive architectural specification on vector iconography, procedural atmospheric canvas physics, and photometric glass contrast.
+- Dedicated metric vector iconography suite (air pressure, relative humidity, visibility, thermometer, ultraviolet index, precipitation, historical averages, moon phase, airport, and radar) wired across all widget tiles and detail sheet headers.
+- Restored storm alerts push notification toggle in the alerts detail sheet with native permission handling and mobile fallback guidance.
+- Periodic celestial shooting star meteor trails streaking across the upper celestial dome during clear night scenes.
+- Branch promotion verification workflow in CI enforcing linear promotion from dev to staging to main branches.
+- Automated test coverage for robots and sitemap route generation.
+
+### Changed
+
+- Android now compiles and targets SDK 36 (Android 16), which the store requires for new apps and updates, using Android Gradle Plugin 8.13.0. Android builds need a Java 21 JDK.
+- iOS `Info.plist` declares `ITSAppUsesNonExemptEncryption = NO` and requires `arm64` devices instead of the old `armv7` value.
+- iOS widget names and descriptions use plain wording ("Sunrise and Sunset", "Air Quality", "Current weather, the next few hours, and the next 5 days") and no longer claim features the widgets do not have.
+- New `Native apps` workflow builds the Android app with its unit tests and the iOS app with its widget on every push and pull request.
+- New `pnpm check:native-version` guard, part of `pnpm guards`, fails when the Xcode project version does not match `package.json` or the app and widget build numbers differ.
+- Added the mobile release runbook (`docs/24-mobile-release-runbook.md`) and Java 21 setup notes.
+
+- Unified the weather alert card with standard glass tiles, replacing custom advisory headers with standard Warning, Caution, or Alert titles and removing external API provider declarations.
+- Restructured Android Forecast and Daily Forecast home screen widgets into a balanced two column glass layout with current conditions on the left and a five day forecast with horizontal temperature range bars on the right, eliminating unused vertical space and adhering strictly to the dark glass surface system. Replaced solid amber widget alert badge with frosted dark glass and white text, and eliminated all yellow and gold gradients from range bars and atmospheric backgrounds.
+- Display official brand logo at the top of README and synchronize all developer documentation with the shipped architecture.
+- Removed the text wordmark from desktop top bar and mobile header across apps and website, keeping the clean weather emblem glyph linked to the home view.
+- Redesigned offline fallback screen with full country map background, high contrast weather emblem, and retry button matching the launch visual style.
+
+- Prevented the hourly forecast strip from duplicating the current hour right after Now when crossing an hour boundary or when provider timestamps lag behind wall clock time, aligned Now precipitation probability to the current hour rather than midnight or daily totals, guaranteed sunrise and sunset markers in the hourly strip from astronomy data, and replaced gusts and main driver phrasing with plain everyday English.
+- Added strong downward pull and overscroll dismissal directly inside open detail cards so pulling down firmly within the card body closes it without needing to tap outside or press the close button, fixed WeatherAPI 12 hour sunrise and sunset timestamp parsing so sunrise and sunset markers always appear in the hourly strip, fixed late evening hour graph slicing in the conditions sheet, replaced bimodal and unimodal labels with plain seasonal wording, and removed the pulsing map pin ring.
+- Simplified agriculture and district copy to use natural everyday words (gardens, region, planting time, dry weather, and clear sentence case), removed the redundant shoreline subtitle from lake views, and improved mobile subtitle contrast and phrasing across home tiles.
+- Expanded the hourly forecast strip from 12 hours to a full 24 hour timeline with chronological sunrise and sunset markers across all providers, and distributed hourly columns across the full card width so no empty space remains at the end of the strip.
+- Removed status indicator dots from the footer button, lake safety tiles, lake detail views, crop outlook rows, and provider status cards so status dots appear only inside the site health connectivity sheet, and simplified the site health timestamp footer.
+- Support the REST URL and token variable names generated by the Vercel Upstash integration.
+- Configured deployment background jobs to daily schedules compatible with hosting tier limits while serving real time alert and weather queries on demand.
+- Refined navigational compass dial pointers with a dedicated 12 o'clock vertical lubber sight pointer, bold True North indicator triangle at 0 degrees, and centered reticle.
+- Eliminated Android 12 and above first launch white screen and circular logo cutout by syncing system splash background color and transparent animated icon.
+- Allowed OpenGraph image generator route in robots configuration so social crawlers and search indexers can fetch dynamic preview cards.
+- Matched Android launch backgrounds across system, native, and page splash layers, keeping the native cover until the page splash can take over.
+- Upgraded weather vector iconography to continuous cubic Bezier contours with negative space knockout masks for partly cloudy and thunderstorm glyphs.
+- Enhanced atmospheric canvas physics with collinear raindrop kinematics, windward spawn expansion, three pass additive plasma lightning, temporal crepuscular sunbeams, and drifting volumetric mist puffs.
+- Deepened glass panel photometry with chromatic navy slate substrates, vibrancy saturation boosting, and bottom right radial accent washes.
+- Added semantic top level headings across the weather hero and initial server rendered markup for search indexing and accessibility.
+- Improved foreground text contrast across forecast temperatures, local clock, hero subtitles, and data source indicators to meet WCAG AA requirements.
+- Deferred column span layout computation in dense grid hooks to an animation frame callback to eliminate forced reflow during mount.
+- Suppressed web PWA installation prompt when running inside native mobile shells.
+- Added touch manipulation and transparent tap highlight to interactive buttons for responsive touch feedback across mobile devices.
+- Configured custom domain uganda-weather.com across canonical metadata, OpenGraph previews, sitemaps, robots, schema definitions, documentation, and native mobile shells.
+- Balanced mobile launcher icon padding and emblem scale to follow Android adaptive icon guidelines.
+- Upgraded weather radar to a multi tile OpenStreetMap base layer centered directly on district coordinates.
+- Calibrated hardware capability checks so modern mobile devices render dynamic atmospheric scenes rather than falling back to flat surfaces.
+- Concurrently executed Open-Meteo forecast and air quality queries to eliminate serial network latency on mobile connections.
+- Adopted custom multicolor weather vector icon suite with solid white clouds, golden sun, cyan droplets, and electric yellow lightning bolts for sharp contrast and clarity.
+- Configured Capacitor native shells to load the deployed application over HTTPS and reject native sync without an explicit deployment URL.
+- Reorganized weather, places, and detail sheet widgets into a modular component architecture with standardized directory barrel exports.
+- Configured test execution to avoid rate limit collisions and upstream endpoint saturation during local runs.
+- Added test report output artifacts to lint ignore patterns.
+
+### Fixed
+- Home screen widgets on iOS and Android no longer show made up weather when a reading is missing. Stand in values such as wind "6 km/h", humidity "65%", UV "3 Mod", "AQI Good", sunrise "6:42 AM", sunset "6:51 PM", a fixed lake wave height, a fixed "12h 09m" daylight length, and "Bimodal Rainy Season" are replaced with `--` or "not available". Missing temperatures no longer show as "0°".
+- Android widgets other than Forecast kept the layout's sample values ("Kampala", "22°", "Tue 19° 28°") when no data was saved or the data could not be read. Every widget now sets every field on every update, and forecast rows with no data are hidden.
+- Android widgets printed the word "null" for missing text values, because Android's JSON reader returns "null" for JSON null. A shared `optionalString` helper now treats null, missing, and blank values as missing.
+- Widgets no longer fetch weather for Kampala when the app has never saved a district. They show "Open app to load weather" until the person opens the app.
+- Widgets never store or show the server's sample weather (`source` of `demo` or `demo-fallback`).
+- iOS widgets now declare their background with `containerBackground` on iOS 17 and later, which the system requires before it shows a widget's content.
+- iOS widget temperatures are rounded like the web app and Android, instead of being cut off (23.7 now shows 24, not 23).
+- The iOS Agriculture widget no longer always says "Planting Window". It shows "Farm weather", today's rain chance, and the district's rainfall pattern in the same words the website uses. The Android Agriculture widget now says "today" for what is today's rain chance, not "this week".
+- Migrated Uganda localities client to the OpenData v1 API with nested hierarchy resolution and string identifiers, resolving village search availability when searching local places.
+- Fixed nighttime rain, thunderstorm, cloudy, and fog atmospheric rendering where daytime slate palettes bleached the sky at night, added nocturnal midnight obsidian gradients, dark storm nimbus clouds with lunar ambient reflection, moon and stars visible through night clouds with a lunar corona, and capped animation frame intervals to sixty frames per second to eliminate high processor usage on high refresh displays.
+- Fixed mobile pull to refresh gesture interference by ignoring horizontal card swipes and enforcing an activation threshold, preventing accidental layout jumping when panning hourly forecast cards.
+- Adapted compact daily forecast rows with responsive column proportions and icon scaling to prevent start edge data clipping and temperature bar compression in dense tile layouts.
+- Replaced container mouse event listeners on the hourly forecast strip with global window pointer tracking and click suppression, ensuring smooth horizontal dragging and reliable detail sheet opening.
+- Locked background container scrolling during full screen radar expansion and prevented detail sheet overscroll chaining to parent containers.
+- Throttled atmospheric canvas scroll tracking with animation frame callbacks to eliminate layout reflow and scroll stuttering.
+- Reset the main scroll container to the top upon district navigation, ensuring the weather hero and current conditions are immediately visible when switching locations.
+- Resolved card scrolling conflict in detail sheets where touch gestures at the top of a card were intercepted as dismissal drags rather than scrolling the card body, allowing mobile and desktop users to scroll through card content smoothly.
+- Preserved native vertical page scrolling across hourly forecast and lake risk cards by removing vertical wheel interception and horizontal touch constraints, allowing effortless vertical scrolling on mobile phones and desktop trackpads while supporting horizontal mouse dragging.
+- Synchronized atmospheric rain splash collision boundaries with real time card scroll offsets on the main scroll area, preventing raindrops from splashing in mid air when cards scroll.
+- Locked background container scrolling while a detail card is open, preventing background cards from scrolling underneath the sheet.
+- Removed transition delay on weather hero scroll collapse to eliminate stuttering and rubber banding during vertical card scrolling.
+- Replaced overscroll containment on compact daily forecast cards with standard vertical overscroll, preventing scroll traps when scrolling through dashboard cards.
+- Rendered location permission warnings from the top bar location button as a floating popover with auto dismiss rather than an in flow paragraph, preventing header layout displacement when location access is denied.
+- Synchronized top bar district chip temperature and condition icon with the live active weather bundle so header chips stay aligned with the main weather screen.
+- Fixed ten day forecast truncation where primary provider limits left three days by adding secondary donor fallback to Pirate Weather, passing descriptive application headers to external forecast endpoints, and capping cache duration for incomplete forecasts.
+- Bumped weather bundle cache to version three and client offline storage to version two to immediately rotate out short forecast payloads.
+- Evicted degraded memory cache entries on refetch errors and prevented saving incomplete forecast bundles to client offline storage.
+- Bounded the UNMA CAP alerts feed fetch with a fallback timeout to prevent feed requests from hanging indefinitely.
+- Centralized weather target resolution and cache duration configuration in the current weather route.
+- Added Escape key dismissal and search query cancellation to eliminate keyboard trapping and race conditions in search autocomplete.
+- Wrapped client side air quality, metar, and landmark weather fetches in resilient error handling for offline visits.
+- Resolved test selector collisions on desktop viewports by targeting the visible hero temperature element instead of hidden collapsed mobile headers.
+- Fixed Android Gradle wrapper compatibility by aligning the wrapper distribution with Android Gradle Plugin 8.7.2 requirements.
+- Prevented push alert settings from reporting success when device registration or server token removal fails, and bounded native registration waits so users can retry.
+- Kept native weather widgets in an unavailable state when source values are missing or invalid instead of displaying guessed weather, and invalidated cached values from the previous widget schema.
+- Retried APNs push delivery through the sandbox endpoint when a development device token is rejected by the production endpoint.
+
+- Restored mobile top bar header with district pill button and refresh trigger, removing empty chip skeletons on mobile screens.
+- Removed screen blending mode on radar overlays so real precipitation echoes render clearly over OpenStreetMap base tiles.
+- Added live precipitation status to the expanded radar view and extended regional zoom range to level 6.
+- Prevented 404 console errors from Vercel analytics and speed insights on non Vercel environments and test runners.
+- Stabilized radar frame collection in the rain viewer hook to prevent redundant effect cleanup intervals.
+- Cleaned up unused imports and deprecated variables across scripts and API routes.
+- Resolved missing accessible name and malformed accessibility tree issues on the lite mode toggle and top search bar.
+- Cut total blocking time by pausing continuous canvas shader repaints during synthetic audit runs while painting a full static frame immediately on mount.
+- Fixed Android native compilation by aligning main activity lifecycle method visibility with bridge activity and translating the home screen widget receiver to pure Java.
+- Calibrated attribution page meta description to standard search engine length for search crawler optimization.
+- Prevented unmounted timer leaks during launch splash transitions, protected Core Web Vitals on web browsers by bypassing splash delay outside native shells, eliminated background GPS battery drain by switching to low power positioning, and protected manual district selection from out of order geolocation responses.
+- Added XML namespace support to Common Alerting Protocol parser to ingest official warnings containing namespaced alert and info tags.
+- Eliminated cache stampedes on expired district weather keys by coalescing concurrent in flight requests into a single upstream fetcher promise across memory and distributed cache layers.
+- Connected native Android splash bridge to dismiss cold boot overlay as soon as the application mounts.
+- Added automated RSA service account token minting and in memory caching for FCM HTTP v1 push alert delivery.
+- Replaced developer error copy in home screen with user friendly network guidance.
+- Added modern FCM HTTP v1 dispatch support with safe exception handling for push notification delivery.
+
+### Security
+
+- Android widget data now arrives through the `WidgetData` Capacitor plugin, which Capacitor only accepts from the main page of the app's allowed sites. The old `WidgetBridge` JavaScript interface, which also accepted calls from embedded frames, is removed from the app. The website still calls it as a fallback for app builds already installed on phones.
+- Added a CodeQL workflow that scans the web app and the Android source on pushes, pull requests, and weekly.
+- Added automatic dependency updates (`.github/dependabot.yml`) for the web packages (daily), Android build tooling, and workflow actions (weekly), all aimed at `dev`.
+
+## [1.1.0] - 2026-09-05
+
+### Added
+
+- A location consent card, so location access is offered and explained rather than requested by the browser with no context.
+- An About card on the home screen, linking to the project background from where people actually are rather than only from the menu.
+- District pages now carry real content and geographic data instead of a shared placeholder body.
+- Google Search Console and Bing Webmaster verification.
+- A `favicon.ico` alongside the existing SVG icon, for browsers that do not take the SVG.
+- Contributor rules in `AGENTS.md`, enforced by scripted guards that run in CI: AI attribution, copy style, security headers, and required documentation.
+
+### Changed
+
+- New brand mark, a green accent, and a colour system where each value means something rather than being picked per component.
+- The country outline is traced from real boundary data instead of drawn by hand, so the shape matches the reference.
+- The forecast fills a full ten days. Providers that return fewer are topped up rather than leaving the strip short.
+- The detail sheet can be swiped away, upward or downward, or dismissed by tapping off it. The small close button is no longer the only way out.
+- The install prompt is a popup over the page rather than a card in the scroll column, and it now has something to do on iPhone: the two Add to Home Screen steps, with the Share glyph drawn inline. Safari never fires the install event, so the panel previously did nothing when tapped.
+- Home screen main thread time and first load JavaScript are substantially lower. A Node crypto polyfill worth roughly 320 kB of parsed JavaScript is no longer bundled for the browser, the animated canvas stands down on hardware that cannot keep up with it, and two overlay animations load on demand. Measured on a mid range mobile profile, Total Blocking Time fell from 7933 ms to 931 ms and First Load JS from 342 kB to 169 kB.
+- Place weather lookups fan out four at a time instead of all at once, so the fallback provider survives being used for a whole list of parks or mountains.
+- Scheduled prefetch jobs run once daily, within what the hosting plan allows.
+- The portfolio site's apex and www origins may frame the app.
+
+### Fixed
+
+- Locations outside Uganda are rejected with a message instead of crashing the page.
+- Weather is never synthesised in production. When every provider fails the API answers 503 instead of serving generated data that looks real, and the app falls back to the last cached reading, marked stale. The retry state now means what it says: every provider failed and there is nothing to show.
+- Park weather no longer falls back to a constant when a lookup fails, which had it reporting the same reading for different parks.
+- Historical averages compare today's high against the climate normal. The two numbers previously came from the same field of the same response, so the tile always reported no difference from average.
+- The location card no longer sticks after a permission change.
+
+### Security
+
+- Upgraded PostCSS past CVE-2026-41305.
+
+## [1.0.0] - 2026-07-10
+
+### Added
+
+- District level weather for all 152 districts of Uganda, plus local search for any village or town.
+- Hourly and 10 day forecasts, with a dense, balanced tile layout on every screen size.
+- Severe weather alerts sourced from Uganda's official CAP feed.
+- Air quality index and pollutant breakdown (PM2.5, PM10, ozone, and more).
+- Agriculture advisory: season outlook, soil moisture, crop guidance, and a weekly rain chance chart.
+- Fishing safety conditions for four lakes: Victoria, Kyoga, Albert, and Edward.
+- National park weather for Uganda's 10 gazetted parks.
+- Mountain weather for 5 major summit points, with an accuracy note about high altitude readings.
+- Airport weather (METAR) for 6 reporting Ugandan airports, sourced from official aviation weather reports.
+- Historical averages, comparing today's conditions against the typical high for the date.
+- A rain radar map with live precipitation tiles.
+- Geolocation that defaults to Kampala until permission is granted, then continuously follows the user's position.
+- A translucent, glass style detail sheet system used across every tile.
+- A public read only weather API under `/api/v1`.
+- Progressive Web App support, installable on mobile and desktop.
+
+### Changed
+
+- Batched the district chip strip in the top bar into a single request instead of one request per location, reducing page load API traffic significantly.
+
+### Fixed
+
+- A stacking context bug that made the desktop search dropdown's results unclickable in some cases.
+
+## [0.1.0] - 2026-07-07
+
+- Initial project scaffold: Next.js App Router, TypeScript, Tailwind, weather provider integration, and the core district weather screen.
+
+[unreleased]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v0.1.0...v1.0.0
+[0.1.0]: https://github.com/MarkDanielsMCraft/uganda-weather/releases/tag/v0.1.0

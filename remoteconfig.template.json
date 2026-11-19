@@ -1,0 +1,32 @@
+{
+  "parameters": {
+    "advisor_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Master switch for the Uganda Weather Hybrid AI Advisor.",
+      "valueType": "BOOLEAN"
+    },
+    "advisor_cloud_model": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud fallback Gemini model name for Firebase AI Logic.",
+      "valueType": "STRING"
+    },
+    "advisor_max_output_tokens": {
+      "defaultValue": {
+        "value": "512"
+      },
+      "description": "Maximum output tokens for cloud weather briefings.",
+      "valueType": "NUMBER"
+    },
+    "advisor_prefer_on_device": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Prefer on-device Gemini Nano execution before cloud fallback when online.",
+      "valueType": "BOOLEAN"
+    }
+  }
+}

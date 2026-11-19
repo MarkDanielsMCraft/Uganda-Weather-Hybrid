@@ -1,0 +1,2876 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-07-06T20:06:54Z",
+    "timestamp_areas_base": "2026-05-12T07:36:16Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "relation",
+      "id": 192818,
+      "center": {
+        "lat": 2.1015272,
+        "lon": 29.3677576
+      },
+      "tags": {
+        "ISO3166-2": "CD-IT",
+        "admin_level": "4",
+        "admin_level:-2015-06": "5",
+        "admin_level:2015-06-": "4",
+        "admin_type:CD": "province",
+        "admin_type:CD:-2005-06": "district",
+        "admin_type:CD:2005-06-": "province",
+        "boundary": "administrative",
+        "description": "ancien district devenu province en juin 2015",
+        "name": "Ituri",
+        "name:cs": "Ituri",
+        "name:fr": "Ituri",
+        "name:ru": "Итури",
+        "start_date": "2015-06",
+        "timezone": "Africa/Lubumbashi",
+        "type": "boundary",
+        "wikidata": "Q24909562",
+        "wikipedia": "en:Ituri Province"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 934530,
+      "center": {
+        "lat": -0.7063523,
+        "lon": 29.7418895
+      },
+      "tags": {
+        "ISO3166-2": "UG-414",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kanungu",
+        "type": "boundary",
+        "wikidata": "Q1032245",
+        "wikipedia": "en:Kanungu District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3486321,
+      "center": {
+        "lat": 0.3715674,
+        "lon": 34.1723153
+      },
+      "tags": {
+        "CONSTITUEN": "TESO NORTH",
+        "CONST_CODE": "225",
+        "COUNTY_COD": "40",
+        "COUNTY_NAM": "BUSIA",
+        "ISO3166-2": "KE-04",
+        "OBJECTID": "39",
+        "Shape_Area": "0.14764386658",
+        "Shape_Leng": "2.57838796438",
+        "admin_level": "4",
+        "boundary": "administrative",
+        "disused:id": "1295",
+        "name": "Busia",
+        "name:ceb": "Busia",
+        "name:de": "Busia County",
+        "name:en": "Busia County",
+        "name:es": "Condado de Busia",
+        "name:fa": "شهرستان بوسیا",
+        "name:fr": "Comté de Busia",
+        "name:id": "County Busia",
+        "name:it": "Contea di Busia",
+        "name:ja": "ブシア",
+        "name:ko": "부시아현",
+        "name:nan": "Busia Kūn",
+        "name:nl": "Busia County",
+        "name:no": "Busia fylke",
+        "name:pl": "Busia",
+        "name:ru": "Бусиа",
+        "name:sv": "Busia",
+        "name:sw": "Kaunti ya Busia",
+        "name:uk": "Бусія",
+        "name:ur": "بوسیا کاؤنٹی",
+        "name:vi": "Busia",
+        "name:zh": "布希亞郡",
+        "name:zu": "Busia County",
+        "type": "boundary",
+        "wikidata": "Q1017519",
+        "wikipedia": "en:Busia County"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3490438,
+      "center": {
+        "lat": 2.2988634,
+        "lon": 32.7504224
+      },
+      "tags": {
+        "ISO3166-2": "UG-325",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kole",
+        "old_name": "Apac",
+        "type": "boundary",
+        "wikidata": "Q3539151",
+        "wikipedia": "en:Kole District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497114,
+      "center": {
+        "lat": 2.3488501,
+        "lon": 32.5144558
+      },
+      "tags": {
+        "ISO3166-2": "UG-321",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Oyam",
+        "type": "boundary",
+        "wikidata": "Q1318833",
+        "wikipedia": "en:Oyam District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497126,
+      "center": {
+        "lat": 1.9339679,
+        "lon": 32.377307
+      },
+      "tags": {
+        "ISO3166-2": "UG-302",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Apac",
+        "type": "boundary",
+        "wikidata": "Q1229750",
+        "wikipedia": "en:Apac District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497127,
+      "center": {
+        "lat": 1.9100448,
+        "lon": 33.0748561
+      },
+      "tags": {
+        "ISO3166-2": "UG-317",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Dokolo",
+        "type": "boundary",
+        "wikidata": "Q1318872",
+        "wikipedia": "en:Dokolo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497128,
+      "center": {
+        "lat": 2.3320582,
+        "lon": 32.969007
+      },
+      "tags": {
+        "ISO3166-2": "UG-307",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Lira",
+        "name:fr": "District de Lira",
+        "type": "boundary",
+        "wikidata": "Q206519",
+        "wikipedia": "en:Lira District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497165,
+      "center": {
+        "lat": 2.9478406,
+        "lon": 33.3084325
+      },
+      "tags": {
+        "ISO3166-2": "UG-322",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Agago",
+        "type": "boundary",
+        "wikidata": "Q3536053",
+        "wikipedia": "en:Agago District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497166,
+      "center": {
+        "lat": 2.4787129,
+        "lon": 33.329067
+      },
+      "tags": {
+        "ISO3166-2": "UG-329",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Otuke",
+        "type": "boundary",
+        "wikidata": "Q3539602",
+        "wikipedia": "en:Otuke District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497167,
+      "center": {
+        "lat": 2.8880276,
+        "lon": 32.8474298
+      },
+      "tags": {
+        "ISO3166-2": "UG-312",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Pader",
+        "type": "boundary",
+        "wikidata": "Q1230035",
+        "wikipedia": "en:Pader District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497245,
+      "center": {
+        "lat": 3.034639,
+        "lon": 32.4226375
+      },
+      "tags": {
+        "ISO3166-2": "UG-304",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Gulu",
+        "type": "boundary",
+        "website": "https://www.gulu.go.ug/",
+        "wikidata": "Q1028215",
+        "wikipedia": "en:Gulu District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497363,
+      "center": {
+        "lat": 2.2677928,
+        "lon": 33.2637214
+      },
+      "tags": {
+        "ISO3166-2": "UG-323",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Alebtong",
+        "type": "boundary",
+        "wikidata": "Q3536082",
+        "wikipedia": "en:Alebtong District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497364,
+      "center": {
+        "lat": 1.6873949,
+        "lon": 33.1280758
+      },
+      "tags": {
+        "ISO3166-2": "UG-213",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kaberamaido",
+        "type": "boundary",
+        "wikidata": "Q1229906",
+        "wikipedia": "en:Kaberamaido District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497388,
+      "center": {
+        "lat": 1.6376632,
+        "lon": 32.6555073
+      },
+      "tags": {
+        "ISO3166-2": "UG-315",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Amolatar",
+        "type": "boundary",
+        "wikidata": "Q1318822",
+        "wikipedia": "en:Amolatar District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497397,
+      "center": {
+        "lat": 1.9735661,
+        "lon": 34.0113961
+      },
+      "tags": {
+        "ISO3166-2": "UG-207",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Katakwi",
+        "type": "boundary",
+        "wikidata": "Q1229930",
+        "wikipedia": "en:Katakwi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497398,
+      "center": {
+        "lat": 1.4986906,
+        "lon": 33.7274843
+      },
+      "tags": {
+        "ISO3166-2": "UG-231",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Ngora",
+        "old_name": "Kumi",
+        "type": "boundary",
+        "wikidata": "Q1114903",
+        "wikipedia": "en:Ngora District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497399,
+      "center": {
+        "lat": 1.4924256,
+        "lon": 33.3606328
+      },
+      "tags": {
+        "ISO3166-2": "UG-232",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Serere",
+        "old_name": "Soroti",
+        "type": "boundary",
+        "wikidata": "Q1114927",
+        "wikipedia": "en:Serere District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497400,
+      "center": {
+        "lat": 1.7878298,
+        "lon": 33.6030927
+      },
+      "tags": {
+        "ISO3166-2": "UG-211",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Soroti",
+        "type": "boundary",
+        "wikidata": "Q1091337",
+        "wikipedia": "en:Soroti District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497424,
+      "center": {
+        "lat": 1.9819251,
+        "lon": 33.6238735
+      },
+      "tags": {
+        "ISO3166-2": "UG-216",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Amuria",
+        "type": "boundary",
+        "wikidata": "Q1375762",
+        "wikipedia": "en:Amuria District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497425,
+      "center": {
+        "lat": 2.804424,
+        "lon": 33.7783769
+      },
+      "tags": {
+        "ISO3166-2": "UG-314",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Abim",
+        "type": "boundary",
+        "wikidata": "Q1375780",
+        "wikipedia": "en:Abim District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497438,
+      "center": {
+        "lat": 2.994562,
+        "lon": 33.9732945
+      },
+      "tags": {
+        "ISO3166-2": "UG-306",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kotido",
+        "type": "boundary",
+        "wikidata": "Q1318843",
+        "wikipedia": "en:Kotido District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497439,
+      "center": {
+        "lat": 2.3981753,
+        "lon": 34.1106559
+      },
+      "tags": {
+        "ISO3166-2": "UG-327",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Napak",
+        "type": "boundary",
+        "wikidata": "Q3539495",
+        "wikipedia": "en:Napak District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497965,
+      "center": {
+        "lat": 1.9936424,
+        "lon": 32.055951
+      },
+      "tags": {
+        "ISO3166-2": "UG-421",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kiryandongo",
+        "old_name": "Masindi",
+        "type": "boundary",
+        "wikidata": "Q3539116",
+        "wikipedia": "en:Kiryandongo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497970,
+      "center": {
+        "lat": 2.5271059,
+        "lon": 31.8489856
+      },
+      "tags": {
+        "ISO3166-2": "UG-328",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Nwoya",
+        "type": "boundary",
+        "wikidata": "Q3539572",
+        "wikipedia": "en:Nwoya District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497974,
+      "center": {
+        "lat": 1.691764,
+        "lon": 31.7842996
+      },
+      "tags": {
+        "ISO3166-2": "UG-409",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Masindi",
+        "type": "boundary",
+        "wikidata": "Q1032238",
+        "wikipedia": "en:Masindi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3497981,
+      "center": {
+        "lat": 1.3197629,
+        "lon": 32.3837894
+      },
+      "tags": {
+        "ISO3166-2": "UG-109",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Nakasongola",
+        "type": "boundary",
+        "wikidata": "Q976859",
+        "wikipedia": "en:Nakasongola District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498002,
+      "center": {
+        "lat": 0.8580177,
+        "lon": 31.9326251
+      },
+      "tags": {
+        "ISO3166-2": "UG-103",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kiboga",
+        "type": "boundary",
+        "wikidata": "Q892064",
+        "wikipedia": "en:Kiboga District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498003,
+      "center": {
+        "lat": 1.0933309,
+        "lon": 31.6024775
+      },
+      "tags": {
+        "ISO3166-2": "UG-123",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kyankwanzi",
+        "old_name": "Kiboga",
+        "type": "boundary",
+        "wikidata": "Q534203",
+        "wikipedia": "en:Kyankwanzi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498004,
+      "center": {
+        "lat": 1.003049,
+        "lon": 32.1602476
+      },
+      "tags": {
+        "ISO3166-2": "UG-116",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Nakaseke",
+        "type": "boundary",
+        "wikidata": "Q432438",
+        "wikipedia": "en:Nakaseke District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498012,
+      "center": {
+        "lat": -0.3248143,
+        "lon": 30.8807678
+      },
+      "tags": {
+        "ISO3166-2": "UG-419",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kiruhura",
+        "type": "boundary",
+        "wikidata": "Q1318865",
+        "wikipedia": "en:Kiruhura District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498013,
+      "center": {
+        "lat": 0.4821187,
+        "lon": 31.0132439
+      },
+      "tags": {
+        "ISO3166-2": "UG-422",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kyegegwa",
+        "old_name": "Kyenjojo",
+        "type": "boundary",
+        "wikidata": "Q3539256",
+        "wikipedia": "en:Kyegegwa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498014,
+      "center": {
+        "lat": 0.51534,
+        "lon": 31.3386731
+      },
+      "tags": {
+        "ISO3166-2": "UG-107",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mubende",
+        "type": "boundary",
+        "wikidata": "Q891962",
+        "wikipedia": "en:Mubende District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498015,
+      "center": {
+        "lat": -0.0537264,
+        "lon": 31.3059244
+      },
+      "tags": {
+        "ISO3166-2": "UG-111",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Sembabule",
+        "type": "boundary",
+        "wikidata": "Q976883",
+        "wikipedia": "en:Sembabule District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498021,
+      "center": {
+        "lat": 0.6212548,
+        "lon": 30.3408865
+      },
+      "tags": {
+        "ISO3166-2": "UG-405",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kabarole",
+        "type": "boundary",
+        "wikidata": "Q1229910",
+        "wikipedia": "en:Kabarole District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498022,
+      "center": {
+        "lat": 0.8224297,
+        "lon": 31.0593516
+      },
+      "tags": {
+        "ISO3166-2": "UG-407",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kibaale",
+        "type": "boundary",
+        "wikidata": "Q604966",
+        "wikipedia": "en:Kibaale District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498023,
+      "center": {
+        "lat": 0.6439747,
+        "lon": 30.6607358
+      },
+      "tags": {
+        "ISO3166-2": "UG-415",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kyenjojo",
+        "type": "boundary",
+        "wikidata": "Q1318815",
+        "wikipedia": "en:Kyenjojo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498024,
+      "center": {
+        "lat": 0.9913127,
+        "lon": 30.3525883
+      },
+      "tags": {
+        "ISO3166-2": "UG-424",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Ntoroko",
+        "old_name": "Bundibugyo",
+        "type": "boundary",
+        "wikidata": "Q3539547",
+        "wikipedia": "en:Ntoroko District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498031,
+      "center": {
+        "lat": -0.3203118,
+        "lon": 30.3078195
+      },
+      "tags": {
+        "ISO3166-2": "UG-420",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "historic:name": "Nsiika County -",
+        "name": "Buhweju",
+        "old_name": "Bushenyi",
+        "type": "boundary",
+        "wikidata": "Q3537661",
+        "wikipedia": "en:Buhweju District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498054,
+      "center": {
+        "lat": -0.4819012,
+        "lon": 30.1067367
+      },
+      "tags": {
+        "ISO3166-2": "UG-402",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bushenyi",
+        "type": "boundary",
+        "wikidata": "Q1229797",
+        "wikipedia": "en:Bushenyi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498055,
+      "center": {
+        "lat": -0.5918868,
+        "lon": 30.2953057
+      },
+      "tags": {
+        "ISO3166-2": "UG-426",
+        "addr:country": "UG",
+        "addr:region": "Western region",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "historic:name": "Kibingo",
+        "name": "Sheema",
+        "old_name": "Bushenyi",
+        "type": "boundary",
+        "wikidata": "Q3539711",
+        "wikipedia": "en:Sheema District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498056,
+      "center": {
+        "lat": -0.6061413,
+        "lon": 30.0258824
+      },
+      "tags": {
+        "ISO3166-2": "UG-423",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mitooma",
+        "old_name": "Bushenyi",
+        "type": "boundary",
+        "wikidata": "Q3539414",
+        "wikipedia": "en:Mitooma District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498063,
+      "center": {
+        "lat": -0.4178723,
+        "lon": 30.6083245
+      },
+      "tags": {
+        "ISO3166-2": "UG-410",
+        "addr:country": "UG",
+        "addr:region": "Western region",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mbarara",
+        "type": "boundary",
+        "wikidata": "Q1091595",
+        "wikipedia": "en:Mbarara district"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498083,
+      "center": {
+        "lat": -0.1267021,
+        "lon": 31.6279117
+      },
+      "tags": {
+        "ISO3166-2": "UG-118",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bukomansimbi",
+        "old_name": "Masaka",
+        "type": "boundary",
+        "wikidata": "Q3321599",
+        "wikipedia": "en:Bukomansimbi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498085,
+      "center": {
+        "lat": -0.4835377,
+        "lon": 31.8588811
+      },
+      "tags": {
+        "ISO3166-2": "UG-105",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Masaka",
+        "name:zh": "马萨卡区",
+        "type": "boundary",
+        "wikidata": "Q1032233"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498093,
+      "center": {
+        "lat": 0.1643168,
+        "lon": 32.0583582
+      },
+      "tags": {
+        "ISO3166-2": "UG-119",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Butambala",
+        "old_name": "Mpigi",
+        "type": "boundary",
+        "wikidata": "Q3321622",
+        "wikipedia": "en:Butambala District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498094,
+      "center": {
+        "lat": 0.2042744,
+        "lon": 31.7290087
+      },
+      "tags": {
+        "ISO3166-2": "UG-121",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Gomba",
+        "old_name": "Mpigi",
+        "type": "boundary",
+        "wikidata": "Q3321637",
+        "wikipedia": "en:Gomba District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498095,
+      "center": {
+        "lat": 0.4559973,
+        "lon": 32.0347467
+      },
+      "tags": {
+        "ISO3166-2": "UG-115",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mityana",
+        "type": "boundary",
+        "wikidata": "Q1230005",
+        "wikipedia": "en:Mityana District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498096,
+      "center": {
+        "lat": 0.1278502,
+        "lon": 32.1485055
+      },
+      "tags": {
+        "ISO3166-2": "UG-106",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mpigi",
+        "name:zh": "姆皮吉区",
+        "type": "boundary",
+        "wikidata": "Q1362109",
+        "wikipedia": "en:Mpigi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498102,
+      "center": {
+        "lat": 0.3035883,
+        "lon": 33.0765507
+      },
+      "tags": {
+        "ISO3166-2": "UG-117",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Buikwe",
+        "old_name": "Mukono",
+        "type": "boundary",
+        "wikidata": "Q3321631",
+        "wikipedia": "en:Buikwe District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498104,
+      "center": {
+        "lat": 0.9920867,
+        "lon": 32.8898135
+      },
+      "tags": {
+        "ISO3166-2": "UG-112",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kayunga",
+        "type": "boundary",
+        "wikidata": "Q1207391",
+        "wikipedia": "en:Kayunga District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498105,
+      "center": {
+        "lat": 0.8484483,
+        "lon": 32.556999
+      },
+      "tags": {
+        "ISO3166-2": "UG-104",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Luweero",
+        "type": "boundary",
+        "wikidata": "Q1364817",
+        "wikipedia": "en:Luweero District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498106,
+      "center": {
+        "lat": 0.3760737,
+        "lon": 32.438907
+      },
+      "tags": {
+        "ISO3166-2": "UG-113",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "land_area": "administrative",
+        "name": "Wakiso",
+        "note": "Hierarchy: region: Central Region",
+        "source": "UBOS villages shapefile 2011",
+        "source:date": "2011-12-31",
+        "type": "boundary",
+        "wikidata": "Q976848",
+        "wikipedia": "en:Wakiso District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498110,
+      "center": {
+        "lat": 0.7221666,
+        "lon": 33.4703366
+      },
+      "tags": {
+        "ISO3166-2": "UG-203",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Iganga",
+        "type": "boundary",
+        "wikidata": "Q1229869",
+        "wikipedia": "en:Iganga District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498111,
+      "center": {
+        "lat": 0.568224,
+        "lon": 33.2106821
+      },
+      "tags": {
+        "ISO3166-2": "UG-204",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Jinja",
+        "type": "boundary",
+        "wikidata": "Q983748",
+        "wikipedia": "en:Jinja District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498112,
+      "center": {
+        "lat": 0.8208004,
+        "lon": 33.3260965
+      },
+      "tags": {
+        "ISO3166-2": "UG-229",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Luuka",
+        "old_name": "Iganga",
+        "type": "boundary",
+        "wikidata": "Q1114977",
+        "wikipedia": "en:Luuka District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498117,
+      "center": {
+        "lat": 1.2354589,
+        "lon": 33.1294505
+      },
+      "tags": {
+        "ISO3166-2": "UG-226",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Buyende",
+        "old_name": "Kamuli",
+        "type": "boundary",
+        "wikidata": "Q1114938",
+        "wikipedia": "en:Buyende District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498118,
+      "center": {
+        "lat": 0.9422221,
+        "lon": 33.1173276
+      },
+      "tags": {
+        "ISO3166-2": "UG-205",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kamuli",
+        "official_name": "Kamuli District",
+        "type": "boundary",
+        "wikidata": "Q164474",
+        "wikipedia": "en:Kamuli District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498126,
+      "center": {
+        "lat": 1.0827815,
+        "lon": 33.4850548
+      },
+      "tags": {
+        "ISO3166-2": "UG-222",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kaliro",
+        "official_name": "Kaliro Distric",
+        "type": "boundary",
+        "wikidata": "Q1375859",
+        "wikipedia": "en:Kaliro District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498127,
+      "center": {
+        "lat": 1.0571199,
+        "lon": 33.7810647
+      },
+      "tags": {
+        "ISO3166-2": "UG-227",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kibuku",
+        "official_name": "Kibuku District",
+        "old_name": "Pallisa",
+        "type": "boundary",
+        "wikidata": "Q1114885",
+        "wikipedia": "en:Kibuku District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498128,
+      "center": {
+        "lat": 0.8892332,
+        "lon": 33.6964535
+      },
+      "tags": {
+        "ISO3166-2": "UG-224",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Namutumba",
+        "type": "boundary",
+        "wikidata": "Q1375819",
+        "wikipedia": "en:Namutumba District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498129,
+      "center": {
+        "lat": 1.219792,
+        "lon": 33.6380656
+      },
+      "tags": {
+        "ISO3166-2": "UG-210",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Pallisa",
+        "type": "boundary",
+        "wikidata": "Q1375843",
+        "wikipedia": "en:Pallisa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498135,
+      "center": {
+        "lat": 0.5208067,
+        "lon": 33.7952369
+      },
+      "tags": {
+        "ISO3166-2": "UG-201",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bugiri",
+        "type": "boundary",
+        "wikidata": "Q1229798",
+        "wikipedia": "en:Bugiri District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498136,
+      "center": {
+        "lat": 0.865384,
+        "lon": 33.943657
+      },
+      "tags": {
+        "ISO3166-2": "UG-221",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Butaleja",
+        "type": "boundary",
+        "wikidata": "Q1375755",
+        "wikipedia": "en:Butaleja District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498159,
+      "center": {
+        "lat": 1.0658365,
+        "lon": 33.9940722
+      },
+      "tags": {
+        "ISO3166-2": "UG-217",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Budaka",
+        "type": "boundary",
+        "wikidata": "Q1362085",
+        "wikipedia": "en:Budaka District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498160,
+      "center": {
+        "lat": 0.9765762,
+        "lon": 34.2093665
+      },
+      "tags": {
+        "ISO3166-2": "UG-209",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mbale",
+        "type": "boundary",
+        "wikidata": "Q581822",
+        "wikipedia": "en:Mbale District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498161,
+      "center": {
+        "lat": 1.3498511,
+        "lon": 34.3809665
+      },
+      "tags": {
+        "ISO3166-2": "UG-225",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bulambuli",
+        "old_name": "Sironko",
+        "type": "boundary",
+        "wikidata": "Q1114868",
+        "wikipedia": "en:Bulambuli District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498162,
+      "center": {
+        "lat": 1.1879456,
+        "lon": 34.3485887
+      },
+      "tags": {
+        "ISO3166-2": "UG-215",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Sironko",
+        "type": "boundary",
+        "wikidata": "Q1375835",
+        "wikipedia": "en:Sironko District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498172,
+      "center": {
+        "lat": 1.3707839,
+        "lon": 34.0962616
+      },
+      "tags": {
+        "ISO3166-2": "UG-219",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bukedea",
+        "type": "boundary",
+        "wikidata": "Q1375812",
+        "wikipedia": "en:Bukedea District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498173,
+      "center": {
+        "lat": 1.4565258,
+        "lon": 33.978184
+      },
+      "tags": {
+        "ISO3166-2": "UG-208",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kumi",
+        "type": "boundary",
+        "wikidata": "Q1151062",
+        "wikipedia": "en:Kumi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3498251,
+      "center": {
+        "lat": 1.8491686,
+        "lon": 34.5508213
+      },
+      "tags": {
+        "ISO3166-2": "UG-311",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Nakapiripirit",
+        "type": "boundary",
+        "wikidata": "Q1375853",
+        "wikipedia": "en:Nakapiripirit District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501791,
+      "center": {
+        "lat": 3.2369224,
+        "lon": 31.7316179
+      },
+      "tags": {
+        "ISO3166-2": "UG-301",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Adjumani",
+        "type": "boundary",
+        "wikidata": "Q1229734",
+        "wikipedia": "en:Adjumani District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501792,
+      "center": {
+        "lat": 3.1288654,
+        "lon": 31.862121
+      },
+      "tags": {
+        "ISO3166-2": "UG-316",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Amuru",
+        "type": "boundary",
+        "wikidata": "Q1375771",
+        "wikipedia": "en:Amuru District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501793,
+      "center": {
+        "lat": 3.1823828,
+        "lon": 31.169933
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Terego",
+        "type": "boundary",
+        "wikidata": "Q104698321",
+        "wikipedia": "en:Terego District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501794,
+      "center": {
+        "lat": 1.9224421,
+        "lon": 31.4133479
+      },
+      "tags": {
+        "ISO3166-2": "UG-416",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Buliisa",
+        "type": "boundary",
+        "wikidata": "Q1229793",
+        "wikipedia": "en:Buliisa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501820,
+      "center": {
+        "lat": 3.4439038,
+        "lon": 33.235687
+      },
+      "tags": {
+        "ISO3166-2": "UG-305",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kitgum",
+        "type": "boundary",
+        "wikidata": "Q500162",
+        "wikipedia": "en:Kitgum District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501821,
+      "center": {
+        "lat": 3.5351493,
+        "lon": 30.9746349
+      },
+      "tags": {
+        "ISO3166-2": "UG-319",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Koboko",
+        "type": "boundary",
+        "wikidata": "Q1318857",
+        "wikipedia": "en:Koboko District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501822,
+      "center": {
+        "lat": 3.5242566,
+        "lon": 32.762139
+      },
+      "tags": {
+        "ISO3166-2": "UG-326",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Lamwo",
+        "type": "boundary",
+        "wikidata": "Q3539277",
+        "wikipedia": "en:Lamwo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501823,
+      "center": {
+        "lat": 3.2472626,
+        "lon": 30.9379071
+      },
+      "tags": {
+        "ISO3166-2": "UG-320",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Maracha",
+        "old_name": "Maracha (Nyadri)",
+        "type": "boundary",
+        "wikidata": "Q588927",
+        "wikipedia": "en:Maracha District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501824,
+      "center": {
+        "lat": 3.666786,
+        "lon": 31.7588482
+      },
+      "tags": {
+        "ISO3166-2": "UG-309",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Moyo",
+        "type": "boundary",
+        "wikidata": "Q2183668",
+        "wikipedia": "en:Moyo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501825,
+      "center": {
+        "lat": 2.4337105,
+        "lon": 31.1548558
+      },
+      "tags": {
+        "ISO3166-2": "UG-310",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "fixme": "This boundary is out of date; it does not match its boundary as shown in wikipedia.",
+        "name": "Nebbi",
+        "type": "boundary",
+        "wikidata": "Q1375825",
+        "wikipedia": "en:Nebbi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501826,
+      "center": {
+        "lat": 3.4886108,
+        "lon": 31.2930228
+      },
+      "tags": {
+        "ISO3166-2": "UG-313",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Yumbe",
+        "type": "boundary",
+        "wikidata": "Q1362587",
+        "wikipedia": "en:Yumbe District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501827,
+      "center": {
+        "lat": 2.5230892,
+        "lon": 30.907446
+      },
+      "tags": {
+        "ISO3166-2": "UG-330",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Zombo",
+        "old_name": "Nebbi",
+        "type": "boundary",
+        "wikidata": "Q3539730",
+        "wikipedia": "en:Zombo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501829,
+      "center": {
+        "lat": 3.6582768,
+        "lon": 34.1781217
+      },
+      "tags": {
+        "ISO3166-2": "UG-318",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kaabong",
+        "type": "boundary",
+        "wikidata": "Q1229881",
+        "wikipedia": "en:Kaabong District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501830,
+      "center": {
+        "lat": 2.6178066,
+        "lon": 34.6178629
+      },
+      "tags": {
+        "ISO3166-2": "UG-308",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Moroto",
+        "type": "boundary",
+        "wikidata": "Q1375850",
+        "wikipedia": "en:Moroto District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501835,
+      "center": {
+        "lat": 1.8267908,
+        "lon": 34.8112471
+      },
+      "tags": {
+        "ISO3166-2": "UG-324",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Amudat",
+        "type": "boundary",
+        "wikidata": "Q3536116",
+        "wikipedia": "en:Amudat District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501836,
+      "center": {
+        "lat": 1.2547949,
+        "lon": 34.6918392
+      },
+      "tags": {
+        "ISO3166-2": "UG-220",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bukwo",
+        "name:fr": "Bukwa",
+        "type": "boundary",
+        "wikidata": "Q1375868",
+        "wikipedia": "en:Bukwo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501837,
+      "center": {
+        "lat": 1.331044,
+        "lon": 34.4217135
+      },
+      "tags": {
+        "ISO3166-2": "UG-206",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kapchorwa",
+        "type": "boundary",
+        "wikidata": "Q1229921",
+        "wikipedia": "en:Kapchorwa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501838,
+      "center": {
+        "lat": 1.3516239,
+        "lon": 34.5733565
+      },
+      "tags": {
+        "ISO3166-2": "UG-228",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kween",
+        "old_name": "Kapchorwa",
+        "type": "boundary",
+        "wikidata": "Q3321998",
+        "wikipedia": "en:Kween District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501859,
+      "center": {
+        "lat": 0.3917743,
+        "lon": 34.0086225
+      },
+      "tags": {
+        "ISO3166-2": "UG-202",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Busia",
+        "type": "boundary",
+        "wikidata": "Q1229800",
+        "wikipedia": "en:Busia District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501860,
+      "center": {
+        "lat": -0.3203304,
+        "lon": 33.1817382
+      },
+      "tags": {
+        "ISO3166-2": "UG-120",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Buvuma",
+        "name:zh": "布武马区",
+        "type": "boundary",
+        "wikidata": "Q3321608",
+        "wikipedia": "en:Buvuma District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501861,
+      "center": {
+        "lat": 0.8812975,
+        "lon": 34.2685406
+      },
+      "tags": {
+        "ISO3166-2": "UG-223",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Manafwa",
+        "start_date": "01-01-2005",
+        "type": "boundary",
+        "wikidata": "Q1375789",
+        "wikipedia": "en:Manafwa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501862,
+      "center": {
+        "lat": -0.1969669,
+        "lon": 33.4956768
+      },
+      "tags": {
+        "ISO3166-2": "UG-214",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Mayuge",
+        "name:zh": "马尤盖区",
+        "type": "boundary",
+        "wikidata": "Q1364824",
+        "wikipedia": "en:Mayuge District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501863,
+      "center": {
+        "lat": -0.2539249,
+        "lon": 33.8207226
+      },
+      "tags": {
+        "ISO3166-2": "UG-230",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Namayingo",
+        "name:zh": "纳马因戈区",
+        "old_name": "Bugiri",
+        "type": "boundary",
+        "wikidata": "Q1114915",
+        "wikipedia": "en:Namayingo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501864,
+      "center": {
+        "lat": 0.7405692,
+        "lon": 34.0944231
+      },
+      "tags": {
+        "ISO3166-2": "UG-212",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Tororo",
+        "type": "boundary",
+        "wikidata": "Q1186541",
+        "wikipedia": "en:Tororo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501887,
+      "center": {
+        "lat": -0.5745356,
+        "lon": 32.3758606
+      },
+      "tags": {
+        "ISO3166-2": "UG-101",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "land_area": "administrative",
+        "name": "Kalangala",
+        "name:zh": "卡兰加拉区",
+        "type": "boundary",
+        "wikidata": "Q867219",
+        "wikipedia": "en:Kalangala District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501888,
+      "center": {
+        "lat": -0.0904473,
+        "lon": 31.8229472
+      },
+      "tags": {
+        "ISO3166-2": "UG-122",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kalungu",
+        "name:zh": "卡伦古区",
+        "old_name": "Masaka",
+        "type": "boundary",
+        "wikidata": "Q3321614",
+        "wikipedia": "en:Kalungu District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501889,
+      "center": {
+        "lat": -0.0706313,
+        "lon": 32.7419102
+      },
+      "tags": {
+        "ISO3166-2": "UG-108",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "land_area": "administrative",
+        "name": "Mukono",
+        "name:zh": "穆科诺区",
+        "type": "boundary",
+        "wikidata": "Q1151066",
+        "wikipedia": "en:Mukono District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501890,
+      "center": {
+        "lat": -0.726411,
+        "lon": 31.3055128
+      },
+      "tags": {
+        "ISO3166-2": "UG-110",
+        "addr:country": "UG",
+        "addr:region": "Central region",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Rakai",
+        "type": "boundary",
+        "wikidata": "Q976873",
+        "wikipedia": "en:Rakai District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501892,
+      "center": {
+        "lat": 0.660581,
+        "lon": 30.0595639
+      },
+      "tags": {
+        "ISO3166-2": "UG-401",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bundibugyo",
+        "type": "boundary",
+        "wikidata": "Q1362129",
+        "wikipedia": "en:Bundibugyo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501893,
+      "center": {
+        "lat": -0.8388981,
+        "lon": 30.8716314
+      },
+      "tags": {
+        "ISO3166-2": "UG-418",
+        "addr:country": "UG",
+        "addr:region": "Western region",
+        "addr:subregion": "Ankoli-Kigezi",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Isingiro",
+        "type": "boundary",
+        "wikidata": "Q1318887",
+        "wikipedia": "en:Isingiro District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501894,
+      "center": {
+        "lat": -1.3361674,
+        "lon": 30.026085
+      },
+      "tags": {
+        "ISO3166-2": "UG-404",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kabale",
+        "type": "boundary",
+        "wikidata": "Q3526470",
+        "wikipedia": "en:Kabale District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501895,
+      "center": {
+        "lat": 0.1310676,
+        "lon": 30.004564
+      },
+      "tags": {
+        "ISO3166-2": "UG-406",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kasese",
+        "type": "boundary",
+        "wikidata": "Q1229919",
+        "wikipedia": "en:Kasese District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501896,
+      "center": {
+        "lat": -0.2559614,
+        "lon": 29.9921093
+      },
+      "tags": {
+        "ISO3166-2": "UG-425",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Rubirizi",
+        "old_name": "Bushenyi",
+        "type": "boundary",
+        "wikidata": "Q3539648",
+        "wikipedia": "en:Rubirizi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501898,
+      "center": {
+        "lat": -0.2593352,
+        "lon": 31.1999047
+      },
+      "tags": {
+        "ISO3166-2": "UG-114",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Lyantonde",
+        "type": "boundary",
+        "wikidata": "Q1375878",
+        "wikipedia": "en:Lyantonde District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501899,
+      "center": {
+        "lat": -0.9549016,
+        "lon": 30.3113455
+      },
+      "tags": {
+        "ISO3166-2": "UG-411",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Ntungamo",
+        "type": "boundary",
+        "wikidata": "Q204642",
+        "wikipedia": "en:Ntungamo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501900,
+      "center": {
+        "lat": -0.69741,
+        "lon": 29.8868394
+      },
+      "tags": {
+        "ISO3166-2": "UG-412",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Rukungiri",
+        "type": "boundary",
+        "wikidata": "Q289419",
+        "wikipedia": "en:Rukungiri District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501926,
+      "center": {
+        "lat": 1.5653266,
+        "lon": 31.1935688
+      },
+      "tags": {
+        "ISO3166-2": "UG-403",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Hoima",
+        "type": "boundary",
+        "wikidata": "Q1186535",
+        "wikipedia": "en:Hoima District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 3501974,
+      "center": {
+        "lat": 1.0274273,
+        "lon": 34.4043848
+      },
+      "tags": {
+        "ISO3166-2": "UG-218",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bududa",
+        "type": "boundary",
+        "wikidata": "Q1365449",
+        "wikipedia": "en:Bududa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 5457271,
+      "center": {
+        "lat": -0.4441309,
+        "lon": 31.4179592
+      },
+      "tags": {
+        "ISO3166-2": "UG-124",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Lwengo",
+        "type": "boundary",
+        "wikidata": "Q1114954",
+        "wikipedia": "en:Lwengo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 5457274,
+      "center": {
+        "lat": 0.310048,
+        "lon": 32.5893083
+      },
+      "tags": {
+        "ISO3166-2": "UG-102",
+        "admin_level": "4",
+        "alt_name:ar": "كامبالا",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kampala",
+        "name:ar": "كمبالا",
+        "name:azb": "کامپالا",
+        "name:ckb": "کامپالا",
+        "name:fa": "کامپالا",
+        "name:pnb": "کمپالا",
+        "name:ps": "کامپالا",
+        "name:ug": "كامپالا",
+        "name:ur": "کمپالا",
+        "note": "Hierarchy: region: Central Region",
+        "population": "1516210",
+        "type": "boundary",
+        "wikidata": "Q926417",
+        "wikipedia": "en:Kampala District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 5642698,
+      "center": {
+        "lat": -0.5557856,
+        "lon": 28.6069811
+      },
+      "tags": {
+        "ISO3166-2": "CD-NK",
+        "admin_level": "4",
+        "admin_type:CD": "province",
+        "boundary": "administrative",
+        "description": "province conservée en juin 2005",
+        "name": "Nord-Kivu",
+        "name:ar": "كيفو الشمالية",
+        "name:be": "Паўночнае Ківу",
+        "name:be-tarask": "Паўночнае Ківу",
+        "name:bg": "Северно Киву",
+        "name:br": "Nord-Kivu",
+        "name:ca": "Kivu Nord",
+        "name:ceb": "Nord-Kivu",
+        "name:cs": "Severní Kivu",
+        "name:de": "Nordkivu",
+        "name:en": "North Kivu",
+        "name:eo": "Nord-Kivuo",
+        "name:es": "Kivu del Norte",
+        "name:et": "Põhja-Kivu",
+        "name:eu": "Ipar Kivu",
+        "name:fa": "کیوو شمالی",
+        "name:fi": "Pohjois-Kivu",
+        "name:fr": "Nord-Kivu",
+        "name:frr": "Nord-Kivu",
+        "name:hi": "उत्तर कीवू",
+        "name:hr": "Sjeverni Kivu",
+        "name:hu": "Észak-Kivu",
+        "name:id": "Nord-Kivu",
+        "name:it": "Kivu Nord",
+        "name:ja": "北キヴ州",
+        "name:ka": "ჩრდილოეთი კივუს",
+        "name:kg": "Kivu ya Node",
+        "name:ko": "북키부주",
+        "name:ln": "Kivu ya Nole",
+        "name:lt": "Šiaurės Kivu",
+        "name:ms": "Nord-Kivu",
+        "name:nl": "Noord-Kivu",
+        "name:no": "Nord-Kivu",
+        "name:pl": "Kiwu Północne",
+        "name:pt": "Quivu do Norte",
+        "name:ro": "Nord-Kivu",
+        "name:ru": "Северное Киву",
+        "name:rw": "Kivu y’Amajyaruguru",
+        "name:sk": "Nord-Kivu",
+        "name:sl": "Severni Kivu",
+        "name:sr": "Северни Киву",
+        "name:sv": "Norra Kivu",
+        "name:sw": "Kivu Kaskazini",
+        "name:tr": "Kuzey Kivu",
+        "name:uk": "Північне Ківу",
+        "name:vi": "Bắc Kivu",
+        "name:wa": "Kivou Bijhrece",
+        "name:war": "Nord-Kivu",
+        "name:wuu": "北基伍省",
+        "name:xmf": "ოორუე კივუშ",
+        "name:zh": "北基伍省",
+        "name:zu": "North Kivu",
+        "timezone": "Africa/Lubumbashi",
+        "type": "boundary",
+        "wikidata": "Q130625",
+        "wikipedia": "en:North Kivu"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 6088794,
+      "center": {
+        "lat": -0.0612332,
+        "lon": 30.4430386
+      },
+      "tags": {
+        "ISO3166-2": "UG-417",
+        "addr:country": "UG",
+        "addr:region": "Western region",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Ibanda",
+        "type": "boundary",
+        "wikidata": "Q1318877",
+        "wikipedia": "en:Ibanda District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 6489978,
+      "center": {
+        "lat": -1.198952,
+        "lon": 29.6973701
+      },
+      "tags": {
+        "ISO3166-2": "UG-408",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kisoro",
+        "type": "boundary",
+        "wikidata": "Q580538",
+        "wikipedia": "en:Kisoro District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 6489998,
+      "center": {
+        "lat": 0.3371336,
+        "lon": 30.5717457
+      },
+      "tags": {
+        "ISO3166-2": "UG-413",
+        "addr:country": "UG",
+        "addr:region": "Western region",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kamwenge",
+        "type": "boundary",
+        "wikidata": "Q1318806",
+        "wikipedia": "en:Kamwenge District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 7291130,
+      "center": {
+        "lat": 3.3340262,
+        "lon": 30.7037168
+      },
+      "tags": {
+        "admin_level": "4",
+        "admin_level:-2015-06": "5",
+        "admin_level:2015-06-": "4",
+        "admin_type:CD": "province",
+        "admin_type:CD:-2005-06": "district",
+        "admin_type:CD:2005-06-": "province",
+        "boundary": "administrative",
+        "collection": "boundary",
+        "description": "Les 26 provinces depuis juin 2015 (les 21 anciens districts de 6 anciennes provinces, et 5 autres provinces inchangées)",
+        "name": "RD Congo - provinces",
+        "start_date": "2015-06",
+        "type": "collection"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14670214,
+      "center": {
+        "lat": 0.5330697,
+        "lon": 31.7603367
+      },
+      "tags": {
+        "ISO3166-2": "UG-126",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kassanda",
+        "type": "boundary",
+        "wikidata": "Q60769695",
+        "wikipedia": "en:Kasanda District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14676896,
+      "center": {
+        "lat": 2.1970785,
+        "lon": 33.7021104
+      },
+      "tags": {
+        "ISO3166-2": "UG-236",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kapelebyong",
+        "type": "boundary",
+        "wikidata": "Q60769698",
+        "wikipedia": "en:Kapelebyong District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14677876,
+      "center": {
+        "lat": 0.0131151,
+        "lon": 30.3453813
+      },
+      "tags": {
+        "ISO3166-2": "UG-434",
+        "addr:country": "UG",
+        "addr:region": "Western Region",
+        "admin_level": "4",
+        "admin_type:UG": "district",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kitagwenda",
+        "type": "boundary",
+        "wikidata": "Q85774640",
+        "wikipedia": "en:Kitagwenda District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14678029,
+      "center": {
+        "lat": 0.4783901,
+        "lon": 30.1381727
+      },
+      "tags": {
+        "ISO3166-2": "UG-430",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bunyangabu",
+        "type": "boundary",
+        "wikidata": "Q38249629",
+        "wikipedia": "en:Bunyangabu District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14678219,
+      "center": {
+        "lat": 0.8678676,
+        "lon": 34.3816933
+      },
+      "tags": {
+        "ISO3166-2": "UG-234",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Namisindwa",
+        "type": "boundary",
+        "wikidata": "Q44380663",
+        "wikipedia": "en:Namisindwa District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14684720,
+      "center": {
+        "lat": 1.8327464,
+        "lon": 33.3301378
+      },
+      "tags": {
+        "ISO3166-2": "UG-237",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kalaki",
+        "type": "boundary",
+        "wikidata": "Q104037541",
+        "wikipedia": "en:Kalaki"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14684900,
+      "center": {
+        "lat": 1.1731576,
+        "lon": 33.9951956
+      },
+      "tags": {
+        "ISO3166-2": "UG-233",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Butebo",
+        "type": "boundary",
+        "wikidata": "Q31886540",
+        "wikipedia": "en:Butebo"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14685283,
+      "center": {
+        "lat": 2.0382419,
+        "lon": 34.5098154
+      },
+      "tags": {
+        "ISO3166-2": "UG-334",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Nabilatuk",
+        "type": "boundary",
+        "wikidata": "Q60766910",
+        "wikipedia": "en:Nabilatuk District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14685819,
+      "center": {
+        "lat": 0.6246107,
+        "lon": 33.6128437
+      },
+      "tags": {
+        "ISO3166-2": "UG-235",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Bugweri",
+        "type": "boundary",
+        "wikidata": "Q60769694",
+        "wikipedia": "en:Bugweri District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14688763,
+      "center": {
+        "lat": 1.0229922,
+        "lon": 30.8349281
+      },
+      "tags": {
+        "ISO3166-2": "UG-427",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kagadi",
+        "type": "boundary",
+        "wikidata": "Q38249484",
+        "wikipedia": "en:Kagadi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14690509,
+      "center": {
+        "lat": -0.7143024,
+        "lon": 31.6438871
+      },
+      "tags": {
+        "ISO3166-2": "UG-125",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kyotera",
+        "type": "boundary",
+        "wikidata": "Q38249546",
+        "wikipedia": "en:Kyotera District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14691286,
+      "center": {
+        "lat": 1.3104397,
+        "lon": 30.9837763
+      },
+      "tags": {
+        "ISO3166-2": "UG-432",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kikuube",
+        "type": "boundary",
+        "wikidata": "Q60769700",
+        "wikipedia": "en:Kikuube District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14691649,
+      "center": {
+        "lat": 0.9625182,
+        "lon": 31.3054891
+      },
+      "tags": {
+        "ISO3166-2": "UG-428",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kakumiro",
+        "type": "boundary",
+        "wikidata": "Q38249480",
+        "wikipedia": "en:Kakumiro District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14692100,
+      "center": {
+        "lat": 2.644326,
+        "lon": 32.4765179
+      },
+      "tags": {
+        "ISO3166-2": "UG-331",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Omoro",
+        "type": "boundary",
+        "wikidata": "Q38249597",
+        "wikipedia": "en:Omoro District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14693932,
+      "center": {
+        "lat": 0.6380378,
+        "lon": 30.2460187
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Fort Portal City",
+        "type": "boundary",
+        "wikidata": "Q500107",
+        "wikipedia": "en:Fort portal"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14694054,
+      "center": {
+        "lat": 3.7089226,
+        "lon": 33.7636705
+      },
+      "tags": {
+        "ISO3166-2": "UG-335",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Karenga",
+        "type": "boundary",
+        "wikidata": "Q97487774",
+        "wikipedia": "en:Karenga District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14694389,
+      "center": {
+        "lat": -1.1455817,
+        "lon": 30.109661
+      },
+      "tags": {
+        "ISO3166-2": "UG-431",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Rukiga",
+        "type": "boundary",
+        "wikidata": "Q38249615",
+        "wikipedia": "en:Rukiga District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14695077,
+      "center": {
+        "lat": 0.0256363,
+        "lon": 30.8122275
+      },
+      "tags": {
+        "ISO3166-2": "UG-433",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kazo",
+        "type": "boundary",
+        "wikidata": "Q97487775",
+        "wikipedia": "en:Kazo District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14695999,
+      "center": {
+        "lat": 1.7207181,
+        "lon": 33.6059599
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Soroti City",
+        "type": "boundary",
+        "wikipedia": "en:Soroti City"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14698374,
+      "center": {
+        "lat": 1.1029876,
+        "lon": 34.1815162
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Mbale City",
+        "type": "boundary",
+        "wikidata": "Q1015727",
+        "wikipedia": "en:Mbale"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14702610,
+      "center": {
+        "lat": -1.1732614,
+        "lon": 29.8797217
+      },
+      "tags": {
+        "ISO3166-2": "UG-429",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Rubanda",
+        "type": "boundary",
+        "wikidata": "Q38249602",
+        "wikipedia": "en:Rubanda District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14705113,
+      "center": {
+        "lat": 0.4847978,
+        "lon": 33.1868261
+      },
+      "tags": {
+        "ISO3166-2": "UG-204",
+        "admin_level": "4",
+        "board_type": "city",
+        "boundary": "administrative",
+        "name": "Jinja City",
+        "type": "boundary",
+        "wikidata": "Q501709",
+        "wikipedia": "en:Jinja, Uganda"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14705445,
+      "center": {
+        "lat": 1.9005424,
+        "lon": 32.7429922
+      },
+      "tags": {
+        "ISO3166-2": "UG-333",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Kwania",
+        "type": "boundary",
+        "wikidata": "Q60769699",
+        "wikipedia": "en:Kwania District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14723415,
+      "center": {
+        "lat": -0.3433318,
+        "lon": 31.7286958
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Masaka City",
+        "type": "boundary",
+        "wikidata": "Q956659",
+        "wikipedia": "en:Masaka"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14723461,
+      "center": {
+        "lat": 3.3636238,
+        "lon": 31.5983017
+      },
+      "tags": {
+        "ISO3166-2": "UG-337",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Obongi",
+        "type": "boundary",
+        "wikidata": "Q97160187",
+        "wikipedia": "en:Obongi District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14723588,
+      "center": {
+        "lat": -0.6231797,
+        "lon": 30.6728562
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Mbarara City",
+        "type": "boundary",
+        "wikidata": "Q731039",
+        "wikipedia": "en:Mbarara"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14723820,
+      "center": {
+        "lat": 0.0444649,
+        "lon": 32.4156736
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Entebbe City",
+        "type": "boundary",
+        "wikidata": "Q211970",
+        "wikipedia": "en:Entebbe"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14745089,
+      "center": {
+        "lat": -0.7348942,
+        "lon": 30.4853321
+      },
+      "tags": {
+        "ISO3166-2": "UG-435",
+        "admin_level": "4",
+        "board_type": "district",
+        "boundary": "administrative",
+        "name": "Rwampara",
+        "type": "boundary",
+        "wikidata": "Q85798241",
+        "wikipedia": "en:Rwampara district"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14884040,
+      "center": {
+        "lat": 2.4676416,
+        "lon": 31.389717
+      },
+      "tags": {
+        "ISO3166-2": "UG-332",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Pakwach",
+        "type": "boundary",
+        "wikidata": "Q38249567"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 14886209,
+      "center": {
+        "lat": 2.8670905,
+        "lon": 31.2578428
+      },
+      "tags": {
+        "ISO3166-2": "UG-336",
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Madi Okollo",
+        "type": "boundary",
+        "wikidata": "Q97487779",
+        "wikipedia": "en:Madi-Okollo"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 18488871,
+      "center": {
+        "lat": 2.8354947,
+        "lon": 30.9981395
+      },
+      "tags": {
+        "ISO3166-2": "UG-303",
+        "admin_level": "4",
+        "board_type": "district",
+        "boundary": "administrative",
+        "name": "Arua",
+        "type": "boundary",
+        "wikidata": "Q1229758",
+        "wikipedia": "en:Arua District"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 18488872,
+      "center": {
+        "lat": 3.0503131,
+        "lon": 30.9462818
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "district",
+        "boundary": "administrative",
+        "name": "Arua City",
+        "type": "boundary",
+        "wikidata": "Q500111",
+        "wikipedia": "en:Arua"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 18488950,
+      "center": {
+        "lat": 1.4356806,
+        "lon": 31.3518924
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Hoima City",
+        "type": "boundary",
+        "wikidata": "Q1624192",
+        "wikipedia": "en:Hoima"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 18489006,
+      "center": {
+        "lat": 2.7880011,
+        "lon": 32.2812077
+      },
+      "tags": {
+        "admin_level": "4",
+        "border_type": "city",
+        "boundary": "administrative",
+        "name": "Gulu City",
+        "type": "boundary",
+        "wikidata": "Q581379",
+        "wikipedia": "en:Gulu"
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+name: Release
+
+# Cutting a release is a deliberate act here, not something inferred from
+# commit messages. This repository writes commit subjects as prose sentences
+# rather than Conventional Commits, so there is nothing for a tool like
+# release-please to read; the changelog is written by hand and is the better
+# record for it. What this workflow does is take the tag someone pushed and
+# publish the notes that were already written for it.
+#
+#   git tag -a v1.2.0 -m "Uganda Weather 1.2.0"
+#   git push origin v1.2.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Three ways a release can be wrong, all worth failing on rather than
+      # publishing: a tag that names a version package.json does not claim, a
+      # tag with no notes written for it, and a changelog that is out of shape.
+      - name: Check the tag against the changelog
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          declared="$(node -p "require('./package.json').version")"
+          if [ "$version" != "$declared" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $declared." >&2
+            exit 1
+          fi
+          node scripts/check-docs.mjs
+          node scripts/changelog.mjs section "$version" > release-notes.md
+          echo "Release notes for $version:"
+          cat release-notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Uganda Weather ${GITHUB_REF_NAME#v}" \
+            --notes-file release-notes.md

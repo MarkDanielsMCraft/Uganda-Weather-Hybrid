@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uganda Weather: Weather Symbols Preview</title>
+  <style>
+    body {
+      background: #0b111e;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 36px 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.02em;
+    }
+    p.subtitle {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 14px;
+      margin: 0 0 32px 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px 16px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(232, 168, 56, 0.4);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .icon-wrapper {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .icon-wrapper svg {
+      width: 44px;
+      height: 44px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+    .desc {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 8px;
+    }
+    .symbol-name {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #E8A838;
+      background: rgba(232, 168, 56, 0.1);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .strip-preview {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+    .strip-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 16px;
+    }
+    .hourly-row {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    .hour-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 52px;
+    }
+    .hour-label {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .hour-temp {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .hour-event {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Weather Symbols Suite</h1>
+    <p class="subtitle">Precision weather vector specifications with wide asymmetrical clouds, leftward rain drops, full-width fog blankets, heavy wind ribbons, and dedicated sunrise and sunset symbols.</p>
+
+    <div class="grid">
+      <!-- Sunny -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="7.5" fill="#FFB800" />
+            <circle cx="16" cy="16" r="5" fill="#FFCC00" />
+            <g fill="#FFB800">
+              <rect x="14.5" y="1.5" width="3" height="4.5" rx="1.5" />
+              <rect x="14.5" y="26" width="3" height="4.5" rx="1.5" />
+              <rect x="1.5" y="14.5" width="4.5" height="3" rx="1.5" />
+              <rect x="26" y="14.5" width="4.5" height="3" rx="1.5" />
+              <rect x="14.5" y="1.8" width="3" height="4.2" rx="1.5" transform="rotate(45 16 16)" />
+              <rect x="14.5" y="26" width="3" height="4.2" rx="1.5" transform="rotate(45 16 16)" />
+              <rect x="14.5" y="1.8" width="3" height="4.2" rx="1.5" transform="rotate(-45 16 16)" />
+              <rect x="14.5" y="26" width="3" height="4.2" rx="1.5" transform="rotate(-45 16 16)" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Sunny</div>
+        <div class="desc">Solid Golden Yellow</div>
+        <div class="symbol-name">sun.max.fill</div>
+      </div>
+
+      <!-- Partly Cloudy -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="22" cy="11" r="5.2" fill="#FFB800" />
+            <circle cx="22" cy="11" r="3.5" fill="#FFCC00" />
+            <g fill="#FFB800">
+              <rect x="20.75" y="1.5" width="2.5" height="3.8" rx="1.25" />
+              <rect x="20.75" y="1.5" width="2.5" height="3.8" rx="1.25" transform="rotate(45 22 11)" />
+              <rect x="28.7" y="9.75" width="3.8" height="2.5" rx="1.25" />
+              <rect x="20.75" y="1.5" width="2.5" height="3.8" rx="1.25" transform="rotate(-45 22 11)" />
+            </g>
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="17" width="23" height="8" rx="4" />
+              <circle cx="7.5" cy="18" r="4.5" />
+              <circle cx="14.5" cy="14" r="6.5" />
+              <circle cx="21" cy="17" r="5" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Partly Cloudy</div>
+        <div class="desc">White Cloud &amp; Golden Yellow Sun</div>
+        <div class="symbol-name">cloud.sun.fill</div>
+      </div>
+
+      <!-- Cloudy -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="3" y="16.5" width="26" height="8.5" rx="4.25" />
+              <circle cx="7.5" cy="17.5" r="4.6" />
+              <circle cx="15.5" cy="12" r="7.8" />
+              <circle cx="23" cy="16.5" r="5.6" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Cloudy</div>
+        <div class="desc">Solid White Cloud (Wide Base)</div>
+        <div class="symbol-name">cloud.fill</div>
+      </div>
+
+      <!-- Rain -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="13.5" width="25" height="7.5" rx="3.75" />
+              <circle cx="8" cy="14.5" r="4.2" />
+              <circle cx="15.5" cy="9" r="7.2" />
+              <circle cx="22.5" cy="13.5" r="5.2" />
+            </g>
+            <g fill="#5AC8FA">
+              <rect x="8" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 9.2 25.8)" />
+              <rect x="14.5" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 15.7 25.8)" />
+              <rect x="21" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 22.2 25.8)" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Rain</div>
+        <div class="desc">White Cloud &amp; Cyan Drops (/)</div>
+        <div class="symbol-name">cloud.rain.fill</div>
+      </div>
+
+      <!-- Thunderstorms -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="13" width="25" height="7.5" rx="3.75" />
+              <circle cx="8" cy="14" r="4.2" />
+              <circle cx="15.5" cy="8.5" r="7.2" />
+              <circle cx="22.5" cy="13" r="5.2" />
+            </g>
+            <g fill="#5AC8FA">
+              <rect x="6.5" y="21" width="2.2" height="5.8" rx="1.1" transform="rotate(18 7.6 23.9)" />
+              <rect x="22.5" y="21" width="2.2" height="5.8" rx="1.1" transform="rotate(18 23.6 23.9)" />
+            </g>
+            <polygon
+              points="16.5,12.5 10.5,20.5 15,20.5 12,28.5 21.5,18.5 16.5,18.5"
+              fill="#FFD60A"
+            />
+          </svg>
+        </div>
+        <div class="title">Thunderstorms</div>
+        <div class="desc">White Cloud, Drops &amp; Yellow Bolt</div>
+        <div class="symbol-name">cloud.bolt.rain.fill</div>
+      </div>
+
+      <!-- Fog -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="4.5" y="10" width="23" height="7" rx="3.5" />
+              <circle cx="9" cy="11" r="4" />
+              <circle cx="16" cy="6.5" r="6.2" />
+              <circle cx="22.5" cy="10.5" r="4.8" />
+            </g>
+            <g fill="#98A2B3">
+              <rect x="3" y="20.5" width="26" height="2.6" rx="1.3" />
+              <rect x="4.5" y="25.5" width="24.5" height="2.6" rx="1.3" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Fog</div>
+        <div class="desc">White Cloud &amp; Full-Width Bars</div>
+        <div class="symbol-name">cloud.fog.fill</div>
+      </div>
+
+      <!-- Clear Night -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path
+              d="M 14.5 5.5 A 10.5 10.5 0 1 0 22 22 A 8.8 8.8 0 0 1 14.5 5.5 Z"
+              fill="#E8EEF5"
+            />
+            <g fill="#FFFFFF">
+              <path d="M 23.5 3.5 Q 23.5 7.5 27.5 7.5 Q 23.5 7.5 23.5 11.5 Q 23.5 7.5 19.5 7.5 Q 23.5 7.5 23.5 3.5 Z" />
+              <path
+                d="M 22 15.5 Q 22 17.5 24 17.5 Q 22 17.5 22 19.5 Q 22 17.5 20 17.5 Q 22 17.5 22 15.5 Z"
+                opacity="0.9"
+              />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Clear Night</div>
+        <div class="desc">Pale Silver Moon &amp; White Stars</div>
+        <div class="symbol-name">moon.stars.fill</div>
+      </div>
+
+      <!-- Haze -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="15" r="6.5" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="14.75" y="4.5" width="2.5" height="3.5" rx="1.25" />
+              <rect x="14.75" y="4.5" width="2.5" height="3.5" rx="1.25" transform="rotate(-45 16 15)" />
+              <rect x="14.75" y="4.5" width="2.5" height="3.5" rx="1.25" transform="rotate(45 16 15)" />
+            </g>
+            <g fill="#98A2B3">
+              <rect x="3" y="16.5" width="26" height="2.2" rx="1.1" />
+              <rect x="5.5" y="21" width="21" height="2.2" rx="1.1" />
+              <rect x="8.5" y="25.5" width="15" height="2.2" rx="1.1" opacity="0.85" />
+            </g>
+          </svg>
+        </div>
+        <div class="title">Haze</div>
+        <div class="desc">Golden Sun &amp; Staggered Mist</div>
+        <div class="symbol-name">sun.haze.fill</div>
+      </div>
+
+      <!-- Sunrise -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M 9.5 18 A 6.5 6.5 0 0 1 22.5 18 Z" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(-45 16 18)" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(45 16 18)" />
+            </g>
+            <rect x="2.5" y="19" width="27" height="2.4" rx="1.2" fill="#FFFFFF" />
+            <path d="M 12 27 L 16 23 L 20 27" stroke="#FFB800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+        </div>
+        <div class="title">Sunrise</div>
+        <div class="desc">Horizon Line &amp; Upward Cue</div>
+        <div class="symbol-name">sunrise.fill</div>
+      </div>
+
+      <!-- Sunset -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M 9.5 18 A 6.5 6.5 0 0 1 22.5 18 Z" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(-45 16 18)" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(45 16 18)" />
+            </g>
+            <rect x="2.5" y="19" width="27" height="2.4" rx="1.2" fill="#FFFFFF" />
+            <path d="M 12 24 L 16 28 L 20 24" stroke="#FFB800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+        </div>
+        <div class="title">Sunset</div>
+        <div class="desc">Horizon Line &amp; Downward Cue</div>
+        <div class="symbol-name">sunset.fill</div>
+      </div>
+
+      <!-- Windy -->
+      <div class="card">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path
+              d="M 3 10 L 20 10 A 3.5 3.5 0 1 1 20 17"
+              stroke="#FFFFFF"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              fill="none"
+            />
+            <path
+              d="M 5 16 L 24 16 A 3.5 3.5 0 1 0 24 9"
+              stroke="#98A2B3"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              fill="none"
+            />
+            <path
+              d="M 2 22 L 18 22 A 3.5 3.5 0 1 1 18 29"
+              stroke="#FFFFFF"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              fill="none"
+            />
+          </svg>
+        </div>
+        <div class="title">Windy</div>
+        <div class="desc">Full Weight Stream Ribbons</div>
+        <div class="symbol-name">wind</div>
+      </div>
+    </div>
+
+    <!-- Live Strip Preview -->
+    <div class="strip-preview">
+      <div class="strip-title">Hourly Strip Simulation (Scale: 28px)</div>
+      <div class="hourly-row">
+        <!-- Now -->
+        <div class="hour-item">
+          <div class="hour-label">Now</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M 14.5 5.5 A 10.5 10.5 0 1 0 22 22 A 8.8 8.8 0 0 1 14.5 5.5 Z" fill="#E8EEF5" />
+            <g fill="#FFFFFF">
+              <path d="M 23.5 3.5 Q 23.5 7.5 27.5 7.5 Q 23.5 7.5 23.5 11.5 Q 23.5 7.5 19.5 7.5 Q 23.5 7.5 23.5 3.5 Z" />
+            </g>
+          </svg>
+          <div class="hour-temp">20°</div>
+        </div>
+
+        <!-- 1 am -->
+        <div class="hour-item">
+          <div class="hour-label">1 am</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M 14.5 5.5 A 10.5 10.5 0 1 0 22 22 A 8.8 8.8 0 0 1 14.5 5.5 Z" fill="#E8EEF5" />
+            <g fill="#FFFFFF">
+              <path d="M 23.5 3.5 Q 23.5 7.5 27.5 7.5 Q 23.5 7.5 23.5 11.5 Q 23.5 7.5 19.5 7.5 Q 23.5 7.5 23.5 3.5 Z" />
+            </g>
+          </svg>
+          <div class="hour-temp">20°</div>
+        </div>
+
+        <!-- 6:24 am Sunrise Event (No temperature degree, labeled Sunrise) -->
+        <div class="hour-item">
+          <div class="hour-label">6:24 am</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M 9.5 18 A 6.5 6.5 0 0 1 22.5 18 Z" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(-45 16 18)" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(45 16 18)" />
+            </g>
+            <rect x="2.5" y="19" width="27" height="2.4" rx="1.2" fill="#FFFFFF" />
+            <path d="M 12 27 L 16 23 L 20 27" stroke="#FFB800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+          <div class="hour-event">Sunrise</div>
+        </div>
+
+        <!-- 9 am -->
+        <div class="hour-item">
+          <div class="hour-label">9 am</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <circle cx="22" cy="11" r="5.2" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="20.75" y="1.5" width="2.5" height="3.8" rx="1.25" />
+              <rect x="28.7" y="9.75" width="3.8" height="2.5" rx="1.25" />
+            </g>
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="17" width="23" height="8" rx="4" />
+              <circle cx="7.5" cy="18" r="4.5" />
+              <circle cx="14.5" cy="14" r="6.5" />
+              <circle cx="21" cy="17" r="5" />
+            </g>
+          </svg>
+          <div class="hour-temp">23°</div>
+        </div>
+
+        <!-- 12 pm -->
+        <div class="hour-item">
+          <div class="hour-label">12 pm</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="7.5" fill="#FFB800" />
+            <circle cx="16" cy="16" r="5" fill="#FFCC00" />
+            <g fill="#FFB800">
+              <rect x="14.5" y="1.5" width="3" height="4.5" rx="1.5" />
+              <rect x="14.5" y="26" width="3" height="4.5" rx="1.5" />
+              <rect x="1.5" y="14.5" width="4.5" height="3" rx="1.5" />
+              <rect x="26" y="14.5" width="4.5" height="3" rx="1.5" />
+              <rect x="14.5" y="1.8" width="3" height="4.2" rx="1.5" transform="rotate(45 16 16)" />
+              <rect x="14.5" y="26" width="3" height="4.2" rx="1.5" transform="rotate(45 16 16)" />
+            </g>
+          </svg>
+          <div class="hour-temp">27°</div>
+        </div>
+
+        <!-- 3 pm -->
+        <div class="hour-item">
+          <div class="hour-label">3 pm</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="13" width="25" height="7.5" rx="3.75" />
+              <circle cx="8" cy="14" r="4.2" />
+              <circle cx="15.5" cy="8.5" r="7.2" />
+              <circle cx="22.5" cy="13" r="5.2" />
+            </g>
+            <g fill="#5AC8FA">
+              <rect x="6.5" y="21" width="2.2" height="5.8" rx="1.1" transform="rotate(18 7.6 23.9)" />
+              <rect x="22.5" y="21" width="2.2" height="5.8" rx="1.1" transform="rotate(18 23.6 23.9)" />
+            </g>
+            <polygon points="16.5,12.5 10.5,20.5 15,20.5 12,28.5 21.5,18.5 16.5,18.5" fill="#FFD60A" />
+          </svg>
+          <div class="hour-temp">24°</div>
+        </div>
+
+        <!-- 6:32 pm Sunset Event (No temperature degree, labeled Sunset) -->
+        <div class="hour-item">
+          <div class="hour-label">6:32 pm</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M 9.5 18 A 6.5 6.5 0 0 1 22.5 18 Z" fill="#FFB800" />
+            <g fill="#FFB800">
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(-45 16 18)" />
+              <rect x="14.75" y="7" width="2.5" height="3.8" rx="1.25" transform="rotate(45 16 18)" />
+            </g>
+            <rect x="2.5" y="19" width="27" height="2.4" rx="1.2" fill="#FFFFFF" />
+            <path d="M 12 24 L 16 28 L 20 24" stroke="#FFB800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+          <div class="hour-event">Sunset</div>
+        </div>
+
+        <!-- 9 pm -->
+        <div class="hour-item">
+          <div class="hour-label">9 pm</div>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <g fill="#FFFFFF">
+              <rect x="3.5" y="13.5" width="25" height="7.5" rx="3.75" />
+              <circle cx="8" cy="14.5" r="4.2" />
+              <circle cx="15.5" cy="9" r="7.2" />
+              <circle cx="22.5" cy="13.5" r="5.2" />
+            </g>
+            <g fill="#5AC8FA">
+              <rect x="8" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 9.2 25.8)" />
+              <rect x="14.5" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 15.7 25.8)" />
+              <rect x="21" y="22.5" width="2.4" height="6.6" rx="1.2" transform="rotate(18 22.2 25.8)" />
+            </g>
+          </svg>
+          <div class="hour-temp">21°</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
