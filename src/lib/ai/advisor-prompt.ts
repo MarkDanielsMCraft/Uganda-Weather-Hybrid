@@ -94,6 +94,7 @@ export function buildAdvisorSystemInstruction(
     "4. Do not use emoji, decorative symbols, markdown asterisks, em dashes, or en dashes.",
     "5. Write units cleanly and consistently: always write temperatures with the degree symbol (for example 24°C, never 24C), wind speed as km/h (for example 12 km/h), distance as km, and rainfall as mm.",
     "6. Identify and refer to the location accurately by its real Location type (National Park, Mountain peak, Airport, Village or town, Current GPS location, City, or District). NEVER call a national park, mountain, airport, village, town, or GPS point a district (for example never say 'Mount Elgon District' or 'disitulikiti y'e Mount Elgon'). In Luganda, use 'Ekkuumiro ly'ebisolo' for a national park, 'Olusozi' for a mountain, 'Ekisaawe ky'ennyonyi' for an airport, 'Ekyalo' or 'Ekibuga' for a village or town, 'Ekifo w'oli kati' for a current GPS location, and 'Disitulikiti' only when Location type is District.",
+    "7. Respect the current Uganda local time given in the prompt. If it is night, never suggest drying crops, spraying, or field work right now, and never say the sun is going down. Give advice for tonight, then name the best hours tomorrow from the hourly or daily data. Only treat hours still ahead of the current time as upcoming.",
   ].join("\n");
 }
 
@@ -107,6 +108,22 @@ function formatShortHour(hour: WeatherBundle["hourly"][number]): string {
   const rain = typeof hour.rainChance === "number" ? ` rain ${Math.round(hour.rainChance)}%` : "";
   const wind = typeof hour.windSpeedKph === "number" ? ` wind ${Math.round(hour.windSpeedKph)} km/h` : "";
   return `${hour.label}: ${Math.round(hour.temp)}°C${rain}${wind}`;
+}
+
+function formatNowUganda(now: Date): string {
+  try {
+    return `${new Intl.DateTimeFormat("en-US", {
+      timeZone: "Africa/Kampala",
+      weekday: "long",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+      .format(now)
+      .replace(/\b(AM|PM)\b/, (m) => m.toLowerCase())} EAT`;
+  } catch {
+    return now.toISOString();
+  }
 }
 
 function formatUpdatedAtUganda(isoOrRaw: string): string {
@@ -249,6 +266,7 @@ export function buildWeatherContextPrompt(
   customQuestion?: string,
   history?: AdvisorTurn[],
   spellingCorrection?: { typed: string; resolvedName: string },
+  now: Date = new Date(),
 ): string {
   const hourlyList = Array.isArray(weather.hourly) ? weather.hourly : [];
   const dailyList = Array.isArray(weather.dailyForecast) ? weather.dailyForecast : [];
@@ -285,6 +303,7 @@ export function buildWeatherContextPrompt(
     `Audience: ${audience}`,
     `Output language: ${language === "lg" ? "Luganda" : "English"}`,
     `Data freshness: ${weather.stale ? "Cached offline forecast" : "Live forecast"} (saved ${formatUpdatedAtUganda(weather.updatedAt)})`,
+    `Current Uganda local time: ${formatNowUganda(now)} (${weather.isDay ? "daytime" : "night, the sun has already set"})`,
     `Current condition: ${conditionText}, ${Math.round(weather.temperature.celsius)}°C (feels like ${Math.round(weather.temperature.feelsLike)}°C)`,
     `Today range: high ${Math.round(weather.daily.high)}°C, low ${Math.round(weather.daily.low)}°C, sunrise ${weather.astronomy.sunrise}, sunset ${weather.astronomy.sunset}`,
     `Rain: ${(weather.precipitation?.mm ?? 0).toFixed(1)} mm, chance ${Math.round(weather.precipitation?.chance ?? 0)}%`,

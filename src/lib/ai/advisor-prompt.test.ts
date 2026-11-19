@@ -92,4 +92,19 @@ describe("advisor-prompt", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("includes current Uganda local time and night flag when isDay is false", () => {
+    const nightWeather = makeWeatherBundle({ isDay: false });
+    const prompt = buildWeatherContextPrompt(
+      nightWeather,
+      "farmer",
+      "en",
+      "Safe to farm or dry crops today?",
+      undefined,
+      undefined,
+      new Date("2026-11-19T16:54:00Z"),
+    );
+    expect(prompt).toContain("Current Uganda local time:");
+    expect(prompt).toContain("night, the sun has already set");
+  });
 });
