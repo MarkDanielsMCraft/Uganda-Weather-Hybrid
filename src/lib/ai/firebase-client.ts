@@ -107,7 +107,10 @@ export function getFirebaseAiClient(): AI | null {
 
   cachedAi = getAI(app, {
     backend: new GoogleAIBackend(),
-    useLimitedUseAppCheckTokens: isAppCheckActive(),
+    // Standard auto-refreshed App Check tokens avoid re-running reCAPTCHA
+    // attestation on every prompt, which caused 403/24h throttling lockouts
+    // for real mobile Safari users on carrier NAT networks.
+    useLimitedUseAppCheckTokens: false,
   });
   return cachedAi;
 }
