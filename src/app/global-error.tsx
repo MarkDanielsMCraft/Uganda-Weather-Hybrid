@@ -19,7 +19,7 @@ export default function GlobalError({
   reset,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  reset?: () => void;
 }) {
   const [locale, setLocale] = useState<SupportedLocale>("en");
 
@@ -33,6 +33,14 @@ export default function GlobalError({
   }, [error]);
 
   const dict = getDictionary(locale);
+
+  const handleRetry = () => {
+    if (error?.name === "ChunkLoadError" || typeof reset !== "function") {
+      window.location.reload();
+      return;
+    }
+    reset();
+  };
 
   return (
     <html lang={locale} style={{ backgroundColor: "#12101a", color: "#f7f4ef" }}>
@@ -54,7 +62,7 @@ export default function GlobalError({
         <p style={{ fontSize: "17px", opacity: 0.85 }}>{dict.common.globalErrorTitle}</p>
         <button
           type="button"
-          onClick={() => reset()}
+          onClick={handleRetry}
           style={{
             borderRadius: "9999px",
             border: "1px solid rgba(255,255,255,0.2)",
