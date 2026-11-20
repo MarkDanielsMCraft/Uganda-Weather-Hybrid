@@ -22,7 +22,9 @@ import {
   type AdvisorTurn,
 } from "@/lib/ai/advisor-prompt";
 import {
+  getConfiguredCloudModel,
   getFirebaseAiClient,
+  isAppCheckActive,
   isFirebaseAiConfigured,
 } from "@/lib/ai/firebase-client";
 import { getAdvisorRemoteConfig } from "@/lib/ai/remote-config";
@@ -540,10 +542,52 @@ export async function generateHybridWeatherBriefing({
       };
     }
 
+    const rawCode =
+      typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+        ? error.code
+        : error instanceof Error && error.name
+          ? error.name
+          : "unknown";
+    const safeErrorCode = rawCode.replace(/[^\w/:.-]/g, "").slice(0, 64) || "unknown";
+    const safeModel = getConfiguredCloudModel().replace(/[^\w/:.-]/g, "").slice(0, 64) || "unknown";
+
     console.error(
-      `[ai-advisor] action failed action=generate district=${safeDistrictSlug} configured=${String(isFirebaseAiConfigured())}:`,
+      `[ai-advisor] action failed action=generate code=${safeErrorCode} district=${safeDistrictSlug} configured=${String(isFirebaseAiConfigured())} appCheck=${String(isAppCheckActive())}:`,
       error,
     );
+
+    if (typeof window !== "undefined") {
+      if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        void import("@sentry/nextjs")
+          .then((Sentry) => {
+            Sentry.captureException(error, {
+              tags: {
+                component: "ai-advisor",
+                action: "generate",
+                district: safeDistrictSlug,
+                errorCode: safeErrorCode,
+              },
+            });
+          })
+          .catch(() => {});
+      }
+
+      if (typeof fetch === "function") {
+        void fetch("/api/v1/observability/advisor-error", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({
+            code: safeErrorCode,
+            district: safeDistrictSlug || "unknown",
+            online: isOnline,
+            appCheckActive: isAppCheckActive(),
+            model: safeModel,
+          }),
+        }).catch(() => {});
+      }
+    }
+
     return {
       ok: false,
       error: {

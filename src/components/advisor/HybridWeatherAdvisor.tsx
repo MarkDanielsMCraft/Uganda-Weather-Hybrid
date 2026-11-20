@@ -458,13 +458,15 @@ export function HybridWeatherAdvisor({
   return (
     <div
       ref={containerRef}
-      className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] z-[55] flex flex-col items-end gap-1.5 sm:bottom-6 sm:right-6 ${
+      className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] z-[55] flex flex-col items-end gap-1.5 sm:bottom-6 sm:right-6 ${
+        isOpen ? "left-[max(0.75rem,env(safe-area-inset-left,0px))] sm:left-auto" : ""
+      } ${
         districtModalOpen && !isOpen ? "hidden" : ""
       }`}
     >
       {isOpen && (
         <GlassPanel
-          className="flex h-[min(620px,calc(100dvh-116px))] w-[min(430px,calc(100vw-24px))] flex-col"
+          className="flex h-[min(620px,calc(100dvh-116px))] w-full max-w-[430px] flex-col overflow-hidden sm:w-[430px]"
         >
           {/* Minimal top bar */}
           <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
