@@ -55,7 +55,7 @@ const INJECTION_PATTERNS: readonly RegExp[] = [
   /\bnew\s+(system\s+)?instructions?\s*:/i,
   /<\s*\/?\s*(system|assistant|instruction|prompt|user_question|script|iframe)\b/i,
   /###\s*(system|instruction|override)/i,
-  /(werabira|leka\s+okugoberera)\s+amateeka/i,
+  /(we+rabira|leka\s+okugoberera)\s+amateeka/i,
   /(mbuulira|ndaga)\s+amateeka\s+go\s+ag'omunda/i,
 ];
 
@@ -88,6 +88,38 @@ function stripTrailingPunctuation(text: string): string {
 
 export function sanitizeUserMessage(raw: string): string {
   return normalizeInput(raw).replace(/[\u0000-\u001F\u007F]/g, "");
+}
+
+const PII_REDACTION_PATTERNS: readonly RegExp[] = [
+  // Email addresses
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+  // Uganda National ID (NIN: CM/CF + 12 alphanumeric chars)
+  /\b(?:CM|CF)[A-Z0-9]{12}\b/g,
+  // Ugandan mobile numbers (+256 7XX XXX XXX or 07XX XXX XXX)
+  /(?<!\d)(?:\+?256[\s.-]?|0)7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g,
+  // International phone numbers (+CC XXX XXX XXXX)
+  /(?<!\d)\+\d{1,3}[\s.-]?\d{3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}(?!\d)/g,
+];
+
+/**
+ * Strips accidental personal identifiers (emails, Uganda/international phone
+ * numbers, and Uganda NINs) before a prompt is sent to cloud inference.
+ * Weather metrics, clock times, and district names are untouched.
+ */
+export function redactPiiForCloud(raw: string): {
+  sanitized: string;
+  redactedCount: number;
+} {
+  let sanitized = raw;
+  let redactedCount = 0;
+  for (const pattern of PII_REDACTION_PATTERNS) {
+    pattern.lastIndex = 0;
+    sanitized = sanitized.replace(pattern, () => {
+      redactedCount += 1;
+      return "[redacted]";
+    });
+  }
+  return { sanitized, redactedCount };
 }
 
 /** Detects prompt-injection, jailbreak, exploit payloads, phishing links,
@@ -190,7 +222,7 @@ export function matchInstantSocialReply(
   }
 
   // English greetings
-  if (/^(hi|hello|hey|good morning|good afternoon|good evening|greetings)$/.test(cleaned)) {
+  if (/^(hi|hello|hey|good morning|good afternoon|good evening|greetings)(\s+(there|how\s+are\s+you|how\s+is\s+it|how\s+u\s+doing))?$|^how\s+are\s+you$/.test(cleaned)) {
     return {
       kind: "greeting",
       text:
@@ -321,6 +353,39 @@ const LOCATION_STOPWORDS = new Set([
   "olugendo",
   "amagezi",
   "disitulikiti",
+  "waliwo",
+  "obulabe",
+  "omuyaga",
+  "bw'omuyaga",
+  "kino",
+  "kyangu",
+  "okusimba",
+  "okusiga",
+  "okukaza",
+  "okwanika",
+  "ebirime",
+  "ssaawa",
+  "essaawa",
+  "ezisinga",
+  "okukola",
+  "emirimu",
+  "ebweru",
+  "okuvuba",
+  "abavubi",
+  "bikuumiro",
+  "kkubo",
+  "ekkuumiro",
+  "obukuumi",
+  "buuza",
+  "buuliza",
+  "okutambula",
+  "waggulu",
+  "wansi",
+  "kati",
+  "bulungi",
+  "nnyo",
+  "kibuga",
+  "ekibuga",
 ]);
 
 /** Resolves a Uganda district, national park, mountain peak, or airport

@@ -15,6 +15,7 @@ import type { SheetState } from "@/components/sheet/DetailSheetProvider";
 import { computeSheetLayout, type DetailSheetLayout } from "@/components/sheet/detailSheetLayout";
 import { DetailSheetPointer } from "@/components/sheet/DetailSheetPointer";
 import { DetailSheetGrabber } from "@/components/sheet/DetailSheetGrabber";
+import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
 import { useTranslation } from "@/lib/i18n";
 
 // Genuinely translucent: real colour and light from the page behind
@@ -64,8 +65,7 @@ function isSameSheetLayout(a: DetailSheetLayout | null, b: DetailSheetLayout | n
     already open updates position in place so the pointer animates to the
     new tile instead of the sheet closing and reopening. */
 export function DetailSheet({ sheet, onClose }: { sheet: SheetState | null; onClose: () => void }) {
-  const { dict, uiLanguage } = useTranslation();
-  const isLuganda = uiLanguage === "lg";
+  const { dict } = useTranslation();
   const isDesktop = useIsLgUp();
   const sheetRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<DetailSheetLayout | null>(null);
@@ -361,24 +361,26 @@ export function DetailSheet({ sheet, onClose }: { sheet: SheetState | null; onCl
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {sheet.icon && <span className="text-white/60">{sheet.icon}</span>}
-                  <p
-                    className={
-                      isLuganda
-                        ? "text-[15px] font-semibold text-white/85"
-                        : "text-[13px] font-semibold uppercase tracking-[0.14rem] text-white/70"
-                    }
-                  >
+                  <p className="text-[15px] font-semibold text-white/85">
                     {sheet.title}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label={dict.common.close}
-                  className="shrink-0 text-[15px] text-white/50 hover:text-white/80"
-                >
-                  ✕
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <WeatherListenButton
+                    compact
+                    tileIdOverride={`${sheet.tileId} ${sheet.title}`}
+                    autoNarrateOnSheetChange
+                    testId="sheet-listen-toggle"
+                  />
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label={dict.common.close}
+                    className="shrink-0 text-[15px] text-white/50 hover:text-white/80"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               <AnimatePresence mode="wait">

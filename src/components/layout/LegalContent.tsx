@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { GlassPanel } from "@/components/glass/GlassCard";
+import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
 import { SheetSection } from "@/components/sheet/SheetSection";
 import { SOURCES } from "@/lib/attribution/sources";
 import { useTranslation } from "@/lib/i18n";
@@ -157,9 +158,17 @@ export function LegalPageView({ page }: { page: LegalPageKind }) {
 
   return (
     <div className="space-y-5 lg:max-w-2xl lg:px-10 lg:py-4">
-      <div>
-        <h1 className="text-[34px] font-semibold tracking-[-0.03rem] text-white">{title}</h1>
-        <p className="mt-1 text-[17px] text-white/55">{subtitle}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[34px] font-semibold tracking-[-0.03rem] text-white">{title}</h1>
+          <p className="mt-1 text-[17px] text-white/55">{subtitle}</p>
+        </div>
+        <WeatherListenButton
+          compact
+          tileIdOverride={page}
+          autoNarrateOnSheetChange
+          testId={`legal-listen-${page}`}
+        />
       </div>
 
       {page === "attribution" ? (

@@ -1,10 +1,105 @@
 import { formatDistrictPhrase } from "@/lib/i18n";
 import { getDictionary } from "@/lib/i18n/useTranslation";
 import type { SupportedLocale } from "@/lib/i18n/types";
+import { formatClockLabelForLanguage } from "@/lib/time/uganda";
 import type { WeatherBundle } from "@/types/weather";
 import { buildCropAdvisories, type CropAdvisory } from "./crops";
 
 export type SoilMoistureLevel = "low" | "moderate" | "high";
+
+export interface FarmWorkWindows {
+  dryingStatus: "good" | "caution" | "wait";
+  dryingSummary: string;
+  sprayingStatus: "good" | "caution" | "wait";
+  sprayingSummary: string;
+}
+
+/**
+ * Computes actionable 6-hour sun-drying (okwanika) and foliar/chemical spraying
+ * (okufuuyira) windows from the district's upcoming hourly forecast so
+ * smallholder farmers can prevent post-harvest aflatoxin and input wash-off.
+ */
+export function computeFarmWorkWindows(
+  weather: WeatherBundle,
+  language: SupportedLocale = "en",
+): FarmWorkWindows {
+  const isLg = language === "lg";
+  const upcomingHours = Array.isArray(weather.hourly)
+    ? weather.hourly.filter((p) => p.kind === "hour").slice(0, 6)
+    : [];
+  const rainyHour = upcomingHours.find((p) => (p.rainChance ?? 0) >= 45);
+  const maxUpcomingRain =
+    upcomingHours.length > 0
+      ? Math.max(...upcomingHours.map((p) => p.rainChance ?? 0))
+      : weather.precipitation.chance;
+  const maxUpcomingWind =
+    upcomingHours.length > 0
+      ? Math.max(
+          weather.wind.speedKph,
+          ...upcomingHours.map((p) => p.windSpeedKph ?? weather.wind.speedKph),
+        )
+      : weather.wind.speedKph;
+
+  if (!weather.isDay) {
+    return {
+      dryingStatus: "wait",
+      dryingSummary: isLg
+        ? "Obudde bw'ekiro: yanula ebirime ebikalu obitereke mu nnyumba okwewala omume."
+        : "Nighttime: keep harvested crops covered indoors away from night moisture.",
+      sprayingStatus: "wait",
+      sprayingSummary: isLg
+        ? "Lindako okufuuyira eddagala okutuusa enkya ku makya ng'empewo nteefu."
+        : "Wait until tomorrow morning to spray crops when daylight and calm winds return.",
+    };
+  }
+
+  const rainyHourLg = rainyHour
+    ? formatClockLabelForLanguage(rainyHour.label, "lg", "medium")
+    : "";
+
+  let dryingStatus: "good" | "caution" | "wait" = "good";
+  let dryingSummary: string;
+  if (maxUpcomingRain >= 60 || weather.condition.theme === "thunder" || weather.condition.theme === "rain") {
+    dryingStatus = "wait";
+    dryingSummary = isLg
+      ? `Toyanika birime ebweru kati${rainyHourLg ? ` (enkuba esuubirwa ku ssaawa ${rainyHourLg})` : ""}. Bikuume mu kifo ekikalu.`
+      : `Do not spread crops to dry outside right now${rainyHour ? ` (rain likely around ${rainyHour.label})` : ""}. Keep harvest covered.`;
+  } else if (maxUpcomingRain >= 30 || weather.humidity >= 80) {
+    dryingStatus = "caution";
+    dryingSummary = isLg
+      ? `Bw'oyanika kasooli, emmwanyi, oba ebijanjaalo, tegeka amatundubaali okumpi${rainyHourLg ? ` nga ssaawa ${rainyHourLg} tezinnatuuka` : ""}.`
+      : `If sun drying maize, coffee, or beans, keep tarpaulins ready${rainyHour ? ` before ${rainyHour.label}` : ""}.`.trim();
+  } else {
+    dryingSummary = isLg
+      ? "Obudde bulungi okwanika kasooli, emmwanyi, ebijanjaalo, ne muwogo mu ssaawa mukaaga eziddako."
+      : "Good 6 hour dry window for sun drying maize, coffee, beans, and cassava.";
+  }
+
+  let sprayingStatus: "good" | "caution" | "wait" = "good";
+  let sprayingSummary: string;
+  if (maxUpcomingRain >= 45 || maxUpcomingWind >= 24) {
+    sprayingStatus = "wait";
+    sprayingSummary = isLg
+      ? "Lindako okufuuyira eddagala kati olw'enkuba oba empewo ey'amaanyi ereeta eddagala okuggwaako."
+      : "Avoid spraying crops right now because rain or strong wind can wash off or drift spray.";
+  } else if (maxUpcomingRain >= 25 || maxUpcomingWind >= 18) {
+    sprayingStatus = "caution";
+    sprayingSummary = isLg
+      ? "Fuuyira n'obwegendereza mu ssaawa enteefu ng'empewo eri wansi."
+      : "Spray with caution during calmer hours while wind stays light.";
+  } else {
+    sprayingSummary = isLg
+      ? "Empewo nteefu era tewali nkuba mu ssaawa eziddako: kiseera kirungi okufuuyira ebirime."
+      : "Calm wind and low rain chance ahead: good window for foliar feeding or crop spraying.";
+  }
+
+  return {
+    dryingStatus: dryingStatus,
+    dryingSummary: dryingSummary.trim(),
+    sprayingStatus,
+    sprayingSummary,
+  };
+}
 
 export interface AgricultureAdvisory {
   agroZone: string;
@@ -14,6 +109,7 @@ export interface AgricultureAdvisory {
   crops: string[];
   cropAdvisories: CropAdvisory[];
   recommendations: string[];
+  workWindows?: FarmWorkWindows;
 }
 
 const AGRO_ZONE_LABELS: Record<string, string> = {
@@ -215,6 +311,13 @@ export function buildAgricultureAdvisory(
       ? rawCrops.map((crop) => agDict.cropNames[crop.toLowerCase()] ?? crop)
       : rawCrops;
 
+  const workWindows = computeFarmWorkWindows(weather, language);
+  const baseRecommendations = recommendationsFor(weather, rawSeason, rawSoil, rawCrops, language);
+  const recommendations = [
+    workWindows.dryingSummary,
+    ...baseRecommendations.filter((item) => item !== workWindows.dryingSummary),
+  ].slice(0, 5);
+
   return {
     agroZone,
     agroZoneLabel: agDict.zones[agroZone]?.label ?? AGRO_ZONE_LABELS[agroZone] ?? "Uganda farmlands",
@@ -222,6 +325,7 @@ export function buildAgricultureAdvisory(
     soilMoisture,
     crops,
     cropAdvisories: buildCropAdvisories(weather, rawSeason.name, soilMoisture.level, rawCrops, language),
-    recommendations: recommendationsFor(weather, rawSeason, rawSoil, rawCrops, language),
+    recommendations,
+    workWindows,
   };
 }

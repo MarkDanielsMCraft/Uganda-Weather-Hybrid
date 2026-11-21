@@ -61,6 +61,33 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+@keyframes glassShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: glassShimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-shimmer {
+    animation: none;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
 /**
  * Glass scrollbars everywhere: near-invisible at rest, a faint translucent
  * thumb on hover, never the OS's default opaque gray bar, which reads as
@@ -309,4 +336,52 @@ button:disabled,
   * {
     animation: none !important;
   }
+}
+
+/* Accessibility display modes: preserve brand colours, card geometry, and
+   glass hierarchy while improving legibility for elderly, low-vision, and
+   outdoor sunlight readers without resizing cards or shifting layout. */
+html[data-a11y-text="large"] .text-\[11px\],
+html[data-a11y-text="large"] .text-\[11\.5px\] {
+  font-size: 13px;
+}
+
+html[data-a11y-text="large"] .text-\[12px\],
+html[data-a11y-text="large"] .text-\[12\.5px\] {
+  font-size: 14px;
+}
+
+html[data-a11y-text="large"] .text-\[13px\],
+html[data-a11y-text="large"] .text-\[13\.5px\] {
+  font-size: 15px;
+}
+
+html[data-a11y-text="large"] .text-\[14px\] {
+  font-size: 16px;
+}
+
+html[data-a11y-text="large"] .text-\[15px\] {
+  font-size: 17px;
+}
+
+html[data-a11y-text="large"] .text-\[16px\] {
+  font-size: 18px;
+}
+
+html[data-a11y-contrast="high"] {
+  --text-primary: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.94);
+}
+
+html[data-a11y-contrast="high"] .text-white\/75,
+html[data-a11y-contrast="high"] .text-white\/70,
+html[data-a11y-contrast="high"] .text-white\/65,
+html[data-a11y-contrast="high"] .text-white\/60,
+html[data-a11y-contrast="high"] .text-white\/55,
+html[data-a11y-contrast="high"] .text-white\/50 {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+html[data-a11y-contrast="high"] [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.34);
 }

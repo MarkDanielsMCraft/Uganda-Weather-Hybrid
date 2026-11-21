@@ -9,15 +9,43 @@ import { districtHomeHref } from "@/lib/places/share";
 import { useAppReady } from "@/hooks/useAppReady";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 
-/** Sync `?district=` and `?place=` URL params into persisted preferences. */
+/** Sync `?district=`, `?place=`, `?mode=full`, and `?lang=en|lg` URL params into persisted preferences on every client route transition. */
 export function DistrictQuerySync() {
   const ready = useAppReady();
   const searchParams = useSearchParams();
   const selectDistrict = usePreferencesStore((state) => state.selectDistrict);
   const selectPlace = usePreferencesStore((state) => state.selectPlace);
+  const setUiLanguage = usePreferencesStore((state) => state.setUiLanguage);
+  const setLiteModePreference = usePreferencesStore((state) => state.setLiteModePreference);
 
   useEffect(() => {
     if (!ready) return;
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/lite")) {
+      return;
+    }
+
+    const rawLang = searchParams.get("lang")?.trim().toLowerCase();
+    const rawMode = searchParams.get("mode")?.trim().toLowerCase();
+    if (rawLang === "en" || rawLang === "lg" || rawMode === "full") {
+      if (rawLang === "en" || rawLang === "lg") {
+        setUiLanguage(rawLang);
+      }
+      if (rawMode === "full") {
+        setLiteModePreference(false);
+      }
+      if (typeof window !== "undefined") {
+        const nextParams = new URLSearchParams(window.location.search);
+        nextParams.delete("lang");
+        nextParams.delete("mode");
+        const cleanQuery = nextParams.toString();
+        const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}${window.location.hash}`;
+        try {
+          window.history.replaceState(null, "", cleanUrl);
+        } catch {
+          // Ignore history restrictions
+        }
+      }
+    }
 
     const placeKey = searchParams.get("place")?.trim();
     const placeName = searchParams.get("name")?.trim();
@@ -55,7 +83,7 @@ export function DistrictQuerySync() {
         window.history.replaceState(null, "", districtHomeHref(slug));
       }
     }
-  }, [ready, searchParams, selectDistrict, selectPlace]);
+  }, [ready, searchParams, selectDistrict, selectPlace, setLiteModePreference, setUiLanguage]);
 
   return null;
 }

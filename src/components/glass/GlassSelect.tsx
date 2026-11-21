@@ -142,7 +142,7 @@ export function GlassSelect<T extends string>({
         <div
           id={listboxId}
           role="listbox"
-          className="absolute left-0 right-0 z-50 mt-2 rounded-[18px] border-none bg-[rgba(24,24,27,0.86)] p-[6px] shadow-[0_14px_34px_-6px_rgba(0,0,0,0.55),0_4px_12px_-2px_rgba(0,0,0,0.35)] backdrop-blur-[32px] backdrop-saturate-[200%] backdrop-brightness-105"
+          className="absolute left-0 right-0 z-50 mt-2 max-h-[264px] overflow-y-auto rounded-[18px] border border-white/[0.14] bg-[rgba(14,20,34,0.97)] p-[6px] shadow-[0_18px_40px_-6px_rgba(0,0,0,0.72),0_4px_12px_-2px_rgba(0,0,0,0.45)] backdrop-blur-[32px] backdrop-saturate-[200%]"
         >
           {options.map((option, index) => {
             const isSelected = option.value === value;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { GlassPanel } from "@/components/glass/GlassCard";
 import { getCurrentCoordinates } from "@/lib/native/geolocation";
 import { isWithinUganda } from "@/lib/places/uganda-bounds";
 import type { PlaceLocation } from "@/lib/places/types";
@@ -114,19 +115,18 @@ export function UseMyLocationButton({
       </button>
       {message &&
         (popover ? (
-          <div
-            role="status"
-            className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-white/15 bg-[rgba(26,21,36,0.96)] p-3 text-center shadow-2xl backdrop-blur-2xl"
-          >
-            <p className="text-[13px] leading-snug text-white/90">{message}</p>
-            <button
-              type="button"
-              onClick={() => setMessage(null)}
-              className="mt-2 text-[11px] font-medium text-white/75 hover:text-white hover:underline"
-            >
-              {dict.common.dismiss}
-            </button>
-          </div>
+          <GlassPanel className="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] bg-[rgba(14,20,34,0.94)] p-3 text-center shadow-[0_16px_48px_rgba(0,0,0,0.45)]">
+            <div role="status">
+              <p className="text-[13px] leading-snug text-white/90">{message}</p>
+              <button
+                type="button"
+                onClick={() => setMessage(null)}
+                className="mt-2 text-[11px] font-medium text-white/75 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                {dict.common.dismiss}
+              </button>
+            </div>
+          </GlassPanel>
         ) : (
           <p className="mt-2 text-center text-[14px] text-white/75">{message}</p>
         ))}
