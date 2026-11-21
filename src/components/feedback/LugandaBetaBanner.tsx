@@ -87,50 +87,49 @@ export function LugandaBetaBanner() {
       role="dialog"
       aria-modal="false"
       aria-label={dict.lugandaBeta.noticeTitle}
-      className={`mb-3 w-full xl:fixed xl:bottom-6 xl:left-6 xl:z-30 xl:mb-0 xl:w-[285px] ${
+      className={`mb-2 w-full xl:fixed xl:bottom-6 xl:left-6 xl:z-30 xl:mb-0 xl:w-[285px] ${
         advisorOpen ? "max-xl:hidden" : ""
       }`}
     >
-      <GlassPanel className="text-on-sky px-3.5 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.48)]">
-        <div className="flex items-start justify-between gap-2">
+      <GlassPanel className="text-on-sky px-3 py-1.5 shadow-[0_14px_36px_rgba(0,0,0,0.48)] xl:px-3.5 xl:py-3">
+        <div className="flex items-center justify-between gap-2 xl:grid xl:grid-cols-[1fr_auto] xl:items-start">
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold leading-snug text-white">
+            <p className="truncate text-[12px] font-semibold leading-snug text-white xl:whitespace-normal xl:text-[13px]">
               {dict.lugandaBeta.noticeTitle}
             </p>
-            <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-white/75">
+            <p className="mt-1 hidden line-clamp-2 text-[12px] leading-snug text-white/75 xl:block">
               {dict.lugandaBeta.noticeBody}
             </p>
+          </div>
+          <div className="order-2 shrink-0 xl:order-3 xl:col-span-2 xl:mt-2 xl:flex xl:justify-end">
+            <button
+              ref={reportBtnRef}
+              type="button"
+              onClick={handleOpenForm}
+              className="inline-flex min-h-[28px] items-center gap-1.5 rounded-full bg-brand-green/65 px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.98] motion-reduce:transition-none xl:min-h-[34px] xl:px-3.5 xl:py-1.5 xl:text-[12px]"
+            >
+              <svg
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+                className="hidden h-3.5 w-3.5 shrink-0 text-white/90 xl:block"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 4h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4 3.5V5a1 1 0 0 1 1-1Z" />
+              </svg>
+              <span>{dict.lugandaBeta.reportButton}</span>
+            </button>
           </div>
           <button
             type="button"
             aria-label={dict.lugandaBeta.dismissAria}
             onClick={handleDismiss}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[16px] leading-none text-white/60 transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none"
+            className="order-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[15px] leading-none text-white/60 transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none xl:order-2 xl:h-8 xl:w-8 xl:text-[16px]"
           >
             ×
-          </button>
-        </div>
-
-        <div className="mt-2.5 flex items-center justify-end">
-          <button
-            ref={reportBtnRef}
-            type="button"
-            onClick={handleOpenForm}
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-brand-green/65 px-3.5 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.98] motion-reduce:transition-none"
-          >
-            <svg
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-              className="h-3.5 w-3.5 shrink-0 text-white/90"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 4h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4 3.5V5a1 1 0 0 1 1-1Z" />
-            </svg>
-            <span>{dict.lugandaBeta.reportButton}</span>
           </button>
         </div>
       </GlassPanel>

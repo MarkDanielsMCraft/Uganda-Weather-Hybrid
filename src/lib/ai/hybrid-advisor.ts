@@ -12,6 +12,7 @@ import {
   containsInternalPromptLeakage,
   isPromptInjectionOrAbuse,
   matchInstantSocialReply,
+  redactPiiForCloud,
   sanitizeUserMessage,
 } from "@/lib/ai/advisor-guard";
 import {
@@ -27,8 +28,22 @@ import {
   isAppCheckActive,
   isFirebaseAiConfigured,
 } from "@/lib/ai/firebase-client";
+import type { AdvisorImageMetadata } from "@/lib/ai/advisor-image";
+import {
+  deriveSafetyVerdict,
+  executeAdvisorToolCall,
+  isMultiLocationQuery,
+  parseAgentStructuredDirectives,
+  UGANDA_WEATHER_TOOL,
+  type SafetyVerdict,
+} from "@/lib/ai/advisor-tools";
 import { getAdvisorRemoteConfig } from "@/lib/ai/remote-config";
+import {
+  buildServerTemplateVariables,
+  generateWithServerPromptTemplate,
+} from "@/lib/ai/template-advisor";
 import type { SupportedLocale } from "@/lib/i18n/types";
+import { formatClockLabelForLanguage } from "@/lib/time/uganda";
 import type { WeatherBundle } from "@/types/weather";
 
 let cloudStreamParseFailed = false;
@@ -74,6 +89,9 @@ export interface WeatherBriefingResult {
   model: string;
   generatedAt: string;
   usedCachedWeather: boolean;
+  verdict?: SafetyVerdict;
+  followUps?: string[];
+  toolsUsed?: string[];
 }
 
 export type WeatherBriefingErrorCode =
@@ -176,8 +194,8 @@ function nextWithAbort<T>(
   });
 }
 
-function sanitizeBriefingText(raw: string): string {
-  return raw
+function sanitizeBriefingText(raw: string, language: SupportedLocale = "en"): string {
+  let cleaned = raw
     .replace(/[—–]/g, ", ")
     .replace(/[←→⇐⇒⬅➡]/g, " to ")
     .replace(/\*\*(.*?)\*\*/g, "$1")
@@ -186,6 +204,29 @@ function sanitizeBriefingText(raw: string): string {
     .replace(/(\d+(?:\.\d+)?)\s+kilomet(?:er|re)s?\b/gi, "$1 km")
     .replace(/(\d+(?:\.\d+)?)\s+millimet(?:er|re)s?\b/gi, "$1 mm")
     .trim();
+
+  if (language === "lg") {
+    cleaned = cleaned
+      // Convert any stray English "mu <Name> District" or "<Name> District" into authentic Luganda
+      .replace(/\bmu\s+([A-Z][A-Za-z'-]+)\s+District\b/g, "mu Disitulikiti y'e $1")
+      .replace(/\be\s+([A-Z][A-Za-z'-]+)\s+District\b/g, "mu Disitulikiti y'e $1")
+      .replace(/\b([A-Z][A-Za-z'-]+)\s+District\b/g, "Disitulikiti y'e $1")
+      .replace(/\bmu\s+([A-Z][A-Za-z'-]+)\s+City\b/g, "mu Kibuga $1")
+      .replace(/\b([A-Z][A-Za-z'-]+)\s+City\b/g, "Ekibuga $1")
+      // Convert any stray English 12-hour AM/PM clock time in Luganda prose into 6-hour-shifted Luganda equatorial time
+      .replace(
+        /\b(?:ssaawa\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/gi,
+        (full, clock: string) => {
+          const formatted = formatClockLabelForLanguage(clock.trim(), "lg", "medium");
+          return formatted !== clock.trim() ? `ssaawa ${formatted}` : full;
+        },
+      )
+      // Fix common NMT/LLM lexical slips in Luganda weather prose
+      .replace(/\bmu\s+ssaawa\s+ezikaddewo\b/gi, "mu ssaawa eziddako")
+      .replace(/\bomusana\s+(?:ogw'amaanyi\s+)?ogw'ekiro\b/gi, "omume gw'ekiro");
+  }
+
+  return cleaned;
 }
 
 export async function generateHybridWeatherBriefing({
@@ -195,6 +236,7 @@ export async function generateHybridWeatherBriefing({
   customQuestion,
   history,
   spellingCorrection,
+  image,
   isOnline = typeof navigator !== "undefined" ? navigator.onLine : true,
   signal,
   onPhaseChange,
@@ -206,6 +248,11 @@ export async function generateHybridWeatherBriefing({
   customQuestion?: string;
   history?: AdvisorTurn[];
   spellingCorrection?: { typed: string; resolvedName: string };
+  image?: {
+    base64: string;
+    mimeType: string;
+    metadata?: AdvisorImageMetadata;
+  };
   isOnline?: boolean;
   signal?: AbortSignal;
   onPhaseChange?: (phase: BriefingPhase) => void;
@@ -227,32 +274,12 @@ export async function generateHybridWeatherBriefing({
         code: "invalid_input",
         message: isLg
           ? "Ekibuuzo tekirina kusukka nnukuta 240."
-          : "Keep questions under 240 characters.",
+          : "Please keep your question short, under 240 letters.",
       },
     };
   }
 
-  // Handle pure greetings, thanks, farewells, and acknowledgments locally
-  // without spending cloud quota or showing a slow "Thinking" wait.
   if (parsed.data.customQuestion) {
-    const instant = matchInstantSocialReply(
-      parsed.data.customQuestion,
-      weather.district.name,
-      parsed.data.language,
-    );
-    if (instant) {
-      return {
-        ok: true,
-        data: {
-          text: instant.text,
-          source: "on_device",
-          model: "local-guard",
-          generatedAt: new Date().toISOString(),
-          usedCachedWeather: Boolean(weather.stale),
-        },
-      };
-    }
-
     if (isPromptInjectionOrAbuse(parsed.data.customQuestion)) {
       console.warn("[ai-advisor] action blocked action=generate code=PROMPT_INJECTION_BLOCKED");
       return {
@@ -260,7 +287,7 @@ export async function generateHybridWeatherBriefing({
         error: {
           code: "blocked_abuse",
           message: isLg
-            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Yuganda kyokka. Buuza ekibuuzo ku nkuba, empewo, oba olugendo."
+            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Uganda wokka. Buuza ekibuuzo ku nkuba, empewo, ebyobulimi, ennyanja, oba olugendo."
             : "I can only help with Uganda weather and safety questions. Ask about rain, wind, farming, lakes, or travel.",
         },
       };
@@ -277,7 +304,7 @@ export async function generateHybridWeatherBriefing({
         code: "rate_limited",
         message: isLg
           ? `Osabye emirundi mingi mu kaseera katono. Linda sikonda ${waitSeconds} oddemu okubuuza.`
-          : `Too many requests. Please wait ${waitSeconds} seconds before asking again.`,
+          : `Please wait ${waitSeconds} seconds before asking again.`,
       },
     };
   }
@@ -290,22 +317,41 @@ export async function generateHybridWeatherBriefing({
       error: {
         code: "not_configured",
         message: isLg
-          ? "Omuwi w'amagezi tategekeddwa wano."
-          : "Advisor is not configured for this environment.",
+          ? "Omuwi w'amagezi tali mwetegefu kati. Ddamu ogezeeko oluvannyuma."
+          : "Weather advisor is not ready right now. Please try again later.",
       },
     };
   }
 
   const onDeviceStatus = await detectOnDeviceAvailability();
   if (!isOnline && onDeviceStatus !== "available") {
+    if (parsed.data.customQuestion) {
+      const instant = matchInstantSocialReply(
+        parsed.data.customQuestion,
+        weather.district.name,
+        parsed.data.language,
+      );
+      if (instant) {
+        return {
+          ok: true,
+          data: {
+            text: instant.text,
+            source: "on_device",
+            model: "on-device",
+            generatedAt: new Date().toISOString(),
+            usedCachedWeather: Boolean(weather.stale),
+          },
+        };
+      }
+    }
     console.warn("[ai-advisor] action blocked action=generate code=OFFLINE_NO_ON_DEVICE");
     return {
       ok: false,
       error: {
         code: "offline_no_on_device",
         message: isLg
-          ? "Okuddamu awatali mutimbagano tekukola wano kati. Dda ku mutimbagano oba kebera obubaka obuterekeddwa."
-          : "Offline replies need a browser with built in on device AI. Switch back to Online or check your saved forecast.",
+          ? "Toli ku mutimbagano kati. Yunga ku mutimbagano osobole okubuuza, oba laba obubaka obuterekeddwa."
+          : "You are offline right now. Turn on your internet to ask a question, or check your saved weather.",
       },
     };
   }
@@ -318,30 +364,58 @@ export async function generateHybridWeatherBriefing({
       error: {
         code: "not_configured",
         message: isLg
-          ? "Omuwi w'amagezi ayimiriziddwa okumala akaseera. Ddamu ogezeeko oluvannyuma."
-          : "Advisor is temporarily paused. Try again shortly.",
+          ? "Omuwi w'amagezi awummuddeko akaseera. Ddamu ogezeeko mangu."
+          : "Weather advisor is taking a short break. Please try again soon.",
       },
     };
   }
 
+  const generationLanguage = parsed.data.language;
+  const rawQuestion = parsed.data.customQuestion;
+  const hasImage = Boolean(image?.base64);
+  const wantsMultiDistrictTool = Boolean(rawQuestion && isMultiLocationQuery(rawQuestion));
+  const shouldEnableTools = isOnline && !hasImage && wantsMultiDistrictTool;
+  // On-device Gemini Nano currently supports English output only, so Luganda
+  // queries escalate to Cloud Gemini while online (and use deterministic
+  // Luganda offline fallback when offline).
+  const needsCloudForLanguage = generationLanguage === "lg";
+  const mode = !isOnline
+    ? InferenceMode.ONLY_ON_DEVICE
+    : hasImage || shouldEnableTools || needsCloudForLanguage
+      ? InferenceMode.ONLY_IN_CLOUD
+      : remoteConfig.preferOnDevice
+        ? InferenceMode.PREFER_ON_DEVICE
+        : InferenceMode.PREFER_IN_CLOUD;
+
+  // Privacy Shield: redact accidental phone numbers, emails, or NINs before any
+  // prompt or history turn can leave the device for cloud inference.
+  const willPotentiallyUseCloud = mode !== InferenceMode.ONLY_ON_DEVICE;
+  const promptQuestion =
+    rawQuestion && willPotentiallyUseCloud
+      ? redactPiiForCloud(rawQuestion).sanitized
+      : rawQuestion;
+  const safeHistory =
+    willPotentiallyUseCloud && history && history.length > 0
+      ? history.map((turn) =>
+          turn.role === "user"
+            ? { ...turn, text: redactPiiForCloud(turn.text).sanitized }
+            : turn,
+        )
+      : history;
+
   const systemInstruction = buildAdvisorSystemInstruction(
     parsed.data.audience,
-    parsed.data.language,
+    generationLanguage,
   );
   const prompt = buildWeatherContextPrompt(
     weather,
     parsed.data.audience,
-    parsed.data.language,
-    parsed.data.customQuestion,
-    history,
+    generationLanguage,
+    promptQuestion,
+    safeHistory,
     spellingCorrection,
   );
   const cloudModelName = remoteConfig.cloudModel;
-  const mode = !isOnline
-    ? InferenceMode.ONLY_ON_DEVICE
-    : remoteConfig.preferOnDevice
-      ? InferenceMode.PREFER_ON_DEVICE
-      : InferenceMode.PREFER_IN_CLOUD;
 
   try {
     onPhaseChange?.("thinking");
@@ -359,7 +433,6 @@ export async function generateHybridWeatherBriefing({
             thinkingLevel: ThinkingLevel.LOW,
           },
         };
-
     const model = getGenerativeModel(ai, {
       mode,
       inCloudParams: {
@@ -367,6 +440,7 @@ export async function generateHybridWeatherBriefing({
         systemInstruction,
         generationConfig: inCloudGenerationConfig,
         safetySettings: ADVISOR_SAFETY_SETTINGS,
+        ...(shouldEnableTools ? { tools: [UGANDA_WEATHER_TOOL] } : {}),
       },
       onDeviceParams: {
         createOptions: {
@@ -385,8 +459,119 @@ export async function generateHybridWeatherBriefing({
     const requestOptions = signal ? { signal } : undefined;
     let rawText = "";
     let inferenceSource: InferenceSource | undefined;
+    const toolsUsed: string[] = [];
+
+    // Phase 3: When a Server Prompt Template ID is published in Firebase Remote
+    // Config and we are executing a cloud text briefing (no local Gemini Nano,
+    // no image, no multi-district tool call), run via Firebase Server Prompt
+    // Templates so prompt instructions stay completely server-side.
+    const canUseServerTemplate =
+      Boolean(remoteConfig.promptTemplateId) &&
+      isOnline &&
+      !hasImage &&
+      !shouldEnableTools &&
+      onDeviceStatus !== "available";
+
+    if (canUseServerTemplate) {
+      const templateVars = buildServerTemplateVariables({
+        weather,
+        audience: parsed.data.audience,
+        language: generationLanguage,
+        question: promptQuestion || "Give today's weather safety summary.",
+        history: safeHistory,
+      });
+      const templateText = await generateWithServerPromptTemplate({
+        ai,
+        templateId: remoteConfig.promptTemplateId,
+        variables: templateVars,
+        signal,
+        onPhaseChange,
+        onRawChunk: (accumulated) => {
+          const visibleStream = parseAgentStructuredDirectives(
+            sanitizeBriefingText(accumulated, generationLanguage),
+          ).cleanText;
+          if (visibleStream) {
+            onChunk?.(visibleStream);
+          }
+        },
+      });
+      if (templateText) {
+        rawText = templateText;
+        inferenceSource = InferenceSource.IN_CLOUD;
+      }
+    }
+
+    const buildPhotoVerificationBlock = (): string => {
+      const meta = image?.metadata;
+      const notes: string[] = [
+        "The user attached a photo or screenshot.",
+      ];
+      if (meta?.capturedAtIso) {
+        const ageDesc =
+          meta.ageMinutes !== null && meta.ageMinutes >= 60
+            ? `${Math.round(meta.ageMinutes / 60)} hour(s) ago`
+            : meta.ageMinutes !== null
+              ? `${meta.ageMinutes} minute(s) ago`
+              : "unknown age";
+        notes.push(
+          `Photo capture timestamp (${meta.timestampSource}): ${meta.capturedAtIso} (${ageDesc}). ${
+            meta.isStale
+              ? "WARNING: This photo is OUTDATED (older than 3 hours). Do NOT treat it as current weather. Clearly tell the user when it was taken and remind them to share a fresh photo for current conditions, then give today's live forecast separately."
+              : "Photo appears recent."
+          }`,
+        );
+      } else {
+        notes.push(
+          "Photo capture timestamp: Not present in file metadata. Check if any clock, date, or timestamp is visible inside the image or screenshot. If it looks old or you cannot confirm when it was taken, say so honestly instead of treating it as live.",
+        );
+      }
+
+      if (meta?.location) {
+        if (!meta.location.withinUganda) {
+          notes.push(
+            "WARNING: Photo GPS coordinates are OUTSIDE Uganda. Clearly inform the user that this photo was taken outside Uganda and cannot be matched to this Uganda district forecast.",
+          );
+        } else if (!meta.location.matchesActiveDistrict && meta.location.nearestDistrictName) {
+          notes.push(
+            `WARNING: Photo GPS coordinates are near ${meta.location.nearestDistrictName} (${meta.location.distanceToActiveKm ?? "far"} km away from ${weather.district.name}). Clearly tell the user this photo appears to be from ${meta.location.nearestDistrictName}, not ${weather.district.name}, and advise them to switch district if they want the forecast for ${meta.location.nearestDistrictName}.`,
+          );
+        } else {
+          notes.push(
+            `Photo GPS matches the active area (${weather.district.name}).`,
+          );
+        }
+      } else {
+        notes.push(
+          `Photo GPS location metadata: Not included (common for screenshots or gallery photos). Inspect any visible place names, landmarks, signs, or weather-app headers in the photo. If the image shows a different district or country than ${weather.district.name}, point that out clearly instead of pretending it matches ${weather.district.name}.`,
+        );
+      }
+
+      notes.push(
+        "Combine what you actually see in the photo with the live forecast only when time and location match. Use plain, simple everyday English.",
+      );
+      return notes.join(" ");
+    };
+
+    const promptInput = hasImage
+      ? [
+          {
+            type: "inlineData" as const,
+            inlineData: {
+              mimeType: image!.mimeType,
+              data: image!.base64,
+            },
+          },
+          {
+            type: "text" as const,
+            text: `${prompt}\n\n${buildPhotoVerificationBlock()}`,
+          },
+        ]
+      : prompt;
 
     const preferStream =
+      !rawText &&
+      !hasImage &&
+      !shouldEnableTools &&
       typeof model.generateContentStream === "function" &&
       (onDeviceStatus === "available" || !cloudStreamParseFailed);
 
@@ -409,7 +594,12 @@ export async function generateHybridWeatherBriefing({
               onPhaseChange?.("writing");
             }
             rawText += piece;
-            onChunk?.(sanitizeBriefingText(rawText));
+            const visibleStream = parseAgentStructuredDirectives(
+              sanitizeBriefingText(rawText, generationLanguage),
+            ).cleanText;
+            if (visibleStream) {
+              onChunk?.(visibleStream);
+            }
           }
           if (chunk.inferenceSource) {
             inferenceSource = chunk.inferenceSource;
@@ -446,17 +636,53 @@ export async function generateHybridWeatherBriefing({
         onPhaseChange?.("writing");
         rawText = result.response.text();
         inferenceSource = result.response.inferenceSource;
-        onChunk?.(sanitizeBriefingText(rawText));
+        onChunk?.(parseAgentStructuredDirectives(sanitizeBriefingText(rawText, generationLanguage)).cleanText);
       }
-    } else {
-      const result = await model.generateContent(prompt, requestOptions);
+    } else if (!rawText) {
+      if (shouldEnableTools && typeof model.startChat === "function") {
+        const chat = model.startChat();
+        let turnResult = await chat.sendMessage(promptInput, requestOptions);
+        let rounds = 0;
+        while (rounds < 2) {
+          const calls =
+            typeof turnResult.response.functionCalls === "function"
+              ? turnResult.response.functionCalls()
+              : undefined;
+          if (!calls || calls.length === 0) break;
+          rounds += 1;
+          const toolResponses = await Promise.all(
+            calls.map(async (call) => {
+              toolsUsed.push(call.name);
+              const payload = await executeAdvisorToolCall(call, isOnline, signal);
+              return {
+                type: "functionResponse" as const,
+                functionResponse: {
+                  name: call.name,
+                  response: payload,
+                },
+              };
+            }),
+          );
+          turnResult = await chat.sendMessage(toolResponses, requestOptions);
+        }
+        rawText = turnResult.response.text();
+        inferenceSource = turnResult.response.inferenceSource;
+      } else {
+        const result = await model.generateContent(promptInput, requestOptions);
+        rawText = result.response.text();
+        inferenceSource = result.response.inferenceSource;
+      }
       onPhaseChange?.("writing");
-      rawText = result.response.text();
-      inferenceSource = result.response.inferenceSource;
-      onChunk?.(sanitizeBriefingText(rawText));
+      onChunk?.(parseAgentStructuredDirectives(sanitizeBriefingText(rawText, generationLanguage)).cleanText);
     }
 
-    const responseText = sanitizeBriefingText(rawText);
+    const sanitizedRaw = sanitizeBriefingText(rawText, generationLanguage);
+    const parsedDirectives = parseAgentStructuredDirectives(sanitizedRaw);
+    const responseText = parsedDirectives.cleanText;
+    const resolvedVerdict = parsedDirectives.verdictExplicitlyNone
+      ? undefined
+      : (parsedDirectives.verdict ?? deriveSafetyVerdict(weather, sanitizedRaw));
+    const resolvedFollowUps = parsedDirectives.followUps;
 
     if (!responseText) {
       return {
@@ -464,8 +690,8 @@ export async function generateHybridWeatherBriefing({
         error: {
           code: "failed",
           message: isLg
-            ? "Tewali kuddibwamu. Ddamu ogezeeko."
-            : "Empty response. Try again.",
+            ? "Tewali kuddibwamu kuzze. Ddamu ogezeeko."
+            : "No answer came back. Please try again.",
         },
       };
     }
@@ -477,7 +703,7 @@ export async function generateHybridWeatherBriefing({
         error: {
           code: "blocked_abuse",
           message: isLg
-            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Yuganda kyokka. Buuza ekibuuzo ku nkuba, empewo, oba olugendo."
+            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Uganda wokka. Buuza ekibuuzo ku nkuba, empewo, ebyobulimi, ennyanja, oba olugendo."
             : "I can only help with Uganda weather and safety questions. Ask about rain, wind, farming, lakes, or travel.",
         },
       };
@@ -496,6 +722,9 @@ export async function generateHybridWeatherBriefing({
         model: source === "on_device" ? "on-device" : cloudModelName,
         generatedAt: new Date().toISOString(),
         usedCachedWeather: Boolean(weather.stale),
+        verdict: resolvedVerdict,
+        ...(resolvedFollowUps.length > 0 ? { followUps: resolvedFollowUps } : {}),
+        ...(toolsUsed.length > 0 ? { toolsUsed } : {}),
       },
     };
   } catch (error) {
@@ -504,7 +733,7 @@ export async function generateHybridWeatherBriefing({
         ok: false,
         error: {
           code: "aborted",
-          message: "Request cancelled.",
+          message: "Stopped.",
         },
       };
     }
@@ -520,8 +749,8 @@ export async function generateHybridWeatherBriefing({
         error: {
           code: "offline_no_on_device",
           message: isLg
-            ? "Enkola ey'awatali mutimbagano teyinza kukola kati. Dda ku mutimbagano."
-            : "Local model unavailable offline. Reconnect for cloud fallback.",
+            ? "Toli ku mutimbagano kati. Yunga ku mutimbagano oddemu ogezeeko."
+            : "You are offline right now. Please connect to the internet and try again.",
         },
       };
     }
@@ -536,7 +765,7 @@ export async function generateHybridWeatherBriefing({
         error: {
           code: "blocked_abuse",
           message: isLg
-            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Yuganda kyokka. Buuza ekibuuzo ku nkuba, empewo, oba olugendo."
+            ? "Nsonyiwa, nze nkola ku mbeera y'obudde n'obukuumi mu Uganda wokka. Buuza ekibuuzo ku nkuba, empewo, ebyobulimi, ennyanja, oba olugendo."
             : "I can only help with Uganda weather and safety questions. Ask about rain, wind, farming, lakes, or travel.",
         },
       };
@@ -594,7 +823,7 @@ export async function generateHybridWeatherBriefing({
         code: "failed",
         message: isLg
           ? "Tetuyinza kuddamu kati. Ddamu ogezeeko."
-          : "Could not reply right now. Try again.",
+          : "We could not reply right now. Please try again.",
       },
     };
   }

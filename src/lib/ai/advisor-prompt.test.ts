@@ -94,7 +94,7 @@ describe("advisor-prompt", () => {
   });
 
   it("includes current Uganda local time and night flag when isDay is false", () => {
-    const nightWeather = makeWeatherBundle({ isDay: false });
+    const nightWeather = makeWeatherBundle({ isDay: false, source: "open-meteo" });
     const prompt = buildWeatherContextPrompt(
       nightWeather,
       "farmer",
@@ -106,5 +106,7 @@ describe("advisor-prompt", () => {
     );
     expect(prompt).toContain("Current Uganda local time:");
     expect(prompt).toContain("night, the sun has already set");
+    expect(prompt).toContain("Active weather data feed: Uganda Weather live meteorological partner feeds");
+    expect(prompt).toContain("current/next hour rain chance");
   });
 });

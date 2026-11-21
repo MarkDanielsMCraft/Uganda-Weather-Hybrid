@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AveragesWidget, averagesQueryOptions } from "@/components/weather/AveragesWidget";
 import { useIsLgUp } from "@/hooks/useMediaQuery";
@@ -21,6 +21,7 @@ import {
   VisibilityWidget,
 } from "@/components/weather/widgets";
 import { LiteModeToggle } from "@/components/settings/LiteModeToggle";
+import { AccessibilityControls } from "@/components/settings/AccessibilityControls";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { AgricultureTile } from "@/components/agriculture/AgricultureTile";
 import { LakeVictoriaTile } from "@/components/lake-victoria/LakeVictoriaTile";
@@ -103,6 +104,8 @@ export function HomeTileGrid({
   // see where the browser actually placed the tile, then span it to the
   // container's right edge.
   const isDesktop = useIsLgUp();
+  const [showAllMobileTiles, setShowAllMobileTiles] = useState(false);
+  const showSecondaryTiles = isDesktop || showAllMobileTiles;
   const gridRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const settingsSpan = useFillRemainingColumns(gridRef, settingsRef, isDesktop ? 4 : 2, [
@@ -113,6 +116,7 @@ export function HomeTileGrid({
     alerts.length,
     averagesTakesSlot,
     isDesktop,
+    showAllMobileTiles,
   ]);
 
   return (
@@ -122,18 +126,6 @@ export function HomeTileGrid({
           <DailyOutlook weather={weather} compact />
         </div>
       )}
-
-      <div data-tile-id="air-quality" className="col-span-2 min-h-[176px]">
-        <AirQualityWidget weather={weather} />
-      </div>
-
-      <div data-tile-id="map" className="col-span-2 row-span-2 min-h-[360px]">
-        <PrecipitationMapWidget weather={weather} />
-      </div>
-
-      <div className="col-span-2 min-h-[176px]">
-        <WindWidget weather={weather} />
-      </div>
 
       {alerts.length > 0 && (
         <div data-tile-id="alerts" className="col-span-2 min-h-[176px]">
@@ -169,49 +161,90 @@ export function HomeTileGrid({
         </div>
       )}
 
-      <div data-tile-id="national-parks" className="col-span-2 min-h-[176px]">
-        <NationalParksTile weather={weather} />
+      <div data-tile-id="map" className="col-span-2 row-span-2 min-h-[360px]">
+        <PrecipitationMapWidget weather={weather} />
       </div>
 
-      <div data-tile-id="mountains" className="col-span-2 min-h-[176px]">
-        <MountainsTile weather={weather} />
+      <div className="col-span-2 min-h-[176px]">
+        <WindWidget weather={weather} />
       </div>
 
-      <div data-tile-id="airports" className="col-span-2 min-h-[176px]">
-        <AirportsTile weather={weather} />
+      <div data-tile-id="air-quality" className="col-span-2 min-h-[176px]">
+        <AirQualityWidget weather={weather} />
       </div>
 
-      <UvWidget weather={weather} />
-      <SunsetWidget weather={weather} />
-      <FeelsLikeWidget weather={weather} />
-      <PrecipitationWidget weather={weather} />
+      {!isDesktop && (
+        <div className="col-span-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setShowAllMobileTiles((prev) => !prev)}
+            aria-expanded={showAllMobileTiles}
+            data-testid="mobile-more-details-toggle"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-3 text-[14px] font-semibold text-white/90 backdrop-blur-xl transition hover:bg-white/[0.14] active:scale-[0.99]"
+          >
+            <span>
+              {showAllMobileTiles
+                ? isLuganda
+                  ? "Kweka ebisingawo"
+                  : "Show fewer details"
+                : isLuganda
+                  ? "Laga ebisingawo ku budde"
+                  : "More weather details"}
+            </span>
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              className={`h-3.5 w-3.5 transition-transform ${showAllMobileTiles ? "rotate-180" : ""}`}
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M2.5 4.5 6 8l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
 
-      <div className={`col-span-2 ${isLuganda ? "min-h-[176px]" : "min-h-[148px]"}`}>
-        <MoonWidget weather={weather} />
-      </div>
+      {showSecondaryTiles && (
+        <>
+          <div data-tile-id="national-parks" className="col-span-2 min-h-[176px]">
+            <NationalParksTile weather={weather} />
+          </div>
 
-      <HumidityWidget weather={weather} />
-      <VisibilityWidget weather={weather} />
-      <PressureWidget weather={weather} />
-      <AveragesWidget weather={weather} />
+          <div data-tile-id="mountains" className="col-span-2 min-h-[176px]">
+            <MountainsTile weather={weather} />
+          </div>
 
-      {/* Settings lives IN the grid, not a separate section below it, so
-          grid-flow-dense packs it right in beside whatever small tiles
-          preceded it instead of leaving the trailing row half empty or
-          wrapping to its own row. It's always last, so `useFillRemainingColumns`
-          measures exactly how much of the final row is left after real
-          layout (not a guess) and spans it to fill that — correct for
-          every district regardless of alerts, lake tiles, or whether
-          Averages happened to render. Same theme-tinted background wash
-          WidgetTile applies elsewhere — WidgetPanelLike alone renders
-          flat, which is what made this read as a different kind of
-          element instead of a normal tile. */}
-      <div ref={settingsRef} style={{ gridColumn: `span ${settingsSpan}` }}>
-        <WidgetPanelLike className="min-h-[176px] flex flex-col justify-center gap-4" style={settingsTileStyle}>
-          <LanguageSwitcher />
-          <LiteModeToggle />
-        </WidgetPanelLike>
-      </div>
+          <div data-tile-id="airports" className="col-span-2 min-h-[176px]">
+            <AirportsTile weather={weather} />
+          </div>
+
+          <UvWidget weather={weather} />
+          <SunsetWidget weather={weather} />
+          <FeelsLikeWidget weather={weather} />
+          <PrecipitationWidget weather={weather} />
+
+          <div className={`col-span-2 ${isLuganda ? "min-h-[176px]" : "min-h-[148px]"}`}>
+            <MoonWidget weather={weather} />
+          </div>
+
+          <HumidityWidget weather={weather} />
+          <VisibilityWidget weather={weather} />
+          <PressureWidget weather={weather} />
+          <AveragesWidget weather={weather} />
+
+          <div ref={settingsRef} style={{ gridColumn: `span ${settingsSpan}` }}>
+            <WidgetPanelLike
+              className="flex h-[176px] flex-col justify-between overflow-visible"
+              style={settingsTileStyle}
+            >
+              <LanguageSwitcher />
+              <LiteModeToggle />
+              <AccessibilityControls compact />
+            </WidgetPanelLike>
+          </div>
+        </>
+      )}
     </div>
   );
 }

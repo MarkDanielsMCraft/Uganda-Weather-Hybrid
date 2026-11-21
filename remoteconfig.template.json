@@ -27,6 +27,34 @@
       },
       "description": "Prefer on-device Gemini Nano execution before cloud fallback when online.",
       "valueType": "BOOLEAN"
+    },
+    "advisor_tts_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Enable client-side Firebase AI Logic neural TTS for English weather briefings.",
+      "valueType": "BOOLEAN"
+    },
+    "advisor_tts_model": {
+      "defaultValue": {
+        "value": "gemini-3.1-flash-tts-preview"
+      },
+      "description": "Gemini TTS model used via Firebase AI Logic for natural spoken English output.",
+      "valueType": "STRING"
+    },
+    "advisor_tts_voice": {
+      "defaultValue": {
+        "value": "Kore"
+      },
+      "description": "Prebuilt neural voice persona for Firebase AI Logic English speech synthesis.",
+      "valueType": "STRING"
+    },
+    "advisor_prompt_template_id": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Optional Firebase AI Logic Server Prompt Template ID (e.g. uganda-weather-advisor-v1) to keep cloud prompts server-side.",
+      "valueType": "STRING"
     }
   }
 }

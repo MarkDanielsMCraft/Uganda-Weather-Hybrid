@@ -269,4 +269,80 @@ describe("HybridWeatherAdvisor", () => {
     fireEvent.click(onlineBtn);
     expect(onlineBtn).toHaveAttribute("aria-pressed", "true");
   });
+
+  it("renders agent-driven dynamic verdict and dynamic follow-up chips without repeating asked questions", async () => {
+    mockGenerateHybridWeatherBriefing.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        text: "Low risk of heavy rain tonight in Pallisa District. Rain chances stay between 12% and 27%.",
+        source: "cloud",
+        model: "gemini-3.5-flash-lite",
+        generatedAt: "2026-11-21T17:00:00Z",
+        usedCachedWeather: false,
+        verdict: {
+          level: "go",
+          labelEn: "Low storm risk tonight",
+          labelLg: "Tewali bulabe bwa muyaga ekiro kino",
+          dynamicLabel: "Low storm risk tonight",
+        },
+        followUps: [
+          "Best hours for drying crops tomorrow?",
+          "How strong is the wind tomorrow afternoon?",
+        ],
+      },
+    });
+
+    const pallisaBundle = makeWeatherBundle({
+      district: {
+        ...makeWeatherBundle().district,
+        name: "Pallisa",
+        slug: "pallisa",
+      },
+      precipitation: { chance: 82, mm: 0 },
+      hourly: [
+        { time: "21:00", label: "9 PM", temp: 25, icon: "", kind: "hour", rainChance: 18 },
+      ],
+    });
+
+    render(<HybridWeatherAdvisor weather={pallisaBundle} />);
+    fireEvent.click(screen.getByTestId("advisor-launcher"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("advisor-runtime-badge")).toHaveTextContent("Cloud");
+    });
+
+    // Context strip shows current/upcoming hourly rain chance (18%), not full-day peak (82%)
+    expect(screen.getByText(/18% ·/)).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText("Ask about rain, wind, or travel");
+    fireEvent.change(input, { target: { value: "Any storm risk tonight?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    const verdictEl = await screen.findByTestId("advisor-verdict-badge");
+    expect(verdictEl).toHaveTextContent("Low storm risk tonight");
+    expect(verdictEl.className).toContain("text-brand-green");
+    expect(verdictEl.className).not.toContain("text-alert-red");
+
+    // Dynamic follow-ups appear and do not repeat "Any storm risk tonight?"
+    expect(screen.getByRole("button", { name: "Best hours for drying crops tomorrow?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "How strong is the wind tomorrow afternoon?" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Any storm risk tonight?" })).toBeNull();
+  });
+
+  it("opens the photo dropdown menu and closes only the photo menu when Escape is pressed", async () => {
+    render(<HybridWeatherAdvisor weather={makeWeatherBundle()} />);
+    fireEvent.click(screen.getByTestId("advisor-launcher"));
+
+    const cameraBtn = await screen.findByTestId("advisor-camera-button");
+    fireEvent.click(cameraBtn);
+
+    expect(screen.getByRole("menuitem", { name: "Take live photo" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Upload photo" })).toBeInTheDocument();
+
+    // Pressing Escape once closes only the photo menu, keeping the advisor panel open
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(screen.queryByRole("menuitem", { name: "Take live photo" })).toBeNull();
+    expect(screen.getByText("How can I help with today's weather?")).toBeInTheDocument();
+  });
 });

@@ -9,9 +9,14 @@ import {
 } from "@/components/layout/ModulePageHeader";
 import { UseMyLocationButton } from "@/components/search/UseMyLocationButton";
 import { LiteModeToggle } from "@/components/settings/LiteModeToggle";
+import { AccessibilityControls } from "@/components/settings/AccessibilityControls";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { useDistrictNavigation } from "@/hooks/useDistrictNavigation";
 import { getAllDistricts, getDistrictBySlug, getPopularDistricts } from "@/lib/districts";
+import {
+  cachePlaceSearchHits,
+  searchOfflineLocations,
+} from "@/lib/places/offline-place-cache";
 import type { LocationSearchHit } from "@/lib/places/types";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { formatDistrictPhrase, localizeDistrictName, useTranslation } from "@/lib/i18n";
@@ -60,15 +65,8 @@ function LocationRow({
 }
 
 function SectionLabel({ children }: { children: string }) {
-  const { uiLanguage } = useTranslation();
   return (
-    <p
-      className={
-        uiLanguage === "lg"
-          ? "mb-3 text-[13px] font-semibold text-white/55"
-          : "mb-3 text-[13px] font-semibold uppercase tracking-[0.14rem] text-white/45"
-      }
-    >
+    <p className="mb-3 text-[13px] font-semibold leading-snug text-white/75">
       {children}
     </p>
   );
@@ -109,22 +107,32 @@ export function SearchPageClient() {
     const controller = new AbortController();
 
     const timer = setTimeout(async () => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setResults(searchOfflineLocations(trimmedQuery));
+        setSearchError(false);
+        setSearching(false);
+        return;
+      }
       try {
         const response = await fetch(
           `/api/v1/locations/search?q=${encodeURIComponent(trimmedQuery)}`,
           { signal: controller.signal },
         );
         if (!response.ok) {
-          setSearchError(true);
-          setResults([]);
+          const offlineHits = searchOfflineLocations(trimmedQuery);
+          setResults(offlineHits);
+          setSearchError(offlineHits.length === 0);
           return;
         }
         const payload = await response.json();
-        setResults(payload.data.results ?? []);
+        const remoteResults: LocationSearchHit[] = payload.data.results ?? [];
+        cachePlaceSearchHits(remoteResults);
+        setResults(remoteResults);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setSearchError(true);
-          setResults([]);
+          const offlineHits = searchOfflineLocations(trimmedQuery);
+          setResults(offlineHits);
+          setSearchError(offlineHits.length === 0);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -315,10 +323,11 @@ export function SearchPageClient() {
       )}
 
       <div className="space-y-3 lg:hidden">
-        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3">
+        <GlassPanel className="flex flex-col gap-3 p-4">
           <LanguageSwitcher />
           <LiteModeToggle />
-        </div>
+          <AccessibilityControls />
+        </GlassPanel>
       </div>
     </div>
   );

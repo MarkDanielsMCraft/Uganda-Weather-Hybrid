@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Panel } from "@/components/glass/GlassCard";
+import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
 import { getAllDistricts } from "@/lib/districts";
 import { sortByDistance } from "@/lib/geo/distance";
 import { getDictionary, useTranslation } from "@/lib/i18n";
@@ -38,6 +39,7 @@ export function DistrictReference({
 }) {
   const { dict: clientDict, uiLanguage } = useTranslation();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const activeLocale = locale ?? uiLanguage;
   const dict = locale ? getDictionary(locale) : clientDict;
   const content = buildDistrictContent(district, activeLocale);
@@ -45,6 +47,7 @@ export function DistrictReference({
   const title = dict.districtRef.aboutTitle.replace("{district}", district.name);
 
   const syncModalState = (open: boolean) => {
+    setIsOpen(open);
     if (typeof window === "undefined") return;
     document.documentElement.dataset.districtModalOpen = open ? "1" : "0";
     window.dispatchEvent(new CustomEvent("uw:district-modal-open", { detail: open }));
@@ -117,16 +120,24 @@ export function DistrictReference({
           <Panel className="flex max-h-[82dvh] w-full max-w-[600px] flex-col">
             <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-2">
               <p className="text-[16px] font-semibold text-white">{title}</p>
-              <button
-                type="button"
-                aria-label={dict.common.close}
-                onClick={closeDetails}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none"
-              >
-                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <WeatherListenButton
+                  compact
+                  tileIdOverride="about-district"
+                  autoNarrateOnSheetChange={isOpen}
+                  testId="about-district-listen"
+                />
+                <button
+                  type="button"
+                  aria-label={dict.common.close}
+                  onClick={closeDetails}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-5 overflow-y-auto px-5 pt-2 pb-5">

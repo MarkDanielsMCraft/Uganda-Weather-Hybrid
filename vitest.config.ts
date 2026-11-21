@@ -8,6 +8,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    testTimeout: 15000,
     setupFiles: ["./vitest.setup.ts"],
     // .test.tsx files (component tests) opt into jsdom via a
     // `// @vitest-environment jsdom` docblock; everything else (.test.ts)

@@ -116,7 +116,6 @@ export function HomeScreen({
             {dict.common.stillLoadingWeather}
           </p>
         )}
-        {reference}
       </div>
     );
   }
@@ -144,12 +143,7 @@ export function HomeScreen({
   }
 
   if (!weather) {
-    return (
-      <>
-        <WeatherPageSkeleton />
-        {reference}
-      </>
-    );
+    return <WeatherPageSkeleton />;
   }
 
   return (

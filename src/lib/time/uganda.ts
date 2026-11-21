@@ -81,26 +81,41 @@ export function lugandaTimeParts(hour24: number, minute = 0) {
   const lugandaHour = ((h + 5) % 12) + 1;
   const connector = lugandaHour === 1 ? "ey'" : "ez'";
 
-  let period = "oku makya";
   let shortPeriod = "mk";
   if (h >= 0 && h <= 4) {
-    period = "omu ttumbi";
     shortPeriod = "tb";
   } else if (h >= 5 && h <= 11) {
-    period = "oku makya";
     shortPeriod = "mk";
   } else if (h >= 12 && h <= 15) {
-    period = "omu ttuntu";
     shortPeriod = "tt";
   } else if (h >= 16 && h <= 17) {
-    period = "olweggulo";
     shortPeriod = "lg";
   } else if (h === 18) {
-    period = "akawungeezi";
     shortPeriod = "kw";
   } else {
-    period = "ekiro";
     shortPeriod = "kr";
+  }
+
+  let genitivePeriod: string;
+  switch (shortPeriod) {
+    case "tb":
+      genitivePeriod = lugandaHour === 1 ? "eyomuttumbi" : "ezomuttumbi";
+      break;
+    case "mk":
+      genitivePeriod = lugandaHour === 1 ? "eyokumakya" : "ezokumakya";
+      break;
+    case "tt":
+      genitivePeriod = lugandaHour === 1 ? "eyomuttuntu" : "ezomuttuntu";
+      break;
+    case "lg":
+      genitivePeriod = lugandaHour === 1 ? "ey'olweggulo" : "ez'olweggulo";
+      break;
+    case "kw":
+      genitivePeriod = lugandaHour === 1 ? "ey'akawungeezi" : "ez'akawungeezi";
+      break;
+    default:
+      genitivePeriod = lugandaHour === 1 ? "ey'ekiro" : "ez'ekiro";
+      break;
   }
 
   return {
@@ -108,7 +123,8 @@ export function lugandaTimeParts(hour24: number, minute = 0) {
     minute: safeM,
     paddedMinute: String(safeM).padStart(2, "0"),
     connector,
-    period,
+    genitivePeriod,
+    period: genitivePeriod,
     shortPeriod,
   };
 }
@@ -119,7 +135,7 @@ export function formatLugandaClockParts(
   style: LugandaClockStyle = "medium",
   second?: number,
 ): string {
-  const { lugandaHour, minute: safeM, paddedMinute, connector, period, shortPeriod } =
+  const { lugandaHour, minute: safeM, paddedMinute, genitivePeriod, shortPeriod } =
     lugandaTimeParts(hour24, minute);
   if (style === "compact") {
     return safeM === 0
@@ -127,7 +143,7 @@ export function formatLugandaClockParts(
       : `${lugandaHour}:${paddedMinute} ${shortPeriod}`;
   }
   const secSuffix = second != null ? `:${String(second).padStart(2, "0")}` : "";
-  return `${lugandaHour}:${paddedMinute}${secSuffix} ${connector}${period}`;
+  return `${lugandaHour}:${paddedMinute}${secSuffix} ${genitivePeriod}`;
 }
 
 export function parseClockLabelTo24h(label: string): { hour24: number; minute: number } | null {

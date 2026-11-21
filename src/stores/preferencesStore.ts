@@ -9,12 +9,26 @@ interface PreferencesState {
   activePlace: PlaceLocation | null;
   /** Explicit UI language preference: "en" for English, "lg" for Luganda. */
   uiLanguage: "en" | "lg";
+  /** True once the user explicitly picks a language in the UI, so automatic
+      device-language detection never overrides a deliberate user choice. */
+  hasExplicitLanguageChoice: boolean;
   /** Explicit choice from the settings toggle. Null means "not chosen", in
       which case the device decides (see `useLiteScene`). A new key rather
       than the old `liteMode` boolean, because that one persisted `false` for
       everybody whether or not they had ever opened settings, so it could not
       tell an actual preference apart from a default. */
   liteModePreference: boolean | null;
+  /** Persistent hands-free voice companion mode: when a user selects any voice
+      button, the app assumes they prefer spoken audio (e.g. non-readers,
+      grandmothers, or blind users) and reads open sheets and advisor replies
+      aloud automatically. */
+  voiceMode: boolean;
+  /** Accessibility display preference: scales typography for elderly and
+      low-vision users without altering layout or brand colours. */
+  largeText: boolean;
+  /** Accessibility display preference: increases text and glass border
+      contrast for low-vision users and bright outdoor sunlight. */
+  highContrast: boolean;
   pushAlerts: boolean;
   pushDeviceToken: string | null;
   recentDistricts: string[];
@@ -28,9 +42,13 @@ interface PreferencesState {
   setDistrictSlug: (slug: string) => void;
   setActivePlace: (place: PlaceLocation | null) => void;
   setUiLanguage: (uiLanguage: "en" | "lg") => void;
+  applyDetectedLanguage: (uiLanguage: "en" | "lg") => void;
   selectDistrict: (slug: string) => void;
   selectPlace: (place: PlaceLocation) => void;
   setLiteModePreference: (liteModePreference: boolean | null) => void;
+  setVoiceMode: (voiceMode: boolean) => void;
+  setLargeText: (largeText: boolean) => void;
+  setHighContrast: (highContrast: boolean) => void;
   setPushAlerts: (pushAlerts: boolean) => void;
   setPushDeviceToken: (token: string | null) => void;
   setAnalyticsConsent: (analyticsConsent: boolean) => void;
@@ -52,7 +70,11 @@ export const usePreferencesStore = create<PreferencesState>()(
       districtSlug: "kampala",
       activePlace: null,
       uiLanguage: "en",
+      hasExplicitLanguageChoice: false,
       liteModePreference: null,
+      voiceMode: false,
+      largeText: false,
+      highContrast: false,
       pushAlerts: false,
       pushDeviceToken: null,
       recentDistricts: [],
@@ -61,7 +83,8 @@ export const usePreferencesStore = create<PreferencesState>()(
       _hasHydrated: false,
       setDistrictSlug: (districtSlug) => set({ districtSlug }),
       setActivePlace: (activePlace) => set({ activePlace }),
-      setUiLanguage: (uiLanguage) => set({ uiLanguage }),
+      setUiLanguage: (uiLanguage) => set({ uiLanguage, hasExplicitLanguageChoice: true }),
+      applyDetectedLanguage: (uiLanguage) => set({ uiLanguage }),
       selectDistrict: (districtSlug) =>
         set((state) => ({
           districtSlug,
@@ -75,6 +98,9 @@ export const usePreferencesStore = create<PreferencesState>()(
           recentPlaces: pushRecentPlace(state.recentPlaces, place),
         })),
       setLiteModePreference: (liteModePreference) => set({ liteModePreference }),
+      setVoiceMode: (voiceMode) => set({ voiceMode }),
+      setLargeText: (largeText) => set({ largeText }),
+      setHighContrast: (highContrast) => set({ highContrast }),
       setPushAlerts: (pushAlerts) => set({ pushAlerts }),
       setPushDeviceToken: (pushDeviceToken) => set({ pushDeviceToken }),
       setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
@@ -88,7 +114,11 @@ export const usePreferencesStore = create<PreferencesState>()(
         districtSlug: state.districtSlug,
         activePlace: state.activePlace,
         uiLanguage: state.uiLanguage,
+        hasExplicitLanguageChoice: state.hasExplicitLanguageChoice,
         liteModePreference: state.liteModePreference,
+        voiceMode: state.voiceMode,
+        largeText: state.largeText,
+        highContrast: state.highContrast,
         pushAlerts: state.pushAlerts,
         pushDeviceToken: state.pushDeviceToken,
         recentDistricts: state.recentDistricts,
