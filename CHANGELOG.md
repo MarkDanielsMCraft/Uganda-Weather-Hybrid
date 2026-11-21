@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Mobile Voice Reader playback reliability on iOS and Android browsers (`src/lib/ai/advisor-voice.ts`, `src/components/settings/WeatherListenButton.tsx`, `src/components/settings/LiteListenButton.tsx`): primed the shared inline audio element unmuted inside the user tap gesture, removed src teardown between chunks, retained and chunked mobile browser speech utterances without idle cancel races, and prevented background header instances from cancelling active playback on capability hydration.
+
 ### Added
 
 - Accessibility display controls (`AccessibilityControls.tsx` in `src/components/settings/`) adding persistent `Large text` and `High contrast` toggles across the home settings tile, search page, and `/lite` without resizing cards or shifting brand colours.
