@@ -300,4 +300,60 @@ describe("advisor-voice", () => {
     expect(chunks.join(" ")).toContain("Kampala");
     expect(chunks.join(" ")).toContain("Bw'oyanika");
   });
+
+  it("skips redundant speechSynthesis.cancel when idle and chunks long mobile briefings sequentially", () => {
+    const spokenUtterances: Array<{ text: string; lang: string; onend: (() => void) | null }> = [];
+    const speak = vi.fn((u: { text: string; lang: string; onend: (() => void) | null }) => {
+      spokenUtterances.push(u);
+    });
+    const cancel = vi.fn();
+    const resume = vi.fn();
+    const getVoices = vi.fn(() => []);
+    class MockUtterance {
+      text: string;
+      lang = "";
+      rate = 1;
+      pitch = 1;
+      onend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+
+    vi.stubGlobal("speechSynthesis", {
+      speak,
+      cancel,
+      resume,
+      getVoices,
+      speaking: false,
+      pending: false,
+      paused: true,
+    });
+    vi.stubGlobal("SpeechSynthesisUtterance", MockUtterance);
+
+    const onEnd = vi.fn();
+    const longEnglish =
+      "Kampala is currently 25 degrees with clear skies and light winds. Afternoon rain is possible after 4 pm with temperatures peaking near 28 degrees. Carry a light umbrella if traveling in the evening and keep grain covered before dusk.";
+
+    const ok = speakAdvisorReply({
+      text: longEnglish,
+      language: "en",
+      onEnd,
+    });
+    expect(ok).toBe(true);
+    expect(cancel).not.toHaveBeenCalled();
+    expect(resume).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(spokenUtterances[0]?.lang).toBe("en-GB");
+
+    // Triggering onend on chunk 1 must advance to chunk 2 without dropping
+    spokenUtterances[0]?.onend?.();
+    expect(speak).toHaveBeenCalledTimes(2);
+    spokenUtterances[1]?.onend?.();
+    if (spokenUtterances[2]) {
+      spokenUtterances[2].onend?.();
+    }
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
 });
