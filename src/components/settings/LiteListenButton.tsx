@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   fetchVoiceCapabilities,
   isVoiceOutputSupported,
@@ -30,6 +30,9 @@ export function LiteListenButton({
   const [voiceReady, setVoiceReady] = useState(false);
   const [playbackState, setPlaybackState] = useState<"idle" | "loading" | "playing">("idle");
   const isSpeaking = playbackState !== "idle";
+  const isSpeakingRef = useRef(false);
+  isSpeakingRef.current = isSpeaking;
+  const prevContentKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,8 +49,6 @@ export function LiteListenButton({
       setVoiceReady(isVoiceOutputSupported(language, serverCapabilities));
     };
     syncSupport();
-    stopVoiceOutput();
-    setPlaybackState("idle");
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.addEventListener?.("voiceschanged", syncSupport);
@@ -56,9 +57,27 @@ export function LiteListenButton({
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.removeEventListener?.("voiceschanged", syncSupport);
       }
-      stopVoiceOutput();
     };
-  }, [language, serverCapabilities, spokenTextEn, spokenTextLg]);
+  }, [language, serverCapabilities]);
+
+  useEffect(() => {
+    const contentKey = `${language}:${spokenTextEn}:${spokenTextLg}`;
+    if (prevContentKeyRef.current !== null && prevContentKeyRef.current !== contentKey) {
+      if (isSpeakingRef.current) {
+        stopVoiceOutput();
+      }
+      setPlaybackState("idle");
+    }
+    prevContentKeyRef.current = contentKey;
+  }, [language, spokenTextEn, spokenTextLg]);
+
+  useEffect(() => {
+    return () => {
+      if (isSpeakingRef.current) {
+        stopVoiceOutput();
+      }
+    };
+  }, []);
 
   // Eagerly pre-warm Chunk 1 in the background once /lite mounts so tapping
   // Listen begins speaking immediately.
