@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { computeFarmWorkWindows } from "@/lib/agriculture/advisory";
 import { getDistrictBySlug } from "@/lib/districts";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { AIRPORTS, MOUNTAIN_PEAKS, NATIONAL_PARKS } from "@/lib/places/points-of-interest";
-import { formatConditionLg } from "@/lib/weather/copy-lg";
+import { formatClockLabelForLanguage, formatUgandaClock } from "@/lib/time/uganda";
+import { formatConditionLg, formatDayLg } from "@/lib/weather/copy-lg";
 import type { WeatherBundle } from "@/types/weather";
 
 export const AdvisorAudienceSchema = z.enum([
@@ -45,6 +47,9 @@ const LUGANDA_ORTHOGRAPHY_DIRECTIVE = [
   "- Drop the initial vowel after 'mu', 'ku', and 'si' (mu disitulikiti, ku nnyanja, si kulabula). Attach apostrophe elisions with no space only when the second part is a standalone word (embeera y'obudde, n'empewo, k'enkuba).",
   "- Match noun class concords accurately (enkuba ya maanyi, amagezi mangi, essaawa ezisinga). Never invent nonsense words and never use English calques like 'Oyaniriziddwa' or 'Nnyinza ntya okukuyamba leero?'.",
   "- Use natural Luganda greetings and polite forms: reply to 'Gyebaleko' with 'Kale, weebale nnyo.'; reply to 'Wasuze otya?' with 'Nasuze bulungi, ate ggwe wasuze otya?'; reply to 'Osiibye otya?' with 'Nsiibye bulungi, ate ggwe osiibye otya?'; reply to 'Agafa eyo?' with 'Malungi gokka.'; ask how to help with 'Nkuyambe ku ki?'.",
+  "- NEVER write English 'am' or 'pm' in Luganda text, and never mix English 12-hour numbers with Luganda day periods. Always use the Luganda 6-hour-shifted equatorial clock provided in the prompt (for example 'ku ssaawa 1:00 eyokumakya' for 7:00 am, 'ku ssaawa 2:00 ezokumakya' for 8:00 am, 'ku ssaawa 6:00 ezomuttuntu' for 12:00 pm, 'ku ssaawa 10:00 ez'olweggulo' for 4:00 pm, 'ku ssaawa 1:00 ey'ekiro' for 7:00 pm, 'ku ssaawa 9:00 ezomuttumbi' for 3:00 am). Use singular concord 'ey' ONLY for ssaawa 1 and plural concord 'ez' for ssaawa 2 through 12, and never insert an apostrophe inside locative compounds eyokumakya/ezokumakya/eyomuttuntu/ezomuttuntu/eyomuttumbi/ezomuttumbi.",
+  "- NEVER write the English word 'District' or 'City' in Luganda text (never write 'Bukomansimbi District' or 'Kampala City'). Always write 'mu Disitulikiti y'e Bukomansimbi' (or 'e Bukomansimbi') for a district, and 'mu Kibuga Kampala' (or 'e Kampala') for a city.",
+  "- Use authentic Luganda meteorological and agricultural terms: 'enkuba' (rain, NEVER Swahili or Runyankole 'mvula' or 'mvua'), 'obukubakuba' (light drizzle), 'enkuba ey'amatondo' (rain showers, NEVER 'obutale'), 'omume' or 'obunnyogovu bw'ekiro' (night dew/moisture, NEVER 'omusana ogw'ekiro'), 'mu ssaawa eziddako' (in the upcoming hours, NEVER 'mu ssaawa ezikaddewo'), 'okwanika ebirime' (drying crops in the sun, conjugated 'bw'oyanika', 'toyanika'), 'obitereke' (store/keep crops safe, NEVER 'obitume' which means send them), 'okukuuma ebirime okuva ku nkuba' (protect crops from rain, NEVER 'okuziyizibwa ku mvula'), 'okufuuyira ebirime' (spraying crops), 'okusimba' or 'okusiga' (planting).",
 ].join("\n");
 
 export function buildAdvisorSystemInstruction(
@@ -94,20 +99,35 @@ export function buildAdvisorSystemInstruction(
     "4. Do not use emoji, decorative symbols, markdown asterisks, em dashes, or en dashes.",
     "5. Write units cleanly and consistently: always write temperatures with the degree symbol (for example 24°C, never 24C), wind speed as km/h (for example 12 km/h), distance as km, and rainfall as mm.",
     "6. Identify and refer to the location accurately by its real Location type (National Park, Mountain peak, Airport, Village or town, Current GPS location, City, or District). NEVER call a national park, mountain, airport, village, town, or GPS point a district (for example never say 'Mount Elgon District' or 'disitulikiti y'e Mount Elgon'). In Luganda, use 'Ekkuumiro ly'ebisolo' for a national park, 'Olusozi' for a mountain, 'Ekisaawe ky'ennyonyi' for an airport, 'Ekyalo' or 'Ekibuga' for a village or town, 'Ekifo w'oli kati' for a current GPS location, and 'Disitulikiti' only when Location type is District.",
-    "7. Respect the current Uganda local time given in the prompt. If it is night, never suggest drying crops, spraying, or field work right now, and never say the sun is going down. Give advice for tonight, then name the best hours tomorrow from the hourly or daily data. Only treat hours still ahead of the current time as upcoming.",
+    "7. Respect the current Uganda local time given in the prompt. If it is night, never suggest drying crops, spraying, or field work right now, and never say the sun is going down. Give advice for tonight, then name the best hours tomorrow from the hourly or daily data. Only treat hours still ahead of the current time as upcoming. Note that '3:00 am' is in the middle of the night before dawn; morning daylight starts at sunrise (around 6:30 am EAT).",
+    "8. If the user asks where the weather information comes from or whether it can be trusted, explain naturally in your own words that Uganda Weather combines live meteorological feeds from verified weather data partners (updated at the exact timestamp shown in the prompt, with full partner details listed in the Attribution and Terms pages), and state clearly that Uganda Weather is an independent service and not an official UNMA warning service. Never expose raw internal feed hostnames or internal model identifiers.",
+    "9. At the very end of your reply, on new lines, output two dynamic metadata tags:",
+    "   - First: `[VERDICT: go | <2 to 5 word status>]`, `[VERDICT: caution | <2 to 5 word status>]`, or `[VERDICT: wait | <2 to 5 word status>]` matching your actual conclusion for the timeframe the user asked about (for example `[VERDICT: go | Low storm risk tonight]` or `[VERDICT: caution | Afternoon showers likely]` or `[VERDICT: wait | Heavy rain risk]`). Output `[VERDICT: none]` for greetings, data source questions, off-topic refusals, or whenever a photo or screenshot is from a different district, outside Uganda, or outdated.",
+    "   - Second: `[FOLLOWUPS: <short follow-up question 1> | <short follow-up question 2>]` containing 2 short, practical follow-up questions in the output language tailored to this location, time of day, and what was just discussed. Never repeat a question the user already asked.",
   ].join("\n");
 }
 
-function formatShortDay(day: WeatherBundle["dailyForecast"][number]): string {
+function formatShortDay(
+  day: WeatherBundle["dailyForecast"][number],
+  language: SupportedLocale = "en",
+): string {
   const rainPart =
     typeof day.rainChance === "number" ? `, rain chance ${Math.round(day.rainChance)}%` : "";
-  return `${day.day}: high ${Math.round(day.high)}°C, low ${Math.round(day.low)}°C${rainPart}`;
+  const label = language === "lg" ? formatDayLg(day.day) : day.day;
+  return `${label}: high ${Math.round(day.high)}°C, low ${Math.round(day.low)}°C${rainPart}`;
 }
 
-function formatShortHour(hour: WeatherBundle["hourly"][number]): string {
+function formatShortHour(
+  hour: WeatherBundle["hourly"][number],
+  language: SupportedLocale = "en",
+): string {
   const rain = typeof hour.rainChance === "number" ? ` rain ${Math.round(hour.rainChance)}%` : "";
   const wind = typeof hour.windSpeedKph === "number" ? ` wind ${Math.round(hour.windSpeedKph)} km/h` : "";
-  return `${hour.label}: ${Math.round(hour.temp)}°C${rain}${wind}`;
+  const label =
+    language === "lg"
+      ? `ssaawa ${formatClockLabelForLanguage(hour.label, "lg", "medium")}`
+      : hour.label;
+  return `${label}: ${Math.round(hour.temp)}°C${rain}${wind}`;
 }
 
 function formatNowUganda(now: Date): string {
@@ -245,18 +265,35 @@ export function classifyAdvisorLocation(
   }
 
   if (district.isCity) {
+    const cityLabel = /\bcity$/i.test(district.name.trim())
+      ? district.name.trim()
+      : `${district.name.trim()} City`;
     return {
       kind: "city",
       typeLabel: "City",
-      description: `${district.name} City (${district.region} region, Uganda)`,
+      description: `${cityLabel} (${district.region} region, Uganda)`,
     };
   }
 
+  const districtLabel = /\bdistrict$/i.test(district.name.trim())
+    ? district.name.trim()
+    : `${district.name.trim()} District`;
   return {
     kind: "district",
     typeLabel: "District",
-    description: `${district.name} District (${district.region} region, Uganda)`,
+    description: `${districtLabel} (${district.region} region, Uganda)`,
   };
+}
+
+function formatProviderSourceDescription(source: string | undefined, stale?: boolean): string {
+  const key = (source ?? "").trim().toLowerCase();
+  if (stale) {
+    return "Uganda Weather saved district forecast data from verified meteorological partners";
+  }
+  if (key === "demo" || key === "demo-fallback") {
+    return "Uganda Weather district forecast dataset";
+  }
+  return "Uganda Weather live meteorological partner feeds";
 }
 
 export function buildWeatherContextPrompt(
@@ -273,12 +310,23 @@ export function buildWeatherContextPrompt(
   const alertsList = Array.isArray(weather.alerts) ? weather.alerts : [];
   const hazardsList = Array.isArray(weather.district?.hazards) ? weather.district.hazards : [];
 
-  const nextHours = hourlyList
-    .filter((point) => point.kind === "hour")
+  const upcomingHourPoints = hourlyList.filter((point) => point.kind === "hour");
+  const nextHours = upcomingHourPoints
     .slice(0, 8)
-    .map(formatShortHour)
+    .map((h) => formatShortHour(h, language))
     .join("; ");
-  const nextDays = dailyList.slice(0, 3).map(formatShortDay).join("; ");
+  const firstUpcomingHourRain = upcomingHourPoints.find(
+    (point) => typeof point.rainChance === "number",
+  )?.rainChance;
+  const currentOrNextHourRainChance =
+    typeof firstUpcomingHourRain === "number"
+      ? Math.round(firstUpcomingHourRain)
+      : Math.round(weather.precipitation?.chance ?? 0);
+  const dailyPeakRainChance = Math.round(weather.precipitation?.chance ?? 0);
+  const nextDays = dailyList
+    .slice(0, 3)
+    .map((d) => formatShortDay(d, language))
+    .join("; ");
   const alertsSummary =
     alertsList.length > 0
       ? alertsList
@@ -296,22 +344,40 @@ export function buildWeatherContextPrompt(
       : weather.condition.text;
 
   const location = classifyAdvisorLocation(weather.district);
+  const updatedAtFormatted = formatUpdatedAtUganda(weather.updatedAt);
+  const providerDescription = formatProviderSourceDescription(weather.source, weather.stale);
+  const farmWindows = computeFarmWorkWindows(weather, language);
+  const sunriseDisplay =
+    language === "lg"
+      ? `ssaawa ${formatClockLabelForLanguage(weather.astronomy.sunrise, "lg", "medium")}`
+      : weather.astronomy.sunrise;
+  const sunsetDisplay =
+    language === "lg"
+      ? `ssaawa ${formatClockLabelForLanguage(weather.astronomy.sunset, "lg", "medium")}`
+      : weather.astronomy.sunset;
+  const currentLocalTimeDisplay =
+    language === "lg"
+      ? `ssaawa ${formatUgandaClock(now, false, "lg")} (${formatNowUganda(now)})`
+      : formatNowUganda(now);
 
   const lines = [
     `Location: ${location.description}`,
     `Location type: ${location.typeLabel}`,
     `Audience: ${audience}`,
     `Output language: ${language === "lg" ? "Luganda" : "English"}`,
-    `Data freshness: ${weather.stale ? "Cached offline forecast" : "Live forecast"} (saved ${formatUpdatedAtUganda(weather.updatedAt)})`,
-    `Current Uganda local time: ${formatNowUganda(now)} (${weather.isDay ? "daytime" : "night, the sun has already set"})`,
+    `Data freshness: ${weather.stale ? "Cached offline forecast" : "Live forecast"} (saved ${updatedAtFormatted})`,
+    `Active weather data feed: ${providerDescription}, updated ${updatedAtFormatted} (${weather.stale ? "saved offline on device" : "live partner feed"}). Full partner credits are in the Attribution and Terms pages. Uganda Weather is an independent service, not an official UNMA service.`,
+    `Current Uganda local time: ${currentLocalTimeDisplay} (${weather.isDay ? "daytime" : "night, the sun has already set"})`,
     `Current condition: ${conditionText}, ${Math.round(weather.temperature.celsius)}°C (feels like ${Math.round(weather.temperature.feelsLike)}°C)`,
-    `Today range: high ${Math.round(weather.daily.high)}°C, low ${Math.round(weather.daily.low)}°C, sunrise ${weather.astronomy.sunrise}, sunset ${weather.astronomy.sunset}`,
-    `Rain: ${(weather.precipitation?.mm ?? 0).toFixed(1)} mm, chance ${Math.round(weather.precipitation?.chance ?? 0)}%`,
+    `Today range: high ${Math.round(weather.daily.high)}°C, low ${Math.round(weather.daily.low)}°C, sunrise ${sunriseDisplay}, sunset ${sunsetDisplay}`,
+    `Rain: ${(weather.precipitation?.mm ?? 0).toFixed(1)} mm current, current/next hour rain chance ${currentOrNextHourRainChance}%, today's full-day peak rain chance ${dailyPeakRainChance}%`,
     `Wind: ${Math.round(weather.wind?.speedKph ?? 0)} km/h (gusts ${Math.round(weather.wind?.gustKph ?? 0)} km/h) from ${weather.wind?.direction ?? "variable"}`,
     `Humidity: ${Math.round(weather.humidity ?? 0)}%, UV index: ${weather.uvIndex ?? 0}, Visibility: ${(weather.visibilityKm ?? 0).toFixed(1)} km`,
     `Air quality: AQI ${weather.airQuality.aqi} (${weather.airQuality.category})`,
     `Known location hazards: ${hazardsSummary}`,
     `Active alerts: ${alertsSummary}`,
+    `Farm sun-drying window (next 6 hours): ${farmWindows.dryingSummary}`,
+    `Farm crop-spraying window (next 6 hours): ${farmWindows.sprayingSummary}`,
     nextHours ? `Next 8 hours: ${nextHours}` : null,
     nextDays ? `Next 3 days: ${nextDays}` : null,
     weather.district.agroZone ? `Agro ecological zone: ${weather.district.agroZone}` : null,

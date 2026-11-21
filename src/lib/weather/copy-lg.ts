@@ -258,7 +258,7 @@ export function formatFeelsLikeFooterLg(diff: number): string {
 
 export function formatHumidityFooterLg(humidity: number, dewPoint: number): string {
   if (humidity >= 75) {
-    return `Empewo ezitowa olw'obunnyogovu bungi. Ekipimo ky'omume kiri ku ${dewPoint}°.`;
+    return `Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omume kiri ku ${dewPoint}°.`;
   }
   if (humidity <= 35) {
     return `Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omume kiri ku ${dewPoint}°.`;
@@ -301,7 +301,7 @@ export function formatPrecipitationFooterLg(mm: number, chance: number): string 
 export function formatWindFooterLg(direction: string, degree: number): string {
   const dirLg = formatWindDirectionLg(direction);
   const midSentenceDir = dirLg ? dirLg.charAt(0).toLowerCase() + dirLg.slice(1) : "";
-  return `Eva mu ${midSentenceDir} ku diguli ${degree}°.`;
+  return `Eva mu ${midSentenceDir} ku kigero kya ${degree}°.`;
 }
 
 export function formatMarineSafetyLg(safety: { label: string; summary: string }): { label: string; summary: string } {

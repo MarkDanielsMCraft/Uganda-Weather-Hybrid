@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   fetchReferencedLocationWeather,
+  getCurrentOrNextHourRainChance,
   getDistrictQuickActions,
   getStatusMeta,
+  resolveDynamicFollowUps,
   type AdvisorMessage,
 } from "@/components/advisor/advisor-helpers";
 import { playAdvisorPopSound } from "@/components/advisor/advisor-sound";
 import { GlassPanel } from "@/components/glass/GlassCard";
+import { useOptionalDetailSheet } from "@/components/sheet/DetailSheetProvider";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import {
   detectOnDeviceAvailability,
   generateHybridWeatherBriefing,
@@ -22,9 +26,29 @@ import {
   type OnDeviceModelAvailability,
   type WeatherBriefingError,
 } from "@/lib/ai";
+import {
+  compressImageForAdvisor,
+  type AdvisorImageAttachment,
+} from "@/lib/ai/advisor-image";
+import { isMultiLocationQuery } from "@/lib/ai/advisor-tools";
+import {
+  buildSpokenAdvisorTurnText,
+  fetchVoiceCapabilities,
+  isVoiceInputSupported,
+  isVoiceOutputSupported,
+  primeVoicePlaybackForGesture,
+  resolveHandsFreeVoiceCommand,
+  speakAdvisorReply,
+  startVoiceInput,
+  stopVoiceOutput,
+  type VoiceInputHandle,
+  type VoiceServerCapabilities,
+} from "@/lib/ai/advisor-voice";
 import { loadWeatherCache } from "@/lib/offline/weather-cache";
+import { buildPlainTextAdvisorSms, buildSmsHref } from "@/lib/places/sms-share";
 import { useTranslation } from "@/lib/i18n";
 import { formatConditionLg } from "@/lib/weather/copy-lg";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 import type { WeatherBundle } from "@/types/weather";
 
 const POPUP_DISMISSED_KEY = "uw:advisor-popup-dismissed:v2";
@@ -42,6 +66,11 @@ export function HybridWeatherAdvisor({
   const { dict, uiLanguage } = useTranslation();
   const copy = dict.hybridAdvisor;
   const questionInputId = useId();
+  const voiceMode = usePreferencesStore((state) => state.voiceMode);
+  const setVoiceMode = usePreferencesStore((state) => state.setVoiceMode);
+  const { installGuideOpen } = useInstallPrompt();
+  const detailSheet = useOptionalDetailSheet();
+  const isDetailSheetOpen = Boolean(detailSheet?.sheet);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showRuntimeDetails, setShowRuntimeDetails] = useState(false);
@@ -57,8 +86,33 @@ export function HybridWeatherAdvisor({
   const [thinkingStep, setThinkingStep] = useState<0 | 1 | 2>(0);
   const [messages, setMessages] = useState<AdvisorMessage[]>([]);
   const [error, setError] = useState<WeatherBriefingError | null>(null);
+  const [voiceInputState, setVoiceInputState] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [voiceLevel, setVoiceLevel] = useState(0);
+  const [attachedImage, setAttachedImage] = useState<AdvisorImageAttachment | null>(null);
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
+  const [liveCameraOpen, setLiveCameraOpen] = useState(false);
+  const autoSpeakNextRef = useRef(false);
+  const handsFreeSessionRef = useRef(false);
+  const handsFreeTimerRef = useRef<number | null>(null);
+  const latestFollowUpsRef = useRef<string[]>([]);
+  const startVoiceSessionRef = useRef<(() => void) | null>(null);
+  const photoMenuRef = useRef<HTMLDivElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const isListening = voiceInputState !== "idle";
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [voiceServerCapabilities, setVoiceServerCapabilities] = useState<VoiceServerCapabilities>({
+    lugandaTts: false,
+    lugandaStt: false,
+    englishNeuralTts: false,
+  });
+  const [voiceInputReady, setVoiceInputReady] = useState(false);
+  const [voiceOutputReady, setVoiceOutputReady] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const voiceHandleRef = useRef<VoiceInputHandle | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   const hasInteractedRef = useRef(false);
   const chimePlayedRef = useRef(false);
@@ -73,6 +127,157 @@ export function HybridWeatherAdvisor({
     const status = await detectOnDeviceAvailability();
     setOnDeviceAvailability(status);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void fetchVoiceCapabilities().then((caps) => {
+      if (active) setVoiceServerCapabilities(caps);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncVoiceSupport = () => {
+      setVoiceInputReady(isVoiceInputSupported(uiLanguage, voiceServerCapabilities));
+      setVoiceOutputReady(isVoiceOutputSupported(uiLanguage, voiceServerCapabilities));
+    };
+    syncVoiceSupport();
+    voiceHandleRef.current?.abort();
+    voiceHandleRef.current = null;
+    setVoiceInputState("idle");
+    stopVoiceOutput();
+    setSpeakingMessageId(null);
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.addEventListener?.("voiceschanged", syncVoiceSupport);
+    }
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.removeEventListener?.("voiceschanged", syncVoiceSupport);
+      }
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
+      stopVoiceOutput();
+    };
+  }, [uiLanguage, voiceServerCapabilities]);
+
+  const stopLiveCamera = useCallback(() => {
+    if (cameraStreamRef.current) {
+      for (const track of cameraStreamRef.current.getTracks()) {
+        try {
+          track.stop();
+        } catch {
+          // Ignore track stop errors
+        }
+      }
+      cameraStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setLiveCameraOpen(false);
+  }, []);
+
+  const handleOpenLiveCamera = useCallback(async () => {
+    setPhotoMenuOpen(false);
+    // On mobile touch devices, the native OS camera app (<input capture="environment">)
+    // provides hardware autofocus, flash, and GPS EXIF tagging. On desktop/laptops,
+    // <input capture> opens the file picker, so we open a live getUserMedia viewfinder.
+    const isMobileTouch =
+      typeof navigator !== "undefined" &&
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (isMobileTouch || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      cameraInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setLiveCameraOpen(true);
+      window.setTimeout(() => {
+        if (videoRef.current && cameraStreamRef.current) {
+          videoRef.current.srcObject = cameraStreamRef.current;
+          void videoRef.current.play().catch(() => {});
+        }
+      }, 20);
+    } catch {
+      cameraInputRef.current?.click();
+    }
+  }, []);
+
+  const handleCaptureLiveCameraFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      stopLiveCamera();
+      return;
+    }
+    const maxDim = 768;
+    const scale = Math.min(1, maxDim / Math.max(video.videoWidth, video.videoHeight));
+    const width = Math.max(1, Math.round(video.videoWidth * scale));
+    const height = Math.max(1, Math.round(video.videoHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      stopLiveCamera();
+      return;
+    }
+    ctx.drawImage(video, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+    const comma = dataUrl.indexOf(",");
+    const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : "";
+    stopLiveCamera();
+    if (!base64) return;
+    setError(null);
+    setAttachedImage({
+      base64,
+      mimeType: "image/jpeg",
+      previewUrl: dataUrl,
+      metadata: {
+        capturedAtIso: new Date().toISOString(),
+        timestampSource: "exif",
+        ageMinutes: 0,
+        isStale: false,
+        location: weather?.district?.coordinates
+          ? {
+              lat: weather.district.coordinates.lat,
+              lon: weather.district.coordinates.lon,
+              withinUganda: true,
+              nearestDistrictSlug: weather.district.slug,
+              nearestDistrictName: weather.district.name,
+              distanceToActiveKm: 0,
+              matchesActiveDistrict: true,
+            }
+          : null,
+      },
+    });
+  }, [stopLiveCamera, weather]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      handsFreeSessionRef.current = false;
+      if (handsFreeTimerRef.current !== null) {
+        window.clearTimeout(handsFreeTimerRef.current);
+        handsFreeTimerRef.current = null;
+      }
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
+      setVoiceInputState("idle");
+      stopVoiceOutput();
+      setSpeakingMessageId(null);
+      setPhotoMenuOpen(false);
+      stopLiveCamera();
+    } else if (detailSheet?.sheet) {
+      detailSheet.closeSheet();
+    }
+  }, [detailSheet, isOpen, stopLiveCamera]);
 
   useEffect(() => {
     void refreshCapabilities();
@@ -136,6 +341,8 @@ export function HybridWeatherAdvisor({
     let cancelled = false;
     let soundPlayed = false;
     let cleanupInteraction: (() => void) | null = null;
+    let autoHideTimer: number | null = null;
+    let cleanupScroll: (() => void) | null = null;
 
     const timer = window.setTimeout(() => {
       if (cancelled || hasInteractedRef.current) return;
@@ -145,6 +352,17 @@ export function HybridWeatherAdvisor({
         // Ignore storage restrictions
       }
       setShowPopup(true);
+      autoHideTimer = window.setTimeout(() => {
+        autoHideTimer = null;
+        setShowPopup(false);
+      }, 9_000);
+      const handleScrollHide = () => {
+        setShowPopup(false);
+      };
+      window.addEventListener("scroll", handleScrollHide, { passive: true, capture: true });
+      cleanupScroll = () => {
+        window.removeEventListener("scroll", handleScrollHide, { capture: true });
+      };
       void playAdvisorPopSound().then((played) => {
         if (cancelled) return;
         if (played) {
@@ -174,6 +392,10 @@ export function HybridWeatherAdvisor({
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      if (autoHideTimer !== null) {
+        window.clearTimeout(autoHideTimer);
+      }
+      cleanupScroll?.();
       cleanupInteraction?.();
     };
   }, []);
@@ -182,14 +404,31 @@ export function HybridWeatherAdvisor({
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (liveCameraOpen) {
+          event.stopPropagation();
+          stopLiveCamera();
+          return;
+        }
+        if (photoMenuOpen) {
+          event.stopPropagation();
+          setPhotoMenuOpen(false);
+          return;
+        }
         setIsOpen(false);
       }
     };
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
       const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (
+        photoMenuOpen &&
+        photoMenuRef.current &&
+        !photoMenuRef.current.contains(target)
+      ) {
+        setPhotoMenuOpen(false);
+      }
       if (
         containerRef.current &&
-        target instanceof Node &&
         !containerRef.current.contains(target)
       ) {
         setIsOpen(false);
@@ -203,7 +442,7 @@ export function HybridWeatherAdvisor({
       document.removeEventListener("mousedown", handleOutsideClick);
       document.removeEventListener("touchstart", handleOutsideClick);
     };
-  }, [isOpen]);
+  }, [isOpen, liveCameraOpen, photoMenuOpen, stopLiveCamera]);
 
   useEffect(() => {
     if (!activeDistrictSlug) return;
@@ -212,16 +451,29 @@ export function HybridWeatherAdvisor({
     setMessages([]);
     setError(null);
     setPhase(null);
-  }, [activeDistrictSlug]);
+    setPhotoMenuOpen(false);
+    setAttachedImage(null);
+    stopLiveCamera();
+  }, [activeDistrictSlug, stopLiveCamera]);
 
   useEffect(() => {
     return () => {
       if (hoverTimerRef.current !== null) {
         window.clearTimeout(hoverTimerRef.current);
       }
+      if (handsFreeTimerRef.current !== null) {
+        window.clearTimeout(handsFreeTimerRef.current);
+        handsFreeTimerRef.current = null;
+      }
+      handsFreeSessionRef.current = false;
+      autoSpeakNextRef.current = false;
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
+      stopVoiceOutput();
       abortRef.current?.abort();
+      stopLiveCamera();
     };
-  }, []);
+  }, [stopLiveCamera]);
 
   useEffect(() => {
     if (phase !== "thinking") {
@@ -278,7 +530,12 @@ export function HybridWeatherAdvisor({
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const userText = promptText.trim() || copy.quickQuestions[targetAudience];
+      const userText =
+        promptText.trim() ||
+        (attachedImage ? copy.photoDefaultPrompt : copy.quickQuestions[targetAudience]);
+      const pendingImage = attachedImage;
+      setAttachedImage(null);
+      setPhotoMenuOpen(false);
       const userId = `u-${Date.now()}-${seq}`;
       const assistantId = `a-${Date.now()}-${seq}`;
 
@@ -286,7 +543,12 @@ export function HybridWeatherAdvisor({
       setPhase("thinking");
       setMessages((prev) => [
         ...prev,
-        { id: userId, role: "user", text: userText },
+        {
+          id: userId,
+          role: "user",
+          text: userText,
+          imagePreviewUrl: pendingImage?.previewUrl,
+        },
         { id: assistantId, role: "assistant", text: "", streaming: true },
       ]);
 
@@ -297,7 +559,9 @@ export function HybridWeatherAdvisor({
 
       let effectiveQuestion = userText;
       let spellingCorrection: { typed: string; resolvedName: string } | undefined;
-      const referencedLocation = resolveReferencedUgandaLocation(userText);
+      const referencedLocation = isMultiLocationQuery(userText)
+        ? null
+        : resolveReferencedUgandaLocation(userText);
       if (referencedLocation) {
         const currentSlug = weather.district.slug.toLowerCase();
         const currentName = weather.district.name.toLowerCase();
@@ -347,6 +611,13 @@ export function HybridWeatherAdvisor({
         customQuestion: effectiveQuestion,
         history: historyTurns,
         spellingCorrection,
+        image: pendingImage
+          ? {
+              base64: pendingImage.base64,
+              mimeType: pendingImage.mimeType,
+              metadata: pendingImage.metadata,
+            }
+          : undefined,
         isOnline: effectiveOnline,
         signal: controller.signal,
         onPhaseChange: (nextPhase) => {
@@ -370,6 +641,8 @@ export function HybridWeatherAdvisor({
       setPhase(null);
 
       if (outcome.ok) {
+        const nextFollowUps = outcome.data.followUps ?? [];
+        latestFollowUpsRef.current = nextFollowUps;
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantId
@@ -379,19 +652,61 @@ export function HybridWeatherAdvisor({
                   source: outcome.data.source,
                   model: outcome.data.model,
                   usedCachedWeather: outcome.data.usedCachedWeather,
+                  verdict: outcome.data.verdict,
+                  followUps: outcome.data.followUps,
                   streaming: false,
                 }
               : msg,
           ),
         );
+        if (autoSpeakNextRef.current || voiceMode) {
+          const shouldContinueHandsFree = handsFreeSessionRef.current;
+          autoSpeakNextRef.current = false;
+          if (voiceOutputReady && outcome.data.text) {
+            const spokenTurnText = buildSpokenAdvisorTurnText(
+              outcome.data.text,
+              nextFollowUps,
+              uiLanguage,
+              shouldContinueHandsFree,
+            );
+            setSpeakingMessageId(assistantId);
+            const started = speakAdvisorReply({
+              text: spokenTurnText,
+              language: uiLanguage,
+              capabilities: voiceServerCapabilities,
+              onInterrupted: () => {
+                setSpeakingMessageId((current) => (current === assistantId ? null : current));
+                handsFreeSessionRef.current = true;
+                startVoiceSessionRef.current?.();
+              },
+              onEnd: () => {
+                setSpeakingMessageId((current) => (current === assistantId ? null : current));
+                if (shouldContinueHandsFree && handsFreeSessionRef.current) {
+                  if (handsFreeTimerRef.current !== null) {
+                    window.clearTimeout(handsFreeTimerRef.current);
+                  }
+                  handsFreeTimerRef.current = window.setTimeout(() => {
+                    handsFreeTimerRef.current = null;
+                    if (handsFreeSessionRef.current) {
+                      startVoiceSessionRef.current?.();
+                    }
+                  }, 350);
+                }
+              },
+            });
+            if (!started) setSpeakingMessageId(null);
+          }
+        }
       } else {
+        autoSpeakNextRef.current = false;
+        handsFreeSessionRef.current = false;
         setMessages((prev) => prev.filter((msg) => msg.id !== assistantId));
         if (outcome.error.code !== "aborted") {
           setError(outcome.error);
         }
       }
     },
-    [copy.quickQuestions, effectiveOnline, isBusy, messages, readiness, uiLanguage, weather],
+    [attachedImage, copy.photoDefaultPrompt, copy.quickQuestions, effectiveOnline, isBusy, messages, readiness, uiLanguage, voiceMode, voiceOutputReady, voiceServerCapabilities, weather],
   );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -410,6 +725,11 @@ export function HybridWeatherAdvisor({
   };
 
   const handleStop = () => {
+    handsFreeSessionRef.current = false;
+    autoSpeakNextRef.current = false;
+    setVoiceMode(false);
+    stopVoiceOutput();
+    setSpeakingMessageId(null);
     if (phase === null && !abortRef.current) return;
     requestSeqRef.current += 1;
     abortRef.current?.abort();
@@ -439,9 +759,174 @@ export function HybridWeatherAdvisor({
     requestSeqRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
+    voiceHandleRef.current?.abort();
+    voiceHandleRef.current = null;
+    handsFreeSessionRef.current = false;
+    autoSpeakNextRef.current = false;
+    setVoiceMode(false);
+    setVoiceInputState("idle");
+    stopVoiceOutput();
+    setSpeakingMessageId(null);
+    setPhotoMenuOpen(false);
+    setAttachedImage(null);
     setMessages([]);
     setError(null);
     setPhase(null);
+  };
+
+  const startVoiceListeningSession = useCallback(() => {
+    if (!canSend) return;
+    setVoiceMode(true);
+    stopVoiceOutput();
+    setSpeakingMessageId(null);
+    setError(null);
+    setVoiceInputState("recording");
+    voiceHandleRef.current = startVoiceInput({
+      language: uiLanguage,
+      capabilities: voiceServerCapabilities,
+      onStatusChange: (nextState) => {
+        setVoiceInputState(nextState);
+      },
+      onAudioLevel: (level) => {
+        setVoiceLevel(level);
+      },
+      onTranscript: (text) => {
+        setQuestion(text.slice(0, 240));
+      },
+      onFinal: (text) => {
+        const cleaned = text.trim().slice(0, 240);
+        setQuestion("");
+        if (!cleaned) {
+          handsFreeSessionRef.current = false;
+          return;
+        }
+        const activeChoices =
+          latestFollowUpsRef.current.length > 0
+            ? latestFollowUpsRef.current
+            : getDistrictQuickActions(weather, copy, uiLanguage).map((a) => a.prompt);
+        const command = resolveHandsFreeVoiceCommand(
+          cleaned,
+          activeChoices,
+        );
+        if (command.kind === "stop") {
+          handsFreeSessionRef.current = false;
+          autoSpeakNextRef.current = false;
+          if (voiceOutputReady) {
+            speakAdvisorReply({
+              text:
+                uiLanguage === "lg"
+                  ? "Kale, okwogera kukomedde awo."
+                  : "Okay, voice conversation ended.",
+              language: uiLanguage,
+              capabilities: voiceServerCapabilities,
+            });
+          }
+          return;
+        }
+        handsFreeSessionRef.current = true;
+        autoSpeakNextRef.current = true;
+        void runBriefing(command.prompt, audience);
+      },
+      onError: (code) => {
+        handsFreeSessionRef.current = false;
+        setVoiceInputState("idle");
+        const msg =
+          code === "mic_denied"
+            ? copy.voiceErrorMicDenied
+            : code === "empty_transcript"
+              ? copy.voiceErrorEmpty
+              : copy.voiceErrorGeneral;
+        setError({ code: "failed", message: msg });
+      },
+      onEnd: () => {
+        voiceHandleRef.current = null;
+        setVoiceInputState("idle");
+      },
+    });
+  }, [
+    audience,
+    canSend,
+    copy,
+    runBriefing,
+    setVoiceMode,
+    uiLanguage,
+    voiceOutputReady,
+    voiceServerCapabilities,
+    weather,
+  ]);
+
+  useEffect(() => {
+    startVoiceSessionRef.current = startVoiceListeningSession;
+  }, [startVoiceListeningSession]);
+
+  const handleToggleVoiceInput = () => {
+    primeVoicePlaybackForGesture();
+    if (handsFreeTimerRef.current !== null) {
+      window.clearTimeout(handsFreeTimerRef.current);
+      handsFreeTimerRef.current = null;
+    }
+    if (voiceInputState === "recording") {
+      handsFreeSessionRef.current = false;
+      autoSpeakNextRef.current = false;
+      setVoiceMode(false);
+      voiceHandleRef.current?.stop();
+      voiceHandleRef.current = null;
+      return;
+    }
+    if (voiceInputState === "transcribing") {
+      handsFreeSessionRef.current = false;
+      autoSpeakNextRef.current = false;
+      setVoiceMode(false);
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
+      setVoiceInputState("idle");
+      return;
+    }
+    if (speakingMessageId !== null) {
+      handsFreeSessionRef.current = false;
+      autoSpeakNextRef.current = false;
+      setVoiceMode(false);
+      stopVoiceOutput();
+      setSpeakingMessageId(null);
+      return;
+    }
+    setVoiceMode(true);
+    handsFreeSessionRef.current = true;
+    startVoiceListeningSession();
+  };
+
+  const handleToggleSpeakReply = (msg: AdvisorMessage) => {
+    if (!msg.text) return;
+    if (speakingMessageId === msg.id) {
+      if (handsFreeTimerRef.current !== null) {
+        window.clearTimeout(handsFreeTimerRef.current);
+        handsFreeTimerRef.current = null;
+      }
+      handsFreeSessionRef.current = false;
+      autoSpeakNextRef.current = false;
+      setVoiceMode(false);
+      stopVoiceOutput();
+      setSpeakingMessageId(null);
+      return;
+    }
+    setVoiceMode(true);
+    setSpeakingMessageId(msg.id);
+    const started = speakAdvisorReply({
+      text: msg.text,
+      language: uiLanguage,
+      capabilities: voiceServerCapabilities,
+      onInterrupted: () => {
+        setSpeakingMessageId((current) => (current === msg.id ? null : current));
+        handsFreeSessionRef.current = true;
+        startVoiceSessionRef.current?.();
+      },
+      onEnd: () => {
+        setSpeakingMessageId((current) => (current === msg.id ? null : current));
+      },
+    });
+    if (!started) {
+      setSpeakingMessageId(null);
+    }
   };
 
   const thinkingLabel =
@@ -455,18 +940,26 @@ export function HybridWeatherAdvisor({
     activeDistrictSlug && loadWeatherCache(activeDistrictSlug)?.data,
   );
 
+  useEffect(() => {
+    if (isDetailSheetOpen || districtModalOpen || installGuideOpen) {
+      setShowPopup(false);
+    }
+  }, [districtModalOpen, installGuideOpen, isDetailSheetOpen]);
+
+  if ((districtModalOpen || isDetailSheetOpen || installGuideOpen) && !isOpen) {
+    return null;
+  }
+
   return (
     <div
       ref={containerRef}
       className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] z-[55] flex flex-col items-end gap-1.5 sm:bottom-6 sm:right-6 ${
         isOpen ? "left-[max(0.75rem,env(safe-area-inset-left,0px))] sm:left-auto" : ""
-      } ${
-        districtModalOpen && !isOpen ? "hidden" : ""
       }`}
     >
       {isOpen && (
         <GlassPanel
-          className="flex h-[min(620px,calc(100dvh-116px))] w-full max-w-[430px] flex-col overflow-hidden sm:w-[430px]"
+          className="flex h-[min(620px,calc(100dvh-92px))] w-full max-w-[430px] flex-col overflow-hidden sm:w-[430px]"
         >
           {/* Minimal top bar */}
           <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
@@ -573,7 +1066,7 @@ export function HybridWeatherAdvisor({
                   : weather.condition.text}
               </span>
               <span className="shrink-0 text-white/55">
-                {Math.round(weather.precipitation.chance)}% · {Math.round(weather.wind.speedKph)} km/h
+                {getCurrentOrNextHourRainChance(weather)}% · {Math.round(weather.wind.speedKph)} km/h
               </span>
             </div>
           )}
@@ -586,9 +1079,9 @@ export function HybridWeatherAdvisor({
 
           {/* Spacious empty state OR active chat stream */}
           {messages.length === 0 ? (
-            <div className="flex flex-1 flex-col justify-between overflow-y-auto px-5 pt-4 pb-3">
-              <div className="my-auto flex flex-col items-center py-6 text-center">
-                <h2 className="text-[23px] font-semibold leading-tight tracking-tight text-white">
+            <div className="flex flex-1 flex-col justify-between overflow-y-auto px-3.5 pt-3 pb-2 sm:px-5 sm:pt-4 sm:pb-3">
+              <div className="my-auto flex flex-col items-center py-4 text-center sm:py-6">
+                <h2 className="text-[20px] font-semibold leading-tight tracking-tight text-white sm:text-[23px]">
                   {copy.greeting}
                 </h2>
                 {!weather && (
@@ -597,16 +1090,22 @@ export function HybridWeatherAdvisor({
               </div>
 
               <div className="space-y-1.5 pt-2">
-                {getDistrictQuickActions(weather, copy).map((action) => (
+                {getDistrictQuickActions(weather, copy, uiLanguage).map((action, idx) => (
                   <button
                     key={action.key}
                     type="button"
                     disabled={!canSend}
+                    aria-label={action.prompt}
                     onClick={() => handleQuickPrompt(action.audience, action.prompt)}
-                    className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-left text-[13px] text-white/90 transition-colors hover:border-white/25 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
+                    className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-full border border-white/12 bg-white/[0.05] px-4 py-2 text-left text-[13px] leading-snug text-white/92 transition-colors hover:border-white/25 hover:bg-white/[0.09] disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
                   >
-                    <span>{action.prompt}</span>
-                    <span className="shrink-0 text-[11px] text-white/45">
+                    <span className="min-w-0 flex-1">
+                      <span className="mr-1.5 font-semibold text-brand-green">
+                        {idx + 1}.
+                      </span>
+                      {action.prompt}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-white/50">
                       {action.tag}
                     </span>
                   </button>
@@ -620,9 +1119,17 @@ export function HybridWeatherAdvisor({
                   return (
                     <div key={msg.id} className="flex justify-end">
                       <div
-                        className={`max-w-[82%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-[13px] leading-snug ${BRAND_GLASS_GREEN}`}
+                        className={`max-w-[82%] space-y-2 rounded-2xl rounded-br-sm px-3.5 py-2.5 text-[13px] leading-snug ${BRAND_GLASS_GREEN}`}
                       >
-                        {msg.text}
+                        {msg.imagePreviewUrl && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={msg.imagePreviewUrl}
+                            alt={copy.photoAlt}
+                            className="max-h-36 w-full rounded-xl object-cover"
+                          />
+                        )}
+                        <p>{msg.text}</p>
                       </div>
                     </div>
                   );
@@ -635,11 +1142,33 @@ export function HybridWeatherAdvisor({
                     className="max-w-[92%] space-y-1.5"
                   >
                     {msg.streaming && !msg.text && (
-                      <p
+                      <div
                         data-testid="advisor-phase-indicator"
-                        className="text-[13px] font-medium text-white/75"
+                        className="min-h-[76px] space-y-2.5 py-0.5"
                       >
-                        {thinkingLabel}
+                        <p className="text-[12.5px] font-medium text-white/75">
+                          {thinkingLabel}
+                        </p>
+                        <div className="space-y-2" aria-hidden="true">
+                          <div className="glass-shimmer h-3 w-full max-w-[260px] rounded-full" />
+                          <div className="glass-shimmer h-3 w-full max-w-[220px] rounded-full" />
+                          <div className="glass-shimmer h-3 w-full max-w-[160px] rounded-full" />
+                        </div>
+                      </div>
+                    )}
+
+                    {!msg.streaming && msg.verdict && (
+                      <p
+                        data-testid="advisor-verdict-badge"
+                        className={`text-[12px] font-semibold tracking-wide ${
+                          msg.verdict.level === "go"
+                            ? "text-brand-green"
+                            : msg.verdict.level === "caution"
+                              ? "text-caution"
+                              : "text-alert-red"
+                        }`}
+                      >
+                        {uiLanguage === "lg" ? msg.verdict.labelLg : msg.verdict.labelEn}
                       </p>
                     )}
 
@@ -665,7 +1194,7 @@ export function HybridWeatherAdvisor({
                     )}
 
                     {!msg.streaming && msg.source && (
-                      <div className="flex items-center gap-2 pt-1 text-[11px] text-white/50">
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-white/50">
                         <span
                           data-testid="advisor-source-badge"
                           className={
@@ -688,11 +1217,53 @@ export function HybridWeatherAdvisor({
                         >
                           {msg.usedCachedWeather ? copy.dataCached : copy.dataLive}
                         </span>
-                        {msg.model && msg.model !== "local-guard" && (
-                          <>
-                            <span aria-hidden="true">/</span>
-                            <span className="text-white/45">{msg.model}</span>
-                          </>
+                        {msg.text && (
+                          <a
+                            href={buildSmsHref(
+                              buildPlainTextAdvisorSms(
+                                activeDistrictName,
+                                msg.text,
+                              ),
+                            )}
+                            className="inline-flex items-center rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-white/75 transition hover:bg-white/[0.15] hover:text-white"
+                          >
+                            SMS
+                          </a>
+                        )}
+                        {voiceOutputReady && msg.text && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSpeakReply(msg)}
+                            data-testid="advisor-listen-button"
+                            aria-label={
+                              speakingMessageId === msg.id
+                                ? copy.stopListenReply
+                                : copy.listenReply
+                            }
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                              speakingMessageId === msg.id
+                                ? "bg-brand-green/65 text-white"
+                                : "bg-white/[0.08] text-white/75 hover:bg-white/[0.15] hover:text-white"
+                            }`}
+                          >
+                            <svg
+                              viewBox="0 0 16 16"
+                              fill="currentColor"
+                              className="h-3 w-3 shrink-0"
+                              aria-hidden="true"
+                            >
+                              {speakingMessageId === msg.id ? (
+                                <rect x="4" y="4" width="8" height="8" rx="1.5" />
+                              ) : (
+                                <path d="M8.5 3.2a.75.75 0 0 0-1.22-.58L4.3 5H2.75A1.25 1.25 0 0 0 1.5 6.25v3.5A1.25 1.25 0 0 0 2.75 11H4.3l2.98 2.38A.75.75 0 0 0 8.5 12.8V3.2Zm2.34 1.94a.75.75 0 0 1 1.06.03 4.25 4.25 0 0 1 0 5.66.75.75 0 1 1-1.09-1.03 2.75 2.75 0 0 0 0-3.6.75.75 0 0 1 .03-1.06Z" />
+                              )}
+                            </svg>
+                            <span>
+                              {speakingMessageId === msg.id
+                                ? copy.stopListenReply
+                                : copy.listenReply}
+                            </span>
+                          </button>
                         )}
                       </div>
                     )}
@@ -701,18 +1272,23 @@ export function HybridWeatherAdvisor({
               })}
 
               {!isBusy &&
+                !photoMenuOpen &&
                 messages.length > 0 &&
                 messages[messages.length - 1]?.role === "assistant" && (
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {[copy.followUps.bestHours, copy.followUps.tonightRisk].map((followUp) => (
+                    {resolveDynamicFollowUps(messages).map((followUp, idx) => (
                       <button
                         key={followUp}
                         type="button"
                         disabled={!canSend}
+                        aria-label={followUp}
                         onClick={() => handleQuickPrompt(audience, followUp)}
                         className="rounded-full border border-white/15 px-3.5 py-1.5 text-left text-[12px] text-white/80 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
                       >
-                        {followUp}
+                        <span className="mr-1.5 font-semibold text-brand-green">
+                          {idx + 1}.
+                        </span>
+                        <span>{followUp}</span>
                       </button>
                     ))}
                   </div>
@@ -732,70 +1308,328 @@ export function HybridWeatherAdvisor({
           )}
 
           {/* Unified bottom composer */}
-          <div className="px-4 pt-2 pb-3">
-            <form
-              onSubmit={handleSubmit}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] py-1 pr-1.5 pl-3 focus-within:border-white/30"
-            >
-              <label htmlFor={questionInputId} className="sr-only">
-                {copy.questionLabel}
-              </label>
-              <input
-                id={questionInputId}
-                type="text"
-                value={question}
-                maxLength={240}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder={copy.questionPlaceholder}
-                className="min-h-[40px] min-w-0 flex-1 bg-transparent px-1.5 text-[14px] text-white placeholder:text-white/45 focus:outline-none"
-              />
-              {isBusy ? (
+          <div className="relative px-3 pt-2 pb-3 sm:px-4">
+            {attachedImage && (
+              <div className="mb-2 flex items-center gap-2.5 px-1 py-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attachedImage.previewUrl}
+                  alt={copy.photoAlt}
+                  className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] text-white/85">
+                    {copy.photoReady}
+                  </p>
+                  {attachedImage.metadata.location && !attachedImage.metadata.location.withinUganda ? (
+                    <p className="truncate text-[11px] font-medium text-alert-red">
+                      {copy.photoOutsideUganda}
+                    </p>
+                  ) : attachedImage.metadata.location &&
+                    !attachedImage.metadata.location.matchesActiveDistrict &&
+                    attachedImage.metadata.location.nearestDistrictName ? (
+                    <p className="truncate text-[11px] font-medium text-alert-red">
+                      {copy.photoDifferentArea
+                        .replace("{photoDistrict}", attachedImage.metadata.location.nearestDistrictName)
+                        .replace("{activeDistrict}", activeDistrictName)}
+                    </p>
+                  ) : attachedImage.metadata.isStale ? (
+                    <p className="truncate text-[11px] font-medium text-caution">
+                      {copy.photoStale}
+                    </p>
+                  ) : !attachedImage.metadata.location ? (
+                    <p className="truncate text-[11px] font-medium text-caution">
+                      {copy.photoNoGps}
+                    </p>
+                  ) : null}
+                </div>
                 <button
-                  key="advisor-stop"
                   type="button"
-                  aria-label={copy.stopButton}
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleStop();
-                  }}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleStop();
-                  }}
-                  className={`inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-green/80 active:scale-[0.95] motion-reduce:transition-none ${BRAND_GLASS_GREEN}`}
+                  onClick={() => setAttachedImage(null)}
+                  aria-label={copy.closeAria}
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
                 >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="pointer-events-none h-3.5 w-3.5"
-                    aria-hidden="true"
-                  >
-                    <rect x="4" y="4" width="8" height="8" rx="1.5" />
+                  <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
                   </svg>
                 </button>
-              ) : (
-                <button
-                  key="advisor-send"
-                  type="submit"
-                  aria-label={copy.sendButton}
-                  disabled={!canSend}
-                  className={`inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-green/80 active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${BRAND_GLASS_GREEN}`}
-                >
-                  <svg
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    className="pointer-events-none h-4 w-4"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
+              </div>
+            )}
+
+            {liveCameraOpen && (
+              <div className="mb-2 space-y-2">
+                <div className="relative overflow-hidden rounded-xl bg-black">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-44 w-full object-cover"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={stopLiveCamera}
+                    className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.15]"
                   >
-                    <path d="M9 14V4M4.5 8.5L9 4l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+                    {dict.common.close}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCaptureLiveCameraFrame}
+                    className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold ${BRAND_GLASS_GREEN}`}
+                  >
+                    {copy.photoTakeLive}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div ref={photoMenuRef}>
+              {photoMenuOpen && effectiveOnline && cloudConfigured && !isBusy && (
+                <div
+                  role="menu"
+                  className="absolute bottom-[calc(100%-6px)] left-3 z-50 w-[min(224px,calc(100%-1.5rem))] space-y-1 rounded-[18px] border border-white/[0.14] bg-[rgba(14,20,34,0.97)] p-[6px] shadow-[0_18px_40px_-6px_rgba(0,0,0,0.75),0_4px_12px_-2px_rgba(0,0,0,0.45)] backdrop-blur-[32px] backdrop-saturate-[200%]"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleOpenLiveCamera();
+                    }}
+                    className="flex min-h-[44px] w-full items-center gap-2.5 rounded-full px-[14px] py-[7px] text-left text-[14px] font-medium text-[#f8fafc] transition-colors hover:bg-brand-green/65 hover:text-on-brand focus-visible:bg-brand-green/65 focus-visible:text-on-brand focus-visible:outline-none"
+                  >
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0" aria-hidden="true">
+                      <path d="M3.5 7.5A1.75 1.75 0 0 1 5.25 5.75h1.4l.9-1.5A1.5 1.5 0 0 1 8.85 3.5h2.3a1.5 1.5 0 0 1 1.3.75l.9 1.5h1.4A1.75 1.75 0 0 1 16.5 7.5v6.75A1.75 1.75 0 0 1 14.75 16h-9.5A1.75 1.75 0 0 1 3.5 14.25V7.5Z" />
+                      <circle cx="10" cy="10.75" r="2.75" />
+                    </svg>
+                    <span>{copy.photoTakeLive}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setPhotoMenuOpen(false);
+                      uploadInputRef.current?.click();
+                    }}
+                    className="flex min-h-[44px] w-full items-center gap-2.5 rounded-full px-[14px] py-[7px] text-left text-[14px] font-medium text-[#f8fafc] transition-colors hover:bg-brand-green/65 hover:text-on-brand focus-visible:bg-brand-green/65 focus-visible:text-on-brand focus-visible:outline-none"
+                  >
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0" aria-hidden="true">
+                      <rect x="3.25" y="4.25" width="13.5" height="11.5" rx="2" />
+                      <path d="M5.5 13.25 8.5 10l2.25 2.25 2-1.75 2 2.75" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="7.5" cy="7.75" r="1" fill="currentColor" stroke="none" />
+                    </svg>
+                    <span>{copy.photoUpload}</span>
+                  </button>
+                </div>
               )}
-            </form>
+
+              <form
+                onSubmit={handleSubmit}
+                className="flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] py-1 pr-1 pl-1.5 focus-within:border-white/30 sm:gap-1.5 sm:pr-1.5 sm:pl-2.5"
+              >
+                {effectiveOnline && cloudConfigured && !isBusy && (
+                  <>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      tabIndex={-1}
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (!file) return;
+                        const activeCoords = weather?.district?.coordinates
+                          ? {
+                              slug: weather.district.slug,
+                              lat: weather.district.coordinates.lat,
+                              lon: weather.district.coordinates.lon,
+                            }
+                          : undefined;
+                        void compressImageForAdvisor(file, activeCoords)
+                          .then((compressed) => {
+                            setError(null);
+                            setAttachedImage(compressed);
+                          })
+                          .catch((err: unknown) => {
+                            const errCode = err instanceof Error ? err.message : "";
+                            setError({
+                              code: "invalid_input",
+                              message:
+                                errCode === "HEIC_NOT_SUPPORTED"
+                                  ? copy.photoErrorUnsupportedHeic
+                                  : errCode === "IMAGE_TOO_LARGE"
+                                    ? copy.photoErrorTooLarge
+                                    : copy.photoErrorGeneral,
+                            });
+                          });
+                      }}
+                    />
+                    <input
+                      ref={uploadInputRef}
+                      type="file"
+                      tabIndex={-1}
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (!file) return;
+                        const activeCoords = weather?.district?.coordinates
+                          ? {
+                              slug: weather.district.slug,
+                              lat: weather.district.coordinates.lat,
+                              lon: weather.district.coordinates.lon,
+                            }
+                          : undefined;
+                        void compressImageForAdvisor(file, activeCoords)
+                          .then((compressed) => {
+                            setError(null);
+                            setAttachedImage(compressed);
+                          })
+                          .catch((err: unknown) => {
+                            const errCode = err instanceof Error ? err.message : "";
+                            setError({
+                              code: "invalid_input",
+                              message:
+                                errCode === "HEIC_NOT_SUPPORTED"
+                                  ? copy.photoErrorUnsupportedHeic
+                                  : errCode === "IMAGE_TOO_LARGE"
+                                    ? copy.photoErrorTooLarge
+                                    : copy.photoErrorGeneral,
+                            });
+                          });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPhotoMenuOpen((prev) => !prev)}
+                      disabled={!canSend}
+                      aria-haspopup="menu"
+                      aria-expanded={photoMenuOpen}
+                      data-testid="advisor-camera-button"
+                      aria-label={copy.photoButtonAria}
+                      title={copy.photoButtonAria}
+                      className={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9 ${
+                        photoMenuOpen
+                          ? "bg-brand-green/65 text-white"
+                          : "bg-white/[0.08] text-white/80 hover:bg-white/[0.15] hover:text-white"
+                      }`}
+                    >
+                      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4" aria-hidden="true">
+                        <path d="M3.5 7.5A1.75 1.75 0 0 1 5.25 5.75h1.4l.9-1.5A1.5 1.5 0 0 1 8.85 3.5h2.3a1.5 1.5 0 0 1 1.3.75l.9 1.5h1.4A1.75 1.75 0 0 1 16.5 7.5v6.75A1.75 1.75 0 0 1 14.75 16h-9.5A1.75 1.75 0 0 1 3.5 14.25V7.5Z" />
+                        <circle cx="10" cy="10.75" r="2.75" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                <label htmlFor={questionInputId} className="sr-only">
+                  {copy.questionLabel}
+                </label>
+                <input
+                  id={questionInputId}
+                  type="text"
+                  value={question}
+                  maxLength={240}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  placeholder={
+                    voiceInputState === "recording"
+                      ? copy.voiceListening
+                      : voiceInputState === "transcribing"
+                        ? copy.voiceProcessing
+                        : copy.questionPlaceholder
+                  }
+                  className="min-h-[36px] min-w-0 flex-1 bg-transparent px-1 text-[12.5px] text-white placeholder:text-white/50 focus:outline-none sm:min-h-[40px] sm:px-1.5 sm:text-[14px]"
+                />
+                {voiceInputReady && !isBusy && (
+                  <button
+                    type="button"
+                    onClick={handleToggleVoiceInput}
+                    disabled={!canSend && !isListening}
+                    data-testid="advisor-voice-button"
+                    aria-label={isListening ? copy.voiceStopAria : copy.voiceSpeakAria}
+                    aria-pressed={isListening}
+                    className={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none sm:h-10 sm:w-10 ${
+                      isListening
+                        ? "bg-[#b42318] text-white ring-2 ring-white/40"
+                        : "bg-white/[0.08] text-white/80 hover:bg-white/[0.15] hover:text-white"
+                    }`}
+                  >
+                    {voiceInputState === "recording" ? (
+                      <span className="flex items-end gap-[2px]" aria-hidden="true">
+                        {[0.45, 0.9, 0.65].map((weight, idx) => (
+                          <span
+                            key={idx}
+                            className="w-[2.5px] rounded-full bg-white transition-all duration-75"
+                            style={{
+                              height: `${Math.round(5 + Math.max(0.18, voiceLevel * weight) * 11)}px`,
+                            }}
+                          />
+                        ))}
+                      </span>
+                    ) : (
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className={`pointer-events-none h-4 w-4 ${voiceInputState === "transcribing" ? "animate-spin motion-reduce:animate-none" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <path d="M10 2.5a2.75 2.75 0 0 0-2.75 2.75v4.5a2.75 2.75 0 1 0 5.5 0v-4.5A2.75 2.75 0 0 0 10 2.5Z" />
+                        <path d="M5.25 9.25a.75.75 0 0 0-1.5 0 6.25 6.25 0 0 0 5.5 6.2v1.8h-2a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-2v-1.8a6.25 6.25 0 0 0 5.5-6.2.75.75 0 0 0-1.5 0 4.75 4.75 0 1 1-9.5 0Z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+                {isBusy ? (
+                  <button
+                    key="advisor-stop"
+                    type="button"
+                    aria-label={copy.stopButton}
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleStop();
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleStop();
+                    }}
+                    className={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-green/80 active:scale-[0.95] motion-reduce:transition-none sm:h-10 sm:w-10 ${BRAND_GLASS_GREEN}`}
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                      className="pointer-events-none h-3.5 w-3.5"
+                      aria-hidden="true"
+                    >
+                      <rect x="4" y="4" width="8" height="8" rx="1.5" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    key="advisor-send"
+                    type="submit"
+                    aria-label={copy.sendButton}
+                    disabled={!canSend}
+                    className={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-green/80 active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none sm:h-10 sm:w-10 ${BRAND_GLASS_GREEN}`}
+                  >
+                    <svg
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      className="pointer-events-none h-4 w-4"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
+                      <path d="M9 14V4M4.5 8.5L9 4l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+              </form>
+            </div>
 
             <p className="mt-2 text-center text-[11px] text-white/45">
               {copy.disclaimer}
@@ -804,9 +1638,10 @@ export function HybridWeatherAdvisor({
         </GlassPanel>
       )}
 
-      {/* Connected horizontal row: pop-up greeting docked beside the brand green glass launcher */}
+      {/* Connected horizontal row: pop-up greeting docked beside the brand green glass launcher (hidden when panel is already open, since the panel header has its own close button) */}
+      {!isOpen && (
       <div className="flex items-center gap-2">
-        {!isOpen && showPopup && (
+        {showPopup && !installGuideOpen && (
           <GlassPanel
             clip={false}
             className="relative flex max-w-[min(248px,calc(100vw-96px))] items-center gap-2 rounded-full px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
@@ -872,23 +1707,18 @@ export function HybridWeatherAdvisor({
               hoverTimerRef.current = null;
             }
             hidePopupTemporarily();
-            setIsOpen((prev) => !prev);
+            setIsOpen(true);
           }}
           className={`inline-flex h-12 w-14 shrink-0 cursor-pointer items-center justify-center rounded-[18px] rounded-bl-[4px] transition hover:bg-brand-green/80 active:scale-95 focus-visible:outline-none motion-reduce:transition-none ${BRAND_GLASS_GREEN}`}
         >
-          {isOpen ? (
-            <svg viewBox="0 0 20 20" fill="none" className="h-6 w-6 text-white" stroke="currentColor" strokeWidth="2.4">
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
-          ) : (
-            <span className="flex items-center gap-1.5" aria-hidden="true">
-              <span className="h-2 w-2 rounded-full bg-white" />
-              <span className="h-2 w-2 rounded-full bg-white" />
-              <span className="h-2 w-2 rounded-full bg-white" />
-            </span>
-          )}
+          <span className="flex items-center gap-1.5" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full bg-white" />
+            <span className="h-2 w-2 rounded-full bg-white" />
+            <span className="h-2 w-2 rounded-full bg-white" />
+          </span>
         </button>
       </div>
+      )}
     </div>
   );
 }

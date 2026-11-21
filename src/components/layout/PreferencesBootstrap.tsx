@@ -5,9 +5,59 @@ import { getDistrictBySlug } from "@/lib/districts";
 import { isWithinUganda } from "@/lib/places/uganda-bounds";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 
+export function detectDeviceUiLanguage(): "en" | "lg" {
+  if (typeof navigator === "undefined") return "en";
+  const candidates =
+    Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages
+      : navigator.language
+        ? [navigator.language]
+        : [];
+  for (const tag of candidates) {
+    const lower = tag.trim().toLowerCase();
+    if (lower === "lg" || lower.startsWith("lg-") || lower.startsWith("lug")) {
+      return "lg";
+    }
+    if (lower === "en" || lower.startsWith("en-")) {
+      return "en";
+    }
+  }
+  return "en";
+}
+
 /** Rehydrate persisted preferences once at app startup. */
 export function PreferencesBootstrap() {
+  const largeText = usePreferencesStore((state) => state.largeText);
+  const highContrast = usePreferencesStore((state) => state.highContrast);
+
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (largeText) {
+      root.dataset.a11yText = "large";
+    } else {
+      delete root.dataset.a11yText;
+    }
+    if (highContrast) {
+      root.dataset.a11yContrast = "high";
+    } else {
+      delete root.dataset.a11yContrast;
+    }
+  }, [largeText, highContrast]);
+
+  useEffect(() => {
+    const syncDeviceLanguage = () => {
+      const store = usePreferencesStore.getState();
+      if (store.hasExplicitLanguageChoice) return;
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/lg")) {
+        return;
+      }
+      const detected = detectDeviceUiLanguage();
+      if (detected !== store.uiLanguage) {
+        store.applyDetectedLanguage(detected);
+      }
+    };
+
     const result = usePreferencesStore.persist.rehydrate();
     const markReady = () => {
       const store = usePreferencesStore.getState();
@@ -17,8 +67,30 @@ export function PreferencesBootstrap() {
       if (store.activePlace && !isWithinUganda(store.activePlace.lat, store.activePlace.lon)) {
         store.setActivePlace(null);
       }
+      syncDeviceLanguage();
       if (typeof window !== "undefined" && window.location.search) {
         const params = new URLSearchParams(window.location.search);
+        let urlMutated = false;
+        const langParam = params.get("lang")?.trim().toLowerCase();
+        if (langParam === "en" || langParam === "lg") {
+          store.setUiLanguage(langParam);
+          params.delete("lang");
+          urlMutated = true;
+        }
+        if (params.get("mode") === "full") {
+          store.setLiteModePreference(false);
+          params.delete("mode");
+          urlMutated = true;
+        }
+        if (urlMutated) {
+          const cleanQuery = params.toString();
+          const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}${window.location.hash}`;
+          try {
+            window.history.replaceState(null, "", cleanUrl);
+          } catch {
+            // Ignore history restrictions
+          }
+        }
         const placeKey = params.get("place")?.trim();
         const placeName = params.get("name")?.trim();
         const lat = Number(params.get("lat"));
@@ -48,10 +120,15 @@ export function PreferencesBootstrap() {
 
     if (result instanceof Promise) {
       void result.finally(markReady);
-      return;
+    } else {
+      markReady();
     }
 
-    markReady();
+    if (typeof window === "undefined") return;
+    window.addEventListener("languagechange", syncDeviceLanguage);
+    return () => {
+      window.removeEventListener("languagechange", syncDeviceLanguage);
+    };
   }, []);
 
   return null;

@@ -92,6 +92,23 @@ export function computeFishingSafety(weather: WeatherBundle): FishingSafety {
     };
   }
 
+  const upcomingHours = Array.isArray(weather.hourly)
+    ? weather.hourly.filter((p) => p.kind === "hour").slice(0, 6)
+    : [];
+  const upcomingSquallHour = upcomingHours.find(
+    (p) =>
+      p.theme === "thunder" ||
+      (typeof p.windSpeedKph === "number" && p.windSpeedKph > thresholds.windCaution) ||
+      (typeof p.rainChance === "number" && p.rainChance >= 65),
+  );
+  if (upcomingSquallHour) {
+    return {
+      level: "caution",
+      label: "Caution",
+      summary: `Calm right now, but stronger wind or storm risk builds around ${upcomingSquallHour.label}. Plan return before then.`,
+    };
+  }
+
   return {
     level: "safe",
     label: "Safe",

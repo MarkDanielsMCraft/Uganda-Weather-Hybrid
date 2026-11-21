@@ -8,6 +8,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Accessibility display controls (`AccessibilityControls.tsx` in `src/components/settings/`) adding persistent `Large text` and `High contrast` toggles across the home settings tile, search page, and `/lite` without resizing cards or shifting brand colours.
+- Community safety advisories (`src/lib/weather/community-safety.ts`) derived from existing forecast data: daytime High UV sun protection (covering outdoor workers, children, and persons with albinism), Karamoja and cattle corridor pastoralist livestock heat and water watch, and a 72 hour mountain slope landslide watch across mountain and landslide hazard districts.
+- Plain text SMS and WhatsApp forecast sharing (`src/lib/places/sms-share.ts` and `src/components/settings/VillageShareBar.tsx`) on `/lite` and completed Advisor replies so smartphone and feature phone users can forward daily forecasts and safety verdicts to neighbours on 2G basic phones with zero paid messaging APIs.
+- Offline parish and village search cache plus a bundled directory of major Ugandan towns and trading centres (`src/lib/places/offline-place-cache.ts`) wired into both top bar and search page autocomplete.
+- Pipelined sentence chunked neural voice playback with eager background pre warming (`src/lib/voice/narrator.ts`, `src/lib/ai/advisor-voice.ts`, `src/lib/voice/sunbird.ts`) reducing spoken playback startup latency while preventing overlapping voices and enforcing standard Luganda orthography (`Empandiika y'Oluganda Entongole`).
+- Privacy Shield for the Hybrid Weather Advisor (`redactPiiForCloud` in `src/lib/ai/advisor-guard.ts` and verified canvas EXIF APP1 stripping in `src/lib/ai/advisor-image.ts`) that redacts accidental phone numbers, emails, and national IDs before cloud calls and strips GPS/camera metadata from photos on device.
+- Native client side Firebase AI Logic Neural TTS (`src/lib/ai/firebase-tts.ts` using `gemini-3.1-flash-tts-preview` and `ResponseModality.AUDIO`), Firebase AI Logic Server Prompt Templates (`src/lib/ai/template-advisor.ts` via `getTemplateGenerativeModel`), and native `Schema.object` structured output definitions (`ADVISOR_STRUCTURED_OUTPUT_SCHEMA` in `src/lib/ai/advisor-tools.ts`), all dynamically controlled through Firebase Remote Config (`remoteconfig.template.json`).
+- Hands free Voice Companion Mode (`voiceMode` in `src/stores/preferencesStore.ts`) and Universal Page and Sheet Narrator (`src/lib/voice/narrator.ts`) delivering natural spoken briefings in English and standard Luganda across the home screen, Lite mode (`src/components/settings/LiteListenButton.tsx`), all detail sheets (`src/components/sheet/DetailSheet.tsx`), and automatic spoken replies in the Weather Safety Advisor.
+- Agent driven dynamic safety verdicts (`[VERDICT: ...]`), contextual follow up questions (`[FOLLOWUPS: ...]`), live data source attribution, and a live camera viewfinder modal (`getUserMedia`) differentiated from photo file uploads in the Weather Safety Advisor (`src/components/advisor/HybridWeatherAdvisor.tsx`, `src/lib/ai/advisor-prompt.ts`, `src/lib/ai/advisor-tools.ts`).
+- Six hour agricultural work windows (`computeFarmWorkWindows` in `src/lib/agriculture/advisory.ts`) for post harvest sun drying (`okwanika`) and crop spraying (`okufuuyira`), plus a six hour lake squall lookahead (`computeFishingSafety` in `src/lib/marine/lake-conditions.ts`) across Lake Victoria, Lake Kyoga, Lake Albert, and Lake Edward.
+- One tap Lite mode button (`src/components/settings/LiteHeaderButton.tsx`) in the mobile and desktop top bars with bidirectional language and mode synchronization (`src/components/layout/DistrictQuerySync.tsx`).
 - Hybrid offline and cloud Weather Safety Advisor (`src/lib/ai/` and `src/components/advisor/HybridWeatherAdvisor.tsx`) powered by Firebase AI Logic (`InferenceMode.PREFER_ON_DEVICE` online, `InferenceMode.ONLY_ON_DEVICE` offline), Firebase Remote Config (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`), and Firebase App Check, featuring a live Hybrid Runtime Inspector, district geography aware quick actions, cross district lookup with spelling correction, exact Uganda local timestamps on cached forecasts, English and Luganda localization, prompt injection filtering, and sliding window rate limiting.
 - Translucent glass floating dropdown (`src/components/glass/GlassSelect.tsx`) with keyboard navigation, accessible combobox semantics, and brand green pill selection.
 - Clickable place navigation across National Parks, Mountain Peaks, Airports, Lake Shorelines, and Nearby Districts, plus URL query hydration for direct place links.
@@ -238,7 +249,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Initial project scaffold: Next.js App Router, TypeScript, Tailwind, weather provider integration, and the core district weather screen.
 
-[unreleased]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/MarkDanielsMCraft/uganda-weather/compare/v0.1.0...v1.0.0
-[0.1.0]: https://github.com/MarkDanielsMCraft/uganda-weather/releases/tag/v0.1.0
+[unreleased]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v0.1.0...v1.0.0
+[0.1.0]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/releases/tag/v0.1.0

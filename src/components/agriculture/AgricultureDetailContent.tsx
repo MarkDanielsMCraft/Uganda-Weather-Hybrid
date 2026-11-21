@@ -3,6 +3,7 @@
 import { SheetSection } from "@/components/sheet/SheetSection";
 import { WeeklyRainOutlook } from "@/components/agriculture/WeeklyRainOutlook";
 import { AGRO_ZONE_DESCRIPTIONS, type AgricultureAdvisory } from "@/lib/agriculture/advisory";
+import { buildCommunitySafetyAlerts } from "@/lib/weather/community-safety";
 import { useTranslation } from "@/lib/i18n";
 import {
   formatAgroZoneLg,
@@ -76,6 +77,7 @@ export function AgricultureDetailContent({
   const soilLabel = isLg
     ? formatSoilMoistureLg(advisory.soilMoisture.level, advisory.soilMoisture.label)
     : advisory.soilMoisture.label;
+  const communityAlerts = buildCommunitySafetyAlerts(weather, uiLanguage);
 
   return (
     <div>
@@ -110,13 +112,7 @@ export function AgricultureDetailContent({
       <SheetSection>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p
-              className={
-                isLg
-                  ? "text-[13px] font-semibold text-white/55"
-                  : "text-[13px] font-semibold uppercase tracking-[0.14rem] text-white/45"
-              }
-            >
+            <p className="text-[13px] font-semibold leading-snug text-white/60">
               {dict.agriculture.seasonTitle}
             </p>
             <p className="mt-2 text-[17px] font-medium text-white">{seasonLabel}</p>
@@ -125,13 +121,7 @@ export function AgricultureDetailContent({
             </p>
           </div>
           <div>
-            <p
-              className={
-                isLg
-                  ? "text-[13px] font-semibold text-white/55"
-                  : "text-[13px] font-semibold uppercase tracking-[0.14rem] text-white/45"
-              }
-            >
+            <p className="text-[13px] font-semibold leading-snug text-white/60">
               {dict.agriculture.soilMoistureTitle}
             </p>
             <p className={`mt-2 text-[17px] font-medium ${MOISTURE_COLORS[advisory.soilMoisture.level]}`}>
@@ -175,6 +165,27 @@ export function AgricultureDetailContent({
                   </span>
                 </div>
                 <p className="mt-1 text-[14px] leading-relaxed text-white/72">{crop.summary}</p>
+              </div>
+            ))}
+          </div>
+        </SheetSection>
+      )}
+
+      {communityAlerts.length > 0 && (
+        <SheetSection label={isLg ? "Okwegendereza mu kitundu" : "Community safety"}>
+          <div className="space-y-3">
+            {communityAlerts.map((alert) => (
+              <div key={alert.id}>
+                <p
+                  className={`text-[15px] font-semibold ${
+                    alert.level === "warning" ? "text-alert-red" : "text-caution"
+                  }`}
+                >
+                  {alert.title}
+                </p>
+                <p className="mt-1 text-[14px] leading-relaxed text-white/80">
+                  {alert.summary}
+                </p>
               </div>
             ))}
           </div>

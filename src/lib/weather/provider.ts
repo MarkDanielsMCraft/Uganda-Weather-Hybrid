@@ -29,9 +29,27 @@ function parseClockLabel(label: string): number | null {
   return hour * 60 + minute;
 }
 
+function kampalaMinutesOfDay(date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Kampala",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0) % 24;
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+
 function isNightHour(date: Date, sunsetMinutes: number, sunriseMinutes: number) {
-  const minutes = date.getHours() * 60 + date.getMinutes();
+  const minutes = kampalaMinutesOfDay(date);
   return minutes >= sunsetMinutes || minutes < sunriseMinutes;
+}
+
+function kampalaInstantForClock(dateStr: string, totalMinutes: number): Date {
+  const hh = String(Math.floor(totalMinutes / 60) % 24).padStart(2, "0");
+  const mm = String(totalMinutes % 60).padStart(2, "0");
+  return new Date(`${dateStr}T${hh}:${mm}:00+03:00`);
 }
 
 function buildDemoHourly(baseTemp: number, condition: DemoCondition, sunset: string) {
@@ -70,49 +88,44 @@ function buildDemoHourly(baseTemp: number, condition: DemoCondition, sunset: str
     });
   }
 
-  if (!isNightTheme) {
-    const windowEnd = new Date(now);
-    windowEnd.setHours(now.getHours() + 24, 0, 0, 0);
+  const windowEndMs = now.getTime() + 24 * 3600_000;
+  const todayKampala = currentUgandaLocalTimeString(now).slice(0, 10);
 
-    const sunriseToday = new Date(now);
-    sunriseToday.setHours(6, 43, 0, 0);
-    if (sunriseToday < now) {
-      sunriseToday.setDate(sunriseToday.getDate() + 1);
-    }
-    if (sunriseToday >= now && sunriseToday <= windowEnd) {
-      const insertAt = hours.findIndex(
-        (hour) => hour.kind === "hour" && new Date(hour.time) >= sunriseToday,
-      );
-      if (insertAt > 0) {
-        hours.splice(insertAt, 0, {
-          time: sunriseToday.toISOString(),
-          label: "6:43 am",
-          temp: 0,
-          icon: "",
-          kind: "sunrise",
-        });
-      }
-    }
-
-    const sunsetToday = new Date(now);
-    sunsetToday.setHours(Math.floor(sunsetMinutes / 60), sunsetMinutes % 60, 0, 0);
-    if (sunsetToday < now) {
-      sunsetToday.setDate(sunsetToday.getDate() + 1);
-    }
-
-    if (sunsetToday >= now && sunsetToday <= windowEnd) {
-      const insertAt = hours.findIndex(
-        (hour) => hour.kind === "hour" && new Date(hour.time) >= sunsetToday,
-      );
-      const index = insertAt === -1 ? hours.length : insertAt;
-      hours.splice(index, 0, {
-        time: sunsetToday.toISOString(),
-        label: sunset,
+  let sunriseToday = kampalaInstantForClock(todayKampala, sunriseMinutes);
+  if (sunriseToday.getTime() < now.getTime()) {
+    sunriseToday = new Date(sunriseToday.getTime() + 24 * 3600_000);
+  }
+  if (sunriseToday.getTime() >= now.getTime() && sunriseToday.getTime() <= windowEndMs) {
+    const insertAt = hours.findIndex(
+      (hour) => hour.kind === "hour" && new Date(hour.time).getTime() >= sunriseToday.getTime(),
+    );
+    if (insertAt > 0) {
+      hours.splice(insertAt, 0, {
+        time: sunriseToday.toISOString(),
+        label: "6:43 am",
         temp: 0,
         icon: "",
-        kind: "sunset",
+        kind: "sunrise",
       });
     }
+  }
+
+  let sunsetToday = kampalaInstantForClock(todayKampala, sunsetMinutes);
+  if (sunsetToday.getTime() < now.getTime()) {
+    sunsetToday = new Date(sunsetToday.getTime() + 24 * 3600_000);
+  }
+  if (sunsetToday.getTime() >= now.getTime() && sunsetToday.getTime() <= windowEndMs) {
+    const insertAt = hours.findIndex(
+      (hour) => hour.kind === "hour" && new Date(hour.time).getTime() >= sunsetToday.getTime(),
+    );
+    const index = insertAt === -1 ? hours.length : insertAt;
+    hours.splice(index, 0, {
+      time: sunsetToday.toISOString(),
+      label: sunset,
+      temp: 0,
+      icon: "",
+      kind: "sunset",
+    });
   }
 
   return hours;
@@ -216,11 +229,21 @@ function buildDemoDayHours(
 }
 
 function buildDemoBundle(district: District, hadLiveProvider: boolean) {
-  const condition = getDemoConditionForDistrict(district.slug);
+  const baseCondition = getDemoConditionForDistrict(district.slug);
+  const now = new Date();
+  const isKampalaNight = isNightHour(now, 18 * 60 + 52, 6 * 60 + 43);
+  const condition: DemoCondition =
+    isKampalaNight && baseCondition.theme !== "rain" && baseCondition.theme !== "thunder"
+      ? {
+          ...baseCondition,
+          icon: NIGHT_ICON,
+          theme: "night",
+        }
+      : baseCondition;
   const baseTemp = 24 + district.coordinates.lat * 2;
   const metrics = demoMetrics(condition, district, baseTemp);
-  const demoIsDay = condition.theme !== "night";
-  const today = currentUgandaLocalTimeString().slice(0, 10);
+  const demoIsDay = !isKampalaNight && condition.theme !== "night";
+  const today = currentUgandaLocalTimeString(now).slice(0, 10);
 
   const dailyForecast = DAY_NAMES.map((day, dayIndex) => {
     const date = new Date(`${today}T12:00:00+03:00`);

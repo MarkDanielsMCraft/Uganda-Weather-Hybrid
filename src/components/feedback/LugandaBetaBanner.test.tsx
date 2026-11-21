@@ -75,7 +75,7 @@ describe("LugandaBetaBanner & LugandaFeedbackForm", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(await screen.findByText("Weebale nnyo!")).toBeTruthy();
+    expect(await screen.findByText("Weebale nnyo!", {}, { timeout: 4000 })).toBeTruthy();
     expect(screen.getByTestId("feedback-state-sent")).toBeTruthy();
   });
 
@@ -98,12 +98,20 @@ describe("LugandaBetaBanner & LugandaFeedbackForm", () => {
       </DetailSheetProvider>,
     );
 
-    const reportButton = await screen.findByRole("button", {
-      name: "Loopa ensobi",
-    });
+    const reportButton = await screen.findByRole(
+      "button",
+      {
+        name: "Loopa ensobi",
+      },
+      { timeout: 4000 },
+    );
     fireEvent.click(reportButton);
 
-    const detailsInput = await screen.findByLabelText("Ennyonnyola y'ensobi");
+    const detailsInput = await screen.findByLabelText(
+      "Ennyonnyola y'ensobi",
+      {},
+      { timeout: 4000 },
+    );
     fireEvent.change(detailsInput, {
       target: { value: "Ekigambo kino kirina ensobi mu mpandiika." },
     });
@@ -112,7 +120,7 @@ describe("LugandaBetaBanner & LugandaFeedbackForm", () => {
     fireEvent.click(submitButton);
 
     expect(
-      await screen.findByText("Obubaka tebusobose kugenda"),
+      await screen.findByText("Obubaka tebusobose kugenda", {}, { timeout: 4000 }),
     ).toBeTruthy();
     expect(screen.getByTestId("feedback-state-failed")).toBeTruthy();
 

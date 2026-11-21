@@ -4,7 +4,8 @@ import type {
   HybridRuntimeReadiness,
   ResolvedAdvisorLocation,
 } from "@/lib/ai";
-import type { TranslationDictionary } from "@/lib/i18n/types";
+import type { SafetyVerdict } from "@/lib/ai/advisor-tools";
+import type { SupportedLocale, TranslationDictionary } from "@/lib/i18n/types";
 import { loadWeatherCache } from "@/lib/offline/weather-cache";
 import { MOUNTAIN_PEAKS, NATIONAL_PARKS } from "@/lib/places/points-of-interest";
 import type { WeatherBundle } from "@/types/weather";
@@ -26,13 +27,57 @@ export interface AdvisorMessage {
   model?: string;
   usedCachedWeather?: boolean;
   streaming?: boolean;
+  verdict?: SafetyVerdict;
+  followUps?: string[];
+  imagePreviewUrl?: string;
 }
 
-/** Builds up to 4 geography-aware quick prompts for the active Uganda location. */
+/**
+ * Returns the rain chance for the current or immediate next upcoming hour so
+ * the context strip and follow-up suggestions match current conditions rather
+ * than an earlier daytime peak.
+ */
+export function getCurrentOrNextHourRainChance(weather: WeatherBundle): number {
+  const hourly = Array.isArray(weather.hourly) ? weather.hourly : [];
+  const nextHour = hourly.find(
+    (point) => point.kind === "hour" && typeof point.rainChance === "number",
+  );
+  if (typeof nextHour?.rainChance === "number") {
+    return Math.round(nextHour.rainChance);
+  }
+  return Math.round(weather.precipitation?.chance ?? 0);
+}
+
+/**
+ * Resolves the follow-up chips to display below the latest assistant reply:
+ * strictly uses the agent's own dynamic follow-up questions and filters out
+ * any question the user has already asked in the current conversation.
+ */
+export function resolveDynamicFollowUps(
+  messages: readonly AdvisorMessage[],
+): string[] {
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && !m.streaming);
+  if (!lastAssistant) return [];
+
+  const askedLower = new Set(
+    messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.text.trim().toLowerCase()),
+  );
+
+  const agentFollowUps = (lastAssistant.followUps ?? []).filter(
+    (q) => q.trim().length > 0 && !askedLower.has(q.trim().toLowerCase()),
+  );
+  return agentFollowUps.slice(0, 2);
+}
+
+/** Builds up to 4 geography-aware and time-of-day-aware quick prompts for the active Uganda location. */
 export function getDistrictQuickActions(
   weather: WeatherBundle | null,
   copy: AdvisorCopy,
+  uiLanguage: SupportedLocale = "en",
 ): QuickActionItem[] {
+  const isLg = uiLanguage === "lg";
   if (!weather) {
     return [
       {
@@ -62,11 +107,18 @@ export function getDistrictQuickActions(
     ) ||
     district.hazards.some((hazard) => /landslide|mountain|cold/i.test(hazard));
 
+  const farmerPrompt =
+    weather.isDay === false
+      ? isLg
+        ? "Essaawa ki ennungi okulima oba okwanika enkya?"
+        : "Best hours to farm or dry crops tomorrow?"
+      : copy.quickQuestions.farmer;
+
   const actions: QuickActionItem[] = [
     {
       key: "farmer",
       audience: "farmer",
-      prompt: copy.quickQuestions.farmer,
+      prompt: farmerPrompt,
       tag: copy.audiences.farmer,
     },
   ];
@@ -97,14 +149,13 @@ export function getDistrictQuickActions(
   });
 
   if (actions.length < 3) {
+    const useTonightRisk =
+      weather.isDay === false || getCurrentOrNextHourRainChance(weather) >= 35 || weather.precipitation.chance >= 50;
     actions.push({
       key: "tonight",
       audience: "general",
-      prompt:
-        weather.precipitation.chance >= 50
-          ? copy.followUps.tonightRisk
-          : copy.followUps.bestHours,
-      tag: copy.audiences.general,
+      prompt: useTonightRisk ? copy.followUps.tonightRisk : copy.followUps.bestHours,
+      tag: useTonightRisk ? (isLg ? "Ekiro" : "Tonight") : (isLg ? "Essaawa" : "Hours"),
     });
   }
 
