@@ -57,6 +57,10 @@ describe("advisor remote-config", () => {
       cloudModel: "gemini-3.5-flash-lite",
       maxOutputTokens: 512,
       preferOnDevice: true,
+      ttsEnabled: true,
+      ttsModel: "gemini-3.1-flash-tts-preview",
+      ttsVoiceName: "Kore",
+      promptTemplateId: "",
       source: "default",
     });
   });
@@ -67,9 +71,15 @@ describe("advisor remote-config", () => {
     getRemoteConfigMock.mockReturnValue({ settings: {}, defaultConfig: {} });
     fetchAndActivateMock.mockResolvedValue(true);
     getBooleanMock.mockImplementation((_rc: unknown, key: string) =>
-      key === "advisor_enabled" ? true : false,
+      key === "advisor_enabled" || key === "advisor_tts_enabled",
     );
-    getStringMock.mockReturnValue("gemini-3.8-flash");
+    getStringMock.mockImplementation((_rc: unknown, key: string) => {
+      if (key === "advisor_cloud_model") return "gemini-3.8-flash";
+      if (key === "advisor_tts_model") return "gemini-3.1-flash-tts-preview";
+      if (key === "advisor_tts_voice") return "Aoede";
+      if (key === "advisor_prompt_template_id") return "uganda-weather-advisor-v1";
+      return "";
+    });
     getNumberMock.mockReturnValue(768);
 
     const snapshot = await syncAdvisorRemoteConfig();
@@ -78,6 +88,10 @@ describe("advisor remote-config", () => {
       cloudModel: "gemini-3.8-flash",
       maxOutputTokens: 768,
       preferOnDevice: false,
+      ttsEnabled: true,
+      ttsModel: "gemini-3.1-flash-tts-preview",
+      ttsVoiceName: "Aoede",
+      promptTemplateId: "uganda-weather-advisor-v1",
       source: "remote",
     });
     expect(getAdvisorRemoteConfig()).toEqual(snapshot);

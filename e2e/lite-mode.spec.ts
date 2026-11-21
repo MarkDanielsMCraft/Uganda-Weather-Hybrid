@@ -1,53 +1,59 @@
 import { expect, test } from "@playwright/test";
 
-// NFR-PERF-005: Lite mode disables particles
-test("toggling lite mode flips the switch, persists it, and passes it to the weather canvas", async ({
+test("clicking Lite mode navigates to /lite, persists preference, and returns cleanly via Full app", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "load" });
 
-  const toggle = page.getByRole("switch", { name: /lite mode/i });
-  await expect(toggle).toBeVisible();
+  const headerLite = page.getByRole("link", { name: /lite mode/i }).first();
+  await expect(headerLite).toBeVisible();
+  await headerLite.click();
 
-  // The starting position is not asserted, because it is no longer fixed:
-  // with no explicit choice stored, the switch reflects what the device can
-  // afford, and CI runners report few enough cores to start it on. What
-  // matters is that a click flips it and the choice sticks.
-  const before = await toggle.getAttribute("aria-checked");
-  const after = before === "true" ? "false" : "true";
+  await page.waitForURL(/\/lite/);
+  await expect(page.getByTestId("lite-district-trigger")).toBeVisible();
 
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-checked", after);
-
-  // Persisted via zustand's localStorage middleware, not just component state.
   const stored = await page.evaluate(() => localStorage.getItem("uw:preferences"));
   expect(stored).toBeTruthy();
-  expect(JSON.parse(stored ?? "{}").state.liteModePreference).toBe(after === "true");
+  expect(JSON.parse(stored ?? "{}").state.liteModePreference).toBe(true);
 
-  await page.reload();
-  await expect(page.getByRole("switch", { name: /lite mode/i })).toHaveAttribute(
-    "aria-checked",
-    after,
-  );
+  // Full app button returns to main experience cleanly
+  await page.getByTestId("lite-back-to-full").click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/lite"));
 });
 
-test("lite mode stops the WebGL canvas from animating rain/lightning particles", async ({ page }) => {
-  // A district with rain in the demo dataset isn't guaranteed, so this
-  // checks the mechanism directly: the canvas keeps rendering (atmosphere
-  // stays visible) but liteMode is threaded through to the scene engine
-  // rather than silently ignored.
-  await page.goto("/");
-  await expect(page.locator("canvas").first()).toBeVisible({ timeout: 15_000 });
+test("/lite supports vertical scrolling, auto-closing dropdowns, and the floating advisor", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.goto("/lite?district=kampala&lang=en", { waitUntil: "load" });
 
-  // Turn lite mode on from whichever position the device defaulted it to,
-  // rather than assuming a click always enables it.
-  const toggle = page.getByRole("switch", { name: /lite mode/i });
-  if ((await toggle.getAttribute("aria-checked")) !== "true") {
-    await toggle.click();
-  }
-  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  // Scroll container on /lite must actually scroll vertically
+  const scrollInfo = await page.evaluate(() => {
+    const el = document.querySelector(".main-scroll") as HTMLElement | null;
+    if (!el) return null;
+    const before = el.scrollTop;
+    el.scrollTop = 120;
+    return {
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      before,
+      after: el.scrollTop,
+    };
+  });
+  expect(scrollInfo).not.toBeNull();
+  expect(scrollInfo!.scrollHeight).toBeGreaterThan(scrollInfo!.clientHeight);
+  expect(scrollInfo!.after).toBeGreaterThan(scrollInfo!.before);
 
-  // The canvas should still be present and rendering (a static backdrop),
-  // not removed from the page.
-  await expect(page.locator("canvas").first()).toBeVisible();
+  // Language dropdown opens and closes immediately on selection
+  const langTrigger = page.getByTestId("lite-language-dropdown");
+  await langTrigger.click();
+  const lugandaItem = page.getByRole("menuitemradio", { name: "Luganda" });
+  await expect(lugandaItem).toBeVisible();
+  await lugandaItem.click();
+  await expect(lugandaItem).toBeHidden();
+  await page.waitForURL(/lang=lg/);
+
+  // Floating advisor launcher is visible on /lite
+  const advisorTrigger = page.getByRole("button", { name: /weather advisor|omuwi w'amagezi/i });
+  await expect(advisorTrigger).toBeVisible();
 });

@@ -6,6 +6,9 @@ import { TopBarSearch } from "@/components/layout/TopBarSearch";
 import { UseMyLocationButton } from "@/components/search/UseMyLocationButton";
 import { useRefreshWeather } from "@/hooks/useRefreshWeather";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { LanguageDropdown } from "@/components/settings/LanguageDropdown";
+import { LiteHeaderButton } from "@/components/settings/LiteHeaderButton";
+import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
 import { useTranslation } from "@/lib/i18n";
 
 export function TopBar() {
@@ -20,6 +23,9 @@ export function TopBar() {
       <CityChipsTrack />
 
       <div className="flex shrink-0 items-center gap-2">
+        <LanguageDropdown testId="desktop-language-toggle" />
+        <WeatherListenButton testId="desktop-listen-toggle" />
+        <LiteHeaderButton testId="desktop-lite-toggle" />
         {!isInstalled && (
           <button
             type="button"

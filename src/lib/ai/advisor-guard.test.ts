@@ -4,6 +4,7 @@ import {
   containsInternalPromptLeakage,
   isPromptInjectionOrAbuse,
   matchInstantSocialReply,
+  redactPiiForCloud,
   resetAdvisorRateLimitForTests,
   resolveReferencedUgandaLocation,
 } from "@/lib/ai/advisor-guard";
@@ -126,5 +127,26 @@ describe("advisor-guard", () => {
       expect(parkMatch.name).toContain("Bwindi");
       expect(parkMatch.isBareLocationQuery).toBe(true);
     }
+
+    expect(resolveReferencedUgandaLocation("Waliwo obulabe bw'omuyaga ekiro kino?")).toBeNull();
+    expect(resolveReferencedUgandaLocation("Kyangu okusimba oba okukaza ebirime leero?")).toBeNull();
+  });
+
+  it("redacts emails, Ugandan/international phone numbers, and NINs before cloud calls while preserving weather data", () => {
+    const res = redactPiiForCloud(
+      "Call me on +256 772 123 456 or 0701234567 or farmer@example.com, NIN CM900123456789, will it rain at 7:00 am (25°C)?",
+    );
+    expect(res.redactedCount).toBe(4);
+    expect(res.sanitized).not.toContain("772");
+    expect(res.sanitized).not.toContain("0701234567");
+    expect(res.sanitized).not.toContain("farmer@example.com");
+    expect(res.sanitized).not.toContain("CM900123456789");
+    expect(res.sanitized).toContain("7:00 am (25°C)");
+
+    const clean = redactPiiForCloud("Is it safe to dry beans in Mbale at 14:00?");
+    expect(clean).toEqual({
+      sanitized: "Is it safe to dry beans in Mbale at 14:00?",
+      redactedCount: 0,
+    });
   });
 });

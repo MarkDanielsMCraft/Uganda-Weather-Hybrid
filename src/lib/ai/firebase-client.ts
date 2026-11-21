@@ -68,11 +68,12 @@ function configureAppCheckIfPresent(app: FirebaseApp, env: FirebaseClientEnv): v
     scope.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken === "true" ? true : debugToken;
   }
 
-  if (!env.recaptchaEnterpriseSiteKey) return;
+  const providerSiteKey = env.recaptchaEnterpriseSiteKey || (debugToken ? "debug" : undefined);
+  if (!providerSiteKey) return;
 
   try {
     cachedAppCheck = initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(env.recaptchaEnterpriseSiteKey),
+      provider: new ReCaptchaEnterpriseProvider(providerSiteKey),
       isTokenAutoRefreshEnabled: true,
     });
   } catch (error) {

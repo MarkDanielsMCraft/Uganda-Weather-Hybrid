@@ -117,8 +117,12 @@ export function PwaInstallBanner() {
       const onPrompt = (event: Event) => {
         event.preventDefault();
         setPromptEvent(event as BeforeInstallPromptEvent);
-        setVisible(true);
-        setIosHint(false);
+        // Only auto-show on mobile once cookie consent has been answered so
+        // multiple bottom overlays never stack on first load.
+        if (analyticsConsent !== null) {
+          setVisible(true);
+          setIosHint(false);
+        }
       };
 
       window.addEventListener("beforeinstallprompt", onPrompt);
@@ -129,7 +133,7 @@ export function PwaInstallBanner() {
       window.addEventListener("appinstalled", onInstalled);
 
       const iosTimer = window.setTimeout(() => {
-        if (isIosSafari()) {
+        if (isIosSafari() && analyticsConsent !== null) {
           setIosHint(true);
           setVisible(true);
         }

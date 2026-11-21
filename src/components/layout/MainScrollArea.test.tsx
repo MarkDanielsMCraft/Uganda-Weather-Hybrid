@@ -15,6 +15,7 @@ vi.mock("@/components/sheet/DetailSheetProvider", () => ({
     openSheet: vi.fn(),
     closeSheet: vi.fn(),
   }),
+  useOptionalDetailSheet: () => null,
 }));
 
 // Mock dependencies

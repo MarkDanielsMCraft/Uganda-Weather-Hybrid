@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconSearch } from "@/components/icons/nav-icons";
 import { getAllDistricts } from "@/lib/districts";
+import {
+  cachePlaceSearchHits,
+  searchOfflineLocations,
+} from "@/lib/places/offline-place-cache";
 import { useDistrictNavigation } from "@/hooks/useDistrictNavigation";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { formatDistrictPhrase, localizeDistrictName, useTranslation } from "@/lib/i18n";
@@ -112,20 +116,28 @@ export function TopBarSearch() {
     const controller = new AbortController();
 
     const timer = setTimeout(async () => {
+      const trimmed = query.trim();
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        setSearchHits(searchOfflineLocations(trimmed));
+        setSearching(false);
+        return;
+      }
       try {
         const response = await fetch(
-          `/api/v1/locations/search?q=${encodeURIComponent(query.trim())}`,
+          `/api/v1/locations/search?q=${encodeURIComponent(trimmed)}`,
           { signal: controller.signal },
         );
         if (!response.ok) {
-          setSearchHits([]);
+          setSearchHits(searchOfflineLocations(trimmed));
           return;
         }
         const payload = await response.json();
-        setSearchHits(payload.data?.results ?? []);
+        const remoteResults = payload.data?.results ?? [];
+        cachePlaceSearchHits(remoteResults);
+        setSearchHits(remoteResults);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setSearchHits([]);
+          setSearchHits(searchOfflineLocations(trimmed));
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -160,9 +172,7 @@ export function TopBarSearch() {
       </div>
 
       {showDropdown && (
-        <div
-          className={`absolute ${uiLanguage === "lg" ? "right-0" : "left-0"} top-[calc(100%+8px)] z-40 max-h-[70vh] w-[340px] overflow-y-auto rounded-[22px] border border-white/[0.14] bg-[rgba(28,28,30,0.92)] p-1 shadow-[0_16px_48px_rgba(0,0,0,0.4)] backdrop-blur-2xl`}
-        >
+        <div className="absolute right-0 top-[calc(100%+8px)] z-40 max-h-[70vh] w-[min(340px,calc(100vw-2rem))] overflow-y-auto rounded-[18px] border border-white/[0.14] bg-[rgba(14,20,34,0.97)] p-[6px] shadow-[0_18px_40px_-6px_rgba(0,0,0,0.75),0_4px_12px_-2px_rgba(0,0,0,0.45)] backdrop-blur-[32px] backdrop-saturate-[200%]">
           {isSearching ? (
             searching ? (
               <p className="px-4 py-4 text-[13px] text-white/75">
@@ -219,13 +229,7 @@ export function TopBarSearch() {
             <>
               {(recentDistrictList.length > 0 || recentPlaces.length > 0) && (
                 <div className="flex items-center justify-between px-3 pt-2">
-                  <p
-                    className={
-                      uiLanguage === "lg"
-                        ? "text-[12px] font-semibold text-white/50"
-                        : "text-[11px] font-semibold uppercase tracking-[0.12rem] text-white/40"
-                    }
-                  >
+                  <p className="text-[12px] font-semibold text-white/55">
                     {dict.common.recent}
                   </p>
                   <button
@@ -239,13 +243,7 @@ export function TopBarSearch() {
               )}
               {recentDistrictList.length > 0 && (
                 <div className="p-1">
-                  <p
-                    className={
-                      uiLanguage === "lg"
-                        ? "px-3 pt-2 text-[12px] font-semibold text-white/50"
-                        : "px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.12rem] text-white/40"
-                    }
-                  >
+                  <p className="px-3 pt-2 text-[12px] font-semibold text-white/55">
                     {dict.common.recentDistricts}
                   </p>
                   {recentDistrictList.map((district) => (
@@ -267,13 +265,7 @@ export function TopBarSearch() {
               )}
               {recentPlaces.length > 0 && (
                 <div className="p-1">
-                  <p
-                    className={
-                      uiLanguage === "lg"
-                        ? "px-3 pt-2 text-[12px] font-semibold text-white/50"
-                        : "px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.12rem] text-white/40"
-                    }
-                  >
+                  <p className="px-3 pt-2 text-[12px] font-semibold text-white/55">
                     {dict.common.recentPlaces}
                   </p>
                   {recentPlaces.slice(0, 4).map((place) => {

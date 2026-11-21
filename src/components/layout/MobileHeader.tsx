@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { WeatherGlyph } from "@/components/brand/BrandMark";
 import { getDistrictBySlug } from "@/lib/districts";
-import { useRefreshWeather } from "@/hooks/useRefreshWeather";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useScrollCollapse } from "@/components/layout/ScrollCollapseContext";
 import { useWeatherBundle } from "@/hooks/useWeatherBundle";
 import { useAppReady } from "@/hooks/useAppReady";
-import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { LanguageDropdown } from "@/components/settings/LanguageDropdown";
+import { LiteHeaderButton } from "@/components/settings/LiteHeaderButton";
+import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
 import { localizeDistrictName, useTranslation } from "@/lib/i18n";
 import { formatConditionLg } from "@/lib/weather/copy-lg";
 
@@ -18,7 +19,6 @@ export function MobileHeader() {
   const districtSlug = usePreferencesStore((state) => state.districtSlug);
   const activePlace = usePreferencesStore((state) => state.activePlace);
   const district = getDistrictBySlug(districtSlug);
-  const { refresh, isRefreshing } = useRefreshWeather();
   const ready = useAppReady();
   const { data } = useWeatherBundle(districtSlug, ready, activePlace);
   const temp = data?.data?.temperature?.celsius;
@@ -34,8 +34,6 @@ export function MobileHeader() {
   const conditionText = condition ? (isLuganda ? formatConditionLg(condition, isDay) : condition) : dict.common.live;
   const { progress } = useScrollCollapse();
 
-  const { isInstalled, triggerInstall } = useInstallPrompt();
-
   // Glass backdrop smoothly fades in when scrolled past top
   const headerBg =
     progress > 0
@@ -48,13 +46,15 @@ export function MobileHeader() {
 
   return (
     <header
-      className="sticky top-0 z-30 -mx-4 md:-mx-6 mb-2 flex items-center justify-between gap-2 px-4 md:px-6 pb-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] backdrop-blur-xl transition-[background-color,border-color] duration-150 lg:hidden"
+      className={`sticky top-0 z-30 -mx-4 md:-mx-6 mb-2 flex items-center justify-between gap-2 px-4 md:px-6 pb-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] transition-[background-color,border-color] duration-150 lg:hidden ${
+        progress > 0 ? "backdrop-blur-xl" : ""
+      }`}
       style={{
         backgroundColor: headerBg,
         borderBottom: `1px solid ${borderColor}`,
       }}
     >
-      <div className="flex shrink-0 items-center">
+      <div className="flex shrink-0 items-center gap-1.5">
         <Link
           href="/"
           aria-label={dict.common.goToHomeAria}
@@ -62,6 +62,8 @@ export function MobileHeader() {
         >
           <WeatherGlyph size={28} />
         </Link>
+        <LanguageDropdown compact align="left" testId="mobile-language-toggle" />
+        <WeatherListenButton compact testId="mobile-listen-toggle" />
       </div>
 
       {/* Compact collapsed title & temperature fading in with GPU translate3d */}
@@ -83,44 +85,12 @@ export function MobileHeader() {
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {!isInstalled && (
-          <button
-            type="button"
-            onClick={() => void triggerInstall()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-green/65 text-white shadow-[0_6px_18px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.95]"
-            title={dict.common.downloadApp}
-            aria-label={dict.common.downloadApp}
-          >
-            <svg
-              className="h-3.5 w-3.5 text-white"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3 14.5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm6.293-3.793a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 7.586V3a1 1 0 10-2 0v4.586L7.707 6.293a1 1 0 00-1.414 1.414l3 3z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={isRefreshing}
-          aria-label={dict.common.refreshWeather}
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[14px] text-white/80 disabled:opacity-50"
-        >
-          {isRefreshing ? "…" : "↻"}
-        </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <LiteHeaderButton testId="mobile-lite-toggle" />
         <Link
           href="/search"
           aria-label={dict.common.search}
-          className="flex h-8 items-center justify-center rounded-full border border-white/15 bg-white/10 px-3 text-[13px] text-white/85 transition-all duration-150"
+          className="flex h-9 items-center justify-center rounded-full border border-white/15 bg-white/10 px-2.5 text-[12.5px] text-white/90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           {progress > 0.6 ? (
             <svg
@@ -136,7 +106,7 @@ export function MobileHeader() {
               />
             </svg>
           ) : (
-            <span className="max-w-[120px] truncate">{displayName}</span>
+            <span className="max-w-[92px] truncate">{displayName}</span>
           )}
         </Link>
       </div>

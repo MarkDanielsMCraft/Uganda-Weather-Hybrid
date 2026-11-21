@@ -12,19 +12,21 @@ import {
 
 describe("Luganda clock and time helpers", () => {
   it("converts 24-hour Uganda time to traditional 6-hour-shifted Luganda hours and periods", () => {
-    // 7:00 AM -> 1 o'clock in morning -> ey'oku makya
+    // 7:00 AM -> 1 o'clock in morning -> eyokumakya
     expect(lugandaTimeParts(7, 0)).toMatchObject({
       lugandaHour: 1,
       connector: "ey'",
-      period: "oku makya",
+      genitivePeriod: "eyokumakya",
+      period: "eyokumakya",
       shortPeriod: "mk",
     });
 
-    // 1:00 PM -> 7 o'clock in afternoon -> ez'omu ttuntu
+    // 1:00 PM -> 7 o'clock in afternoon -> ezomuttuntu
     expect(lugandaTimeParts(13, 30)).toMatchObject({
       lugandaHour: 7,
       connector: "ez'",
-      period: "omu ttuntu",
+      genitivePeriod: "ezomuttuntu",
+      period: "ezomuttuntu",
       shortPeriod: "tt",
     });
 
@@ -32,15 +34,17 @@ describe("Luganda clock and time helpers", () => {
     expect(lugandaTimeParts(18, 15)).toMatchObject({
       lugandaHour: 12,
       connector: "ez'",
-      period: "akawungeezi",
+      genitivePeriod: "ez'akawungeezi",
+      period: "ez'akawungeezi",
       shortPeriod: "kw",
     });
 
-    // 2:00 AM -> 8 deep night -> ez'omu ttumbi
+    // 2:00 AM -> 8 deep night -> ezomuttumbi
     expect(lugandaTimeParts(2, 0)).toMatchObject({
       lugandaHour: 8,
       connector: "ez'",
-      period: "omu ttumbi",
+      genitivePeriod: "ezomuttumbi",
+      period: "ezomuttumbi",
       shortPeriod: "tb",
     });
   });
@@ -48,7 +52,7 @@ describe("Luganda clock and time helpers", () => {
   it("formats compact and medium Luganda clock labels", () => {
     expect(formatLugandaClockParts(7, 0, "compact")).toBe("1 mk");
     expect(formatLugandaClockParts(7, 45, "compact")).toBe("1:45 mk");
-    expect(formatLugandaClockParts(7, 5, "medium")).toBe("1:05 ey'oku makya");
+    expect(formatLugandaClockParts(7, 5, "medium")).toBe("1:05 eyokumakya");
     expect(formatLugandaClockParts(20, 30, "medium")).toBe("2:30 ez'ekiro");
     expect(formatLugandaClockParts(16, 0, "medium", 9)).toBe("10:00:09 ez'olweggulo");
   });
@@ -62,7 +66,7 @@ describe("Luganda clock and time helpers", () => {
     expect(formatClockLabelForLanguage("3 pm", "en")).toBe("3 pm");
     expect(formatClockLabelForLanguage("Now", "en")).toBe("Now");
     expect(formatClockLabelForLanguage("3 pm", "lg", "compact")).toBe("9 tt");
-    expect(formatClockLabelForLanguage("7:05 am", "lg", "medium")).toBe("1:05 ey'oku makya");
+    expect(formatClockLabelForLanguage("7:05 am", "lg", "medium")).toBe("1:05 eyokumakya");
     expect(formatClockLabelForLanguage("Now", "lg", "compact")).toBe("Kati");
   });
 
@@ -74,9 +78,9 @@ describe("Luganda clock and time helpers", () => {
     expect(formatDurationForLanguage(119.6, "en")).toBe("2h 0m");
     expect(formatDurationForLanguage(119.6, "lg")).toBe("ss. 2 ddak. 0");
 
-    // 2026-04-06T07:05:12+03:00 -> Bbalaza, 1:05:12 ey'oku makya in Kampala
+    // 2026-04-06T07:05:12+03:00 -> Bbalaza, 1:05:12 eyokumakya in Kampala
     const instant = new Date("2026-04-06T07:05:12+03:00");
-    expect(formatUgandaClock(instant, true, "lg")).toBe("1:05:12 ey'oku makya");
+    expect(formatUgandaClock(instant, true, "lg")).toBe("1:05:12 eyokumakya");
     expect(formatUgandaTimeLabel("2026-04-06 15:00", "lg")).toBe("9 tt");
     expect(
       formatUgandaDateTime(
@@ -84,7 +88,7 @@ describe("Luganda clock and time helpers", () => {
         { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
         "lg",
       ),
-    ).toBe("6 Kafuumuulampawu, 1:05 ey'oku makya");
+    ).toBe("6 Kafuumuulampawu, 1:05 eyokumakya");
     expect(
       formatUgandaDateTime(
         instant,
@@ -95,10 +99,10 @@ describe("Luganda clock and time helpers", () => {
     expect(formatUgandaDateTime(instant, { weekday: "short" }, "lg")).toBe("Bba");
     expect(formatUgandaDateTime(instant, { year: "numeric" }, "lg")).toBe("2026");
     expect(formatUgandaDateTime(instant, {}, "lg")).toBe(
-      "6 Kafuumuulampawu 2026, 1:05 ey'oku makya",
+      "6 Kafuumuulampawu 2026, 1:05 eyokumakya",
     );
     expect(
       formatUgandaDateTime(instant, { dateStyle: "medium", timeStyle: "short" }, "lg"),
-    ).toBe("6 Kafuumuulampawu 2026, 1:05 ey'oku makya");
+    ).toBe("6 Kafuumuulampawu 2026, 1:05 eyokumakya");
   });
 });

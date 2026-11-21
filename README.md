@@ -26,22 +26,25 @@ This repository is the standalone Hybrid AI edition live at [hybrid.uganda-weath
 
 ## Why I built this
 
-In Uganda, weather affects food, work, and safety every single day.
+In Uganda, weather decides whether a family eats, earns a living, or gets home safely.
 
-According to the World Bank, FAO, and Uganda Bureau of Statistics (UBOS), more than 8 out of 10 farming families in Uganda depend on rain, and only about 1.3% of farmland has irrigation. Most farmers work small plots and dry their beans, maize, and coffee outside in the sun. When sudden rain or high humidity hits crops drying outside, farmers lose a big part of their harvest (often 5% to 13% for grains and 12% to 18% for beans and oilseeds).
+- **Farming families:** World Bank, FAO, and Uganda Bureau of Statistics (UBOS) data show that about 70% of Uganda's workforce depends on rain-fed farming, and only about 1.3% of farmland has irrigation. Most small farmers dry their maize, beans, and coffee outside in the sun. When sudden rain or heavy dampness hits drying crops, families often lose 5% to 13% of their grain and 12% to 18% of their beans and oilseeds.
+- **Fishers on Uganda's lakes:** On Lake Victoria, sudden night storms and strong winds catch wooden fishing boats far from shore. For years, 3,000 to 5,000 fishers died on the lake each year. When the World Meteorological Organization (WMO) ran its HIGHWAY project and gave lakeside communities simple local warnings, storm deaths dropped by about 30%.
+- **Mountain and dryland communities:** Around Mount Elgon (Bududa, Manafwa, Sironko, Bulambuli) and the Rwenzori slopes (Kasese, Bundibugyo), Makerere University studies show that heavy rain over a few days soaks steep hillsides and triggers deadly landslides. In Karamoja and the northern drylands, long hot dry spells put cattle, goats, and water points under severe stress.
+- **Literacy, disability, and sun safety:** The **UBOS 2024 National Census** counted **45.9 million** Ugandans (51.4% female, 48.6% male). About **26% of people aged 10 and older cannot read or write**, and **13.2%** (about **5.5 million people** aged 2 and older) live with a disability, including sight loss, hearing loss, and albinism (where strong equatorial UV rays cause severe sunburn and high skin cancer risk).
+- **Phones, data cost, and patchy signal:** Uganda Communications Commission (UCC) reports show about **18 to 19 million smartphones** (roughly 40% of phones), while **basic and feature phones ("kabiriti") still make up over half of all handsets**. **1 GB of mobile data costs around UGX 4,000 to UGX 5,000**, and rural signal drops often. Many people check their phone in town, then lose signal when they reach their garden, landing site, or mountain road.
 
-The same problem happens on the lakes and in the mountains. On Lake Victoria, sudden storms and strong winds often start late at night when wooden fishing boats are far from shore. For years, between 3,000 and 5,000 fishers died on the lake every year. When the World Meteorological Organization (WMO) ran its HIGHWAY project and gave lakeside communities simple local warnings, deaths from lake storms dropped by about 30%. Around Mount Elgon, in places like Bududa, Sironko, Bulambuli, and Namisindwa, Makerere University studies show that heavy rain of around 100 mm over a short time can soak the soil and trigger deadly landslides.
+A cloud only app stops helping the moment mobile signal drops, and a text only app leaves out people who cannot read or afford big data bundles. I built **Uganda Weather (Hybrid AI Edition)** to solve all of these real constraints together:
 
-Internet access makes this even harder. Uganda has more than 40 million active mobile lines, yet DataReportal and Uganda Communications Commission (UCC) reports show that only about 22% of people regularly use the internet. Outside main towns, mobile data is expensive, signal drops easily, and power cuts are common. Many people check their phone in town, then lose signal when they reach their farm, landing site, or mountain road.
-
-An assistant that only works in the cloud stops helping the moment signal disappears. I built the Hybrid Weather Safety Advisor so people can load their local forecast once while they have signal, keep it saved on their device, and still ask practical safety questions offline in simple English or Luganda. When they are back online, they get live cloud answers too.
+- **Works online and offline:** Load your district forecast once while you have signal, save it on the phone, and ask practical safety questions offline in plain English using on-device Gemini Nano (`0 KB` cloud data), or get live cloud answers in English and Luganda when online.
+- **Built for eyes, ears, and basic phones:** One-tap natural voice briefings in English and Luganda for blind and non-reading users, clear visual Go / Caution / Wait cards for deaf and hard-of-hearing users, `Large text` and `High contrast` display switches, a fast low-data `/lite` mode tested on `240x320` KaiOS feature phones and `320x568` Android Go devices, and one-tap **SMS** and **WhatsApp** plain-text sharing so one smartphone owner can forward the full forecast or safety verdict to family and neighbours on 2G button phones for free.
 
 ## Screenshots
 
-| Online / Offline Switch & Saved Forecast | Bilingual Luganda Guidance |
-| :---: | :---: |
-| ![Online and Offline switch with Saved forecast indicator](public/screenshots/hybrid-advisor-offline-toggle.png) | ![Luganda weather view and live Luganda safety reply](public/screenshots/hybrid-advisor-luganda.png) |
-| Tap the top left status pill (`Cloud` or `On device`) to switch directly between `Online` and `Offline` mode and confirm your local forecast is saved. | Works naturally in both English and Luganda, including switching languages in the middle of a conversation. |
+| Online / Offline Switch & Saved Forecast | Bilingual Luganda Guidance | Feature Phone Lite Mode & SMS Share |
+| :---: | :---: | :---: |
+| ![Online and Offline switch with Saved forecast indicator](public/screenshots/hybrid-advisor-offline-toggle.png) | ![Luganda weather view and live Luganda safety reply](public/screenshots/hybrid-advisor-luganda.png) | ![Low data Lite mode with voice reader, SMS sharing, and display controls](public/screenshots/lite-feature-phone.png) |
+| Tap the top left status pill (`Cloud` or `On device`) to switch directly between `Online` and `Offline` mode and confirm your local forecast is saved. | Works naturally in both English and Luganda, including switching languages in the middle of a conversation. | Fast low data `/lite` mode built for basic and feature phones, with one tap voice reading, plain text SMS and WhatsApp sharing, and large text controls. |
 
 ## How Hybrid AI works
 
@@ -49,34 +52,32 @@ The advisor uses **Firebase AI Logic**, **Firebase Remote Config**, and **Fireba
 
 ```mermaid
 flowchart LR
-  User["User Question (English or Luganda)"] --> Guard["Input Guard & Rate Limit"]
-  Cache["Live or Saved District Forecast (localStorage)"] --> Context["Place Classifier & Uganda Time (EAT)"]
-  Guard --> Context
-  Context --> AI["Firebase AI Logic (firebase/ai)"]
-  RC["Firebase Remote Config (model, tokens, kill switch)"] -.-> AI
-  AC["Firebase App Check (reCAPTCHA Enterprise + limited use tokens)"] -.-> AI
-  AI -->|"Online: PREFER_ON_DEVICE"| NanoOnline["Chrome Gemini Nano (On Device)"]
-  NanoOnline -.->|"Fallback if unavailable"| Cloud["Cloud Gemini Model"]
-  AI -->|"Offline: ONLY_ON_DEVICE"| NanoOffline["Chrome Gemini Nano + Saved Forecast"]
-  NanoOnline --> Output["Grounded Safety Reply"]
-  Cloud --> Output
-  NanoOffline --> Output
+  User["Question by Text, Voice, or Photo"] --> Clean["Privacy Check (Removes Phone Numbers and Photo GPS)"]
+  Weather["Live or Saved Uganda Weather"] --> Clean
+  Clean --> Router{"Internet Available?"}
+  Router -->|"Offline"| PhoneOnly["Runs on Device (0 KB Data)"]
+  Router -->|"Online"| PhoneFirst["Tries Device First (Saves Data)"]
+  PhoneFirst -->|"Fallback, Photos, or Luganda"| Cloud["Cloud Gemini (via Firebase)"]
+  PhoneOnly --> Reply["Safety Advice, Voice Reader, and SMS Share"]
+  PhoneFirst --> Reply
+  Cloud --> Reply
 ```
 
-At runtime, `src/lib/ai/firebase-client.ts` and `src/lib/ai/hybrid-advisor.ts` initialize Firebase AI Logic with replay protected App Check tokens and switch inference modes based on connectivity:
+Under the hood, `src/lib/ai/firebase-client.ts`, `src/lib/ai/hybrid-advisor.ts`, `src/lib/ai/template-advisor.ts`, and `src/lib/ai/firebase-tts.ts` connect to Firebase AI Logic with Firebase App Check and Firebase Remote Config, choosing phone or cloud automatically:
 
 ```ts
 const ai = getAI(app, {
   backend: new GoogleAIBackend(),
-  useLimitedUseAppCheckTokens: isAppCheckActive(),
+  useLimitedUseAppCheckTokens: false,
 });
 
-const mode =
-  isOffline || !remoteConfig.preferOnDevice
-    ? isOffline
-      ? InferenceMode.ONLY_ON_DEVICE
-      : InferenceMode.ONLY_IN_CLOUD
-    : InferenceMode.PREFER_ON_DEVICE;
+const mode = !isOnline
+  ? InferenceMode.ONLY_ON_DEVICE
+  : hasImage || shouldEnableTools
+    ? InferenceMode.ONLY_IN_CLOUD
+    : remoteConfig.preferOnDevice
+      ? InferenceMode.PREFER_ON_DEVICE
+      : InferenceMode.PREFER_IN_CLOUD;
 
 const model = getGenerativeModel(ai, {
   mode,
@@ -84,12 +85,14 @@ const model = getGenerativeModel(ai, {
 });
 ```
 
-Before sending a question to the model, `src/lib/ai/advisor-prompt.ts` prepares clean local facts:
+Before sending a question to the model, `src/lib/ai/advisor-prompt.ts`, `src/lib/ai/advisor-guard.ts`, and `src/lib/ai/advisor-image.ts` protect user privacy and keep every answer tied to real weather numbers:
 
-- **Exact place type:** Checks whether you are viewing a National Park, Mountain peak, Airport, Exact GPS location, Village or town, City, or District so places like Mount Elgon or a village are never called a district.
-- **Uganda local time (`EAT`):** Tells the model whether it is day or night so it never suggests drying crops after dark, and states the exact saved time when answering offline.
-- **Cross district spelling match:** If you type something like `"What of Bukoma"`, it resolves `Bukomansimbi`, loads its live weather, and confirms the spelling before answering.
-- **Safety and live controls:** Firebase Remote Config (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`) controls `advisor_enabled`, `advisor_cloud_model`, `advisor_max_output_tokens`, and `advisor_prefer_on_device` live with safe offline defaults. Enforced Firebase App Check (`ReCaptchaEnterpriseProvider` + `useLimitedUseAppCheckTokens`), model `safetySettings`, and `src/lib/ai/advisor-guard.ts` block abusive prompts, spam, and internal prompt leaks.
+- **Privacy built in:** Everyday English questions for one district run on your phone first (using Gemini Nano) so your plans stay private and use `0 KB` of mobile data. Before any question goes to the cloud, the app automatically removes phone numbers, emails, and ID numbers, and strips hidden GPS location data from sky or crop photos on your phone.
+- **Server side prompt templates:** Supports running cloud answers from Firebase Console Server Prompt Templates (`getTemplateGenerativeModel` and `advisor_prompt_template_id` in Remote Config), keeping prompt rules safely on Firebase servers.
+- **Natural voice reader in English and Luganda:** Reads weather briefings and answers aloud in clear English (via Firebase AI Logic audio) and natural Luganda (via Sunbird AI), splitting long text into short sentences and pre loading the start so speech begins fast, with browser speech as the offline backup.
+- **Built for everyone and basic phones:** Low data `/lite` mode tested on `240x320` KaiOS feature phones and `320x568` Android Go phones, `Large text` and `High contrast` display switches, one tap plain text `SMS` and `WhatsApp` forecast sharing for neighbours on 2G basic phones, offline parish and town search caching, and community safety warnings (High UV sun protection including persons with albinism, Karamoja livestock heat and water watch, and 72 hour mountain slope landslide watch).
+- **Exact place type and Uganda local time (EAT):** Tells National Parks, Mountains, Airports, Villages, Cities, and Districts apart, and follows Uganda local time so it never tells farmers to dry crops at night.
+- **Live controls and abuse protection:** Firebase Remote Config (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`) lets us update models, voice settings, prompt templates, or pause the advisor live without redeploying. Firebase App Check (`ReCaptchaEnterpriseProvider`) and input checks block spam and misuse.
 
 ## What existed before and what I built for this submission
 
@@ -99,9 +102,9 @@ That existing app is what makes the Hybrid AI Advisor useful: instead of a chatb
 
 During the submission period (November 11 to November 30, 2026), I built:
 
-- **The Hybrid AI engine and Firebase setup:** `src/lib/ai/firebase-client.ts`, `hybrid-advisor.ts`, `remote-config.ts`, `advisor-prompt.ts`, `advisor-guard.ts`, `remoteconfig.template.json`, and `firebase.json`, with live streaming, a stop button (`AbortSignal`), automatic fallback if streaming fails, fast `ThinkingLevel.MINIMAL` replies, and enforced App Check.
-- **The Weather Safety Advisor chat:** `src/components/advisor/HybridWeatherAdvisor.tsx`, `advisor-helpers.ts`, and `advisor-sound.ts`, with smart quick questions for each place, model labels after each reply, and a simple `Online` / `Offline` switch.
-- **App wide visual and usability updates:** cleaner cards and sheets, matching text sizes, a bold red severe weather pill, clearer text over bright skies, a cleaner dropdown (`GlassSelect`), clickable parks, mountains, airports, lakes, and nearby districts, plus 531 automated tests across 95 test files.
+- **The Hybrid AI Advisor and Firebase setup:** Live streaming answers with a stop button, automatic privacy protection (removes phone numbers, emails, ID numbers, and hidden photo GPS before cloud requests), Firebase Remote Config live controls, Firebase App Check bot protection, server side prompt templates, and built in English neural voice (`src/lib/ai/`).
+- **Hands free Voice Reader, Live Camera, and Feature Phone Lite Mode:** Tap once to listen to any screen or detail card in clear English or natural Luganda, talk hands free (say `one`, `two`, `emu`, `bbiri`, `stop`, or `lekera awo`, and interrupt cleanly by speaking), take a live sky or crop photo or upload from gallery (checking that the photo is recent and from Uganda), and use the fast, low data `/lite` page built for `240x320` KaiOS feature phones and `320x568` Android Go phones.
+- **Everyday inclusion, safety, and polish:** Cleaner cards and readable text over bright skies, `Large text` and `High contrast` switches that do not resize cards, one tap `SMS` and `WhatsApp` plain text forecast sharing for neighbours on 2G basic phones, offline search across all 152 districts plus cached parishes and major Ugandan towns, community safety warnings (High UV sun protection including persons with albinism, Karamoja livestock heat and water watch, and 72 hour mountain slope landslide watch), and 596 automated unit tests across 108 files plus 9 feature phone and mobile tests.
 
 ## Testing On-Device Mode in Chrome
 

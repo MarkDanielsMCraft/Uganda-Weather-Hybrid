@@ -92,7 +92,7 @@ describe("Luganda weather copy formatters", () => {
     expect(formatFeelsLikeFooterLg(-3)).toBe("Liwulirwa nga likendeddeko 3° olw'empewo.");
 
     expect(formatHumidityFooterLg(80, 21)).toBe(
-      "Empewo ezitowa olw'obunnyogovu bungi. Ekipimo ky'omume kiri ku 21°.",
+      "Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omume kiri ku 21°.",
     );
     expect(formatHumidityFooterLg(30, 14)).toBe(
       "Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omume kiri ku 14°.",
@@ -125,7 +125,7 @@ describe("Luganda weather copy formatters", () => {
       "Omukisa gw'enkuba okutonnya mu bubaka buno guli 75%.",
     );
 
-    expect(formatWindFooterLg("E", 90)).toBe("Eva mu buvanjuba ku diguli 90°.");
+    expect(formatWindFooterLg("E", 90)).toBe("Eva mu buvanjuba ku kigero kya 90°.");
 
     const safe = formatMarineSafetyLg({ label: "Safe for small craft", summary: "Calm water." });
     expect(safe.label).toBe("Tewali mutawaana eri amaato");
