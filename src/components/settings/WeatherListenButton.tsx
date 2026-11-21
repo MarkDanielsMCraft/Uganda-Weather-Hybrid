@@ -109,7 +109,10 @@ function WeatherListenButtonInner({
   const [voiceReady, setVoiceReady] = useState(false);
   const [playbackState, setPlaybackState] = useState<"idle" | "loading" | "playing">("idle");
   const isSpeaking = playbackState !== "idle";
+  const isSpeakingRef = useRef(false);
+  isSpeakingRef.current = isSpeaking;
   const lastAutoNarratedKeyRef = useRef<string | null>(null);
+  const prevContextKeyRef = useRef<string | null>(null);
 
   const sectionNarration = activeTileId
     ? buildSectionNarration(activeTileId, district ?? weather?.district ?? null)
@@ -132,8 +135,6 @@ function WeatherListenButtonInner({
       setVoiceReady(isVoiceOutputSupported(uiLanguage, serverCapabilities));
     };
     syncVoiceSupport();
-    stopVoiceOutput();
-    setPlaybackState("idle");
 
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.addEventListener?.("voiceschanged", syncVoiceSupport);
@@ -142,9 +143,27 @@ function WeatherListenButtonInner({
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.removeEventListener?.("voiceschanged", syncVoiceSupport);
       }
-      stopVoiceOutput();
     };
-  }, [uiLanguage, serverCapabilities, districtSlug, activePlace?.key]);
+  }, [uiLanguage, serverCapabilities]);
+
+  useEffect(() => {
+    const contextKey = `${uiLanguage}:${districtSlug}:${activePlace?.key ?? ""}`;
+    if (prevContextKeyRef.current !== null && prevContextKeyRef.current !== contextKey) {
+      if (isSpeakingRef.current) {
+        stopVoiceOutput();
+      }
+      setPlaybackState("idle");
+    }
+    prevContextKeyRef.current = contextKey;
+  }, [uiLanguage, districtSlug, activePlace?.key]);
+
+  useEffect(() => {
+    return () => {
+      if (isSpeakingRef.current) {
+        stopVoiceOutput();
+      }
+    };
+  }, []);
 
   const displayName = weather
     ? localizeDistrictName(

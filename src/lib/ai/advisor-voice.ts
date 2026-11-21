@@ -1013,12 +1013,20 @@ let sharedAudio: HTMLAudioElement | null = null;
 let activeAudioUrl: string | null = null;
 let activeSpeakOnStateChange: ((state: VoicePlaybackState) => void) | null = null;
 let activeSpeakOnEnd: (() => void) | null = null;
+const activeUtterances = new Set<SpeechSynthesisUtterance>();
 
 function getOrCreateSharedAudio(): HTMLAudioElement | null {
   if (typeof Audio === "undefined") return null;
   if (!sharedAudio) {
     sharedAudio = new Audio();
     sharedAudio.preload = "auto";
+    (sharedAudio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+    try {
+      sharedAudio.setAttribute("playsinline", "");
+      sharedAudio.setAttribute("webkit-playsinline", "");
+    } catch {
+      // Ignore attribute errors in test environments
+    }
   }
   return sharedAudio;
 }
@@ -1027,7 +1035,13 @@ function primeSharedAudioForGesture(): HTMLAudioElement | null {
   const audio = getOrCreateSharedAudio();
   if (!audio) return null;
   try {
-    audio.muted = true;
+    // Play the 44-byte silent PCM WAV unmuted inside the synchronous click/tap
+    // handler so iOS Safari and Android Chrome unlock unmuted audio playback
+    // for subsequent async neural TTS chunks.
+    audio.muted = false;
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onplay = null;
     audio.src = SILENT_WAV_DATA_URI;
     void audio.play().catch(() => {
       // Ignore silent prime rejections on environments without audio output
@@ -1042,19 +1056,7 @@ export function primeVoicePlaybackForGesture(): void {
   primeSharedAudioForGesture();
 }
 
-function releaseActiveAudio(): void {
-  if (sharedAudio) {
-    try {
-      sharedAudio.pause();
-      sharedAudio.onended = null;
-      sharedAudio.onerror = null;
-      sharedAudio.muted = false;
-      sharedAudio.removeAttribute("src");
-      sharedAudio.load();
-    } catch {
-      // Ignore cleanup errors
-    }
-  }
+function revokeActiveAudioUrl(): void {
   if (activeAudioUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
     try {
       URL.revokeObjectURL(activeAudioUrl);
@@ -1065,6 +1067,21 @@ function releaseActiveAudio(): void {
   }
 }
 
+function releaseActiveAudio(): void {
+  if (sharedAudio) {
+    try {
+      sharedAudio.onended = null;
+      sharedAudio.onerror = null;
+      sharedAudio.onplay = null;
+      sharedAudio.pause();
+      sharedAudio.muted = false;
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+  revokeActiveAudioUrl();
+}
+
 function rememberAudioClip(key: string, blob: Blob): void {
   if (audioClipCache.size >= MAX_CACHED_AUDIO_CLIPS) {
     const oldestKey = audioClipCache.keys().next().value;
@@ -1073,15 +1090,20 @@ function rememberAudioClip(key: string, blob: Blob): void {
   audioClipCache.set(key, blob);
 }
 
-export function stopVoiceOutput(): void {
+function stopVoiceOutputInternal(skipIdleSpeechCancel: boolean): void {
   speakGeneration += 1;
   stopHumanBargeInMonitor();
   activeSpeakAbort?.abort();
   activeSpeakAbort = null;
   releaseActiveAudio();
+  activeUtterances.clear();
   if (isBrowserSpeechSynthesisSupported()) {
     try {
-      window.speechSynthesis.cancel();
+      const synth = window.speechSynthesis;
+      const isIdle = synth.speaking === false && synth.pending === false;
+      if (!skipIdleSpeechCancel || !isIdle) {
+        synth.cancel();
+      }
     } catch {
       // Ignore synthesis cancel errors
     }
@@ -1092,6 +1114,10 @@ export function stopVoiceOutput(): void {
   activeSpeakOnEnd = null;
   prevStateCb?.("idle");
   prevEndCb?.();
+}
+
+export function stopVoiceOutput(): void {
+  stopVoiceOutputInternal(false);
 }
 
 export function formatTextForSpeech(text: string): string {
@@ -1268,32 +1294,73 @@ export function selectPreferredVoice(
 function speakWithBrowserVoice({
   text,
   language,
+  generation,
   onEnd,
 }: {
   text: string;
   language: SupportedLocale;
+  generation: number;
   onEnd?: () => void;
 }): boolean {
   if (!isBrowserSpeechSynthesisSupported()) return false;
   if (language === "lg" && !hasNativeLugandaVoice()) return false;
   try {
     const spokenText = language === "en" ? formatTextForSpeech(text) : text.trim();
-    const utterance = new window.SpeechSynthesisUtterance(spokenText);
-    const voices = window.speechSynthesis.getVoices?.() ?? [];
-    const chosenVoice = selectPreferredVoice(voices, language);
-    if (chosenVoice) {
-      utterance.voice = chosenVoice;
-      utterance.lang = chosenVoice.lang;
-    } else {
-      utterance.lang = language === "lg" ? "lg-UG" : "en-UG";
+    const chunks = splitTextForPipelinedSpeech(spokenText, 180, 12);
+    if (chunks.length === 0) return false;
+
+    const synth = window.speechSynthesis;
+    if (synth.paused) {
+      try {
+        synth.resume();
+      } catch {
+        // Ignore resume errors
+      }
     }
-    utterance.rate = 0.98;
-    utterance.pitch = 1;
-    utterance.onend = () => onEnd?.();
-    utterance.onerror = () => onEnd?.();
-    window.speechSynthesis.speak(utterance);
+
+    const voices = synth.getVoices?.() ?? [];
+    const chosenVoice = selectPreferredVoice(voices, language);
+
+    const speakChunkAt = (index: number) => {
+      if (generation !== speakGeneration) return;
+      const chunk = chunks[index];
+      if (!chunk) {
+        onEnd?.();
+        return;
+      }
+
+      const utterance = new window.SpeechSynthesisUtterance(chunk);
+      if (chosenVoice) {
+        utterance.voice = chosenVoice;
+        utterance.lang = chosenVoice.lang;
+      } else {
+        // Use widely supported en-GB fallback when mobile getVoices() is empty on first tap
+        utterance.lang = language === "lg" ? "lg-UG" : "en-GB";
+      }
+      utterance.rate = 0.98;
+      utterance.pitch = 1;
+
+      // Retain utterance reference so mobile browsers do not GC it mid-speech
+      activeUtterances.add(utterance);
+      const finalizeChunk = (shouldContinue: boolean) => {
+        activeUtterances.delete(utterance);
+        if (generation !== speakGeneration) return;
+        if (shouldContinue && index + 1 < chunks.length) {
+          speakChunkAt(index + 1);
+        } else {
+          onEnd?.();
+        }
+      };
+
+      utterance.onend = () => finalizeChunk(true);
+      utterance.onerror = () => finalizeChunk(false);
+      synth.speak(utterance);
+    };
+
+    speakChunkAt(0);
     return true;
   } catch {
+    activeUtterances.clear();
     onEnd?.();
     return false;
   }
@@ -1321,7 +1388,7 @@ export function speakAdvisorReply({
   const cleaned = text.trim();
   if (!cleaned || !isVoiceOutputSupported(language, capabilities)) return false;
 
-  stopVoiceOutput();
+  stopVoiceOutputInternal(true);
   const generation = speakGeneration;
   activeSpeakOnStateChange = onStateChange ?? null;
   activeSpeakOnEnd = onEnd ?? null;
@@ -1359,6 +1426,7 @@ export function speakAdvisorReply({
     const started = speakWithBrowserVoice({
       text: cleaned,
       language,
+      generation,
       onEnd: notifyFinished,
     });
     if (!started) {
@@ -1396,29 +1464,51 @@ export function speakAdvisorReply({
       // Guarantee browser speechSynthesis can never talk over neural audio
       if (isBrowserSpeechSynthesisSupported()) {
         try {
-          window.speechSynthesis.cancel();
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+          }
         } catch {
           // Ignore cancel errors
         }
       }
+      revokeActiveAudioUrl();
       const objectUrl = URL.createObjectURL(blob);
       activeAudioUrl = objectUrl;
       audio.muted = false;
-      audio.src = objectUrl;
       audio.onended = () => {
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplay = null;
         if (generation === speakGeneration) {
-          releaseActiveAudio();
+          revokeActiveAudioUrl();
         }
         resolve();
       };
       audio.onerror = () => {
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplay = null;
         if (generation === speakGeneration) {
-          releaseActiveAudio();
+          revokeActiveAudioUrl();
         }
         reject(new Error("AUDIO_PLAY_ERROR"));
       };
+      audio.onplay = () => {
+        if (generation === speakGeneration) {
+          onStateChange?.("playing");
+        }
+      };
+      audio.src = objectUrl;
       onStateChange?.("playing");
-      void audio.play().catch(reject);
+      void audio.play().catch((err) => {
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplay = null;
+        if (generation === speakGeneration) {
+          revokeActiveAudioUrl();
+        }
+        reject(err);
+      });
     });
 
   const controller = new AbortController();
@@ -1510,6 +1600,7 @@ export function speakAdvisorReply({
         ? speakWithBrowserVoice({
             text: remainingText,
             language,
+            generation,
             onEnd: notifyFinished,
           })
         : false;
