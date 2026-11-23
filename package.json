@@ -54,7 +54,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.1.0",
     "firebase": "^13.4.0",
-    "framer-motion": "^12.23.12",
+    "framer-motion": "^14.14.0",
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
