@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Storm alert sign ups can no longer be flooded with made up tokens. One address can sign up 10 times an hour, tokens must look like real phone tokens, the store stops taking new tokens at 100,000, alerts go out in groups of 50, and phones that Android or Apple report as gone are removed.
+- The public health page now only says the app is up, its version, and the number of districts. It no longer lists which services are set up, whether Redis is on, or how many phones signed up for alerts.
 - Village search can no longer get the app blocked by the free map service. All map lookups wait in one queue that lets one through about every second, a full queue answers at once with the district's location (and that rough answer is not saved), each village takes at most two lookups, and the place search routes allow 60 requests a minute from one address.
 - Nobody can plant a fake place name, wrong location, or scam phone number in the saved forecast that other people see. The saved copy for a place is now tied to every detail in the request, place names and labels with phone numbers, links, emails, or markup are refused, and place text is cleaned again before it reaches the AI advisor. The server keeps at most 5,000 saved copies in memory.
 - Rate limits can no longer be dodged by changing the district name in the address: all district detail pages share one count, only the first four path parts form the key, at most 20,000 keys are kept, and the memory sweep runs at most every 10 seconds.

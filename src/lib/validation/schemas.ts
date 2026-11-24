@@ -64,8 +64,12 @@ export const regionQuerySchema = z.object({
   region: z.enum(["central", "eastern", "northern", "western"]).optional(),
 });
 
+/** Android (FCM) tokens use letters, digits, colons, dashes, and
+    underscores. iPhone (APNs) tokens are hex. Anything else is not a token. */
+const pushTokenSchema = z.string().min(16).max(512).regex(/^[A-Za-z0-9_:.-]+$/);
+
 export const pushRegisterSchema = z.object({
-  token: z.string().min(16).max(512),
+  token: pushTokenSchema,
   platform: z.enum(["ios", "android", "web"]),
   districtSlug: z
     .string()
@@ -83,7 +87,7 @@ export const cronPrefetchQuerySchema = z.object({
 });
 
 export const pushUnregisterSchema = z.object({
-  token: z.string().min(16).max(512),
+  token: pushTokenSchema,
 });
 
 export const pushDispatchSchema = z.object({

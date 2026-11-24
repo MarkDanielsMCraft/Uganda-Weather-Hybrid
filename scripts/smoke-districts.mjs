@@ -259,7 +259,7 @@ async function main() {
     const smokeToken = "smoke-test-token-placeholder-01";
     const pushResponse = await fetch(`${BASE_URL}/api/v1/push/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "same-origin" },
       body: JSON.stringify({
         token: smokeToken,
         platform: "ios",
@@ -272,12 +272,6 @@ async function main() {
     const pushBody = await pushResponse.json();
     if (!pushBody.data?.accepted) {
       throw new Error("push register did not accept payload");
-    }
-
-    const healthAfterRegister = await fetch(`${BASE_URL}/api/health`);
-    const healthBody = await healthAfterRegister.json();
-    if ((healthBody.providers?.pushTokens ?? 0) < 1) {
-      throw new Error("push token count did not increase after register");
     }
 
     const dispatchResponse = await fetch(`${BASE_URL}/api/v1/push/dispatch`, {
@@ -300,7 +294,7 @@ async function main() {
 
     const unregisterResponse = await fetch(`${BASE_URL}/api/v1/push/register`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Sec-Fetch-Site": "same-origin" },
       body: JSON.stringify({ token: smokeToken }),
     });
     if (!unregisterResponse.ok) {

@@ -1,5 +1,6 @@
 import { createSign } from "node:crypto";
 import { connect, constants, type ClientHttp2Session } from "node:http2";
+import { mapInBatches, PUSH_SEND_BATCH_SIZE } from "./batches";
 
 import type { StormAlertPayload } from "./dispatch";
 
@@ -8,6 +9,7 @@ const TOKEN_REFRESH_SECONDS = 45 * 60;
 const APNS_PRODUCTION_HOST = "https://api.push.apple.com";
 const APNS_SANDBOX_HOST = "https://api.sandbox.push.apple.com";
 const APNS_BAD_DEVICE_TOKEN_REASON = "BadDeviceToken";
+const APNS_UNREGISTERED_REASON = "Unregistered";
 
 interface CachedProviderToken {
   value: string;
@@ -161,12 +163,10 @@ async function sendToHost(
   }
 
   try {
-    return await Promise.all(
-      tokens.map((token) =>
-        sendApnsRequest(session, token, providerToken, topic, payload).catch(() => ({
-          success: false,
-        })),
-      ),
+    return await mapInBatches(tokens, PUSH_SEND_BATCH_SIZE, (token) =>
+      sendApnsRequest(session, token, providerToken, topic, payload).catch(() => ({
+        success: false,
+      })),
     );
   } finally {
     session.close();
@@ -176,7 +176,7 @@ async function sendToHost(
 export async function sendApnsNotifications(
   tokens: string[],
   payload: StormAlertPayload,
-): Promise<{ sent: number; failed: number }> {
+): Promise<{ sent: number; failed: number; goneTokens?: string[] }> {
   if (tokens.length === 0) return { sent: 0, failed: 0 };
 
   const providerToken = getApnsProviderToken();
@@ -212,5 +212,9 @@ export async function sendApnsNotifications(
   }
 
   const sent = results.filter((result) => result.success).length;
-  return { sent, failed: tokens.length - sent };
+  // Apple answers "Unregistered" once the app is removed from the phone.
+  const goneTokens = results.flatMap((result, index) =>
+    result.reason === APNS_UNREGISTERED_REASON ? [tokens[index]!] : [],
+  );
+  return { sent, failed: tokens.length - sent, goneTokens };
 }
