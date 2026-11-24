@@ -143,6 +143,10 @@ describe("advisor-guard", () => {
     expect(res.sanitized).not.toContain("CM900123456789");
     expect(res.sanitized).toContain("7:00 am (25°C)");
 
+    const lowercaseNin = redactPiiForCloud("my id is cm900123456789, rain today?");
+    expect(lowercaseNin.redactedCount).toBe(1);
+    expect(lowercaseNin.sanitized).not.toContain("cm900123456789");
+
     const clean = redactPiiForCloud("Is it safe to dry beans in Mbale at 14:00?");
     expect(clean).toEqual({
       sanitized: "Is it safe to dry beans in Mbale at 14:00?",
