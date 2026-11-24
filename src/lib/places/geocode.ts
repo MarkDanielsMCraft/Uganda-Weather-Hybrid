@@ -240,7 +240,11 @@ async function reverseGeocodeUgandaCached(lat: number, lon: number) {
         throw new MapServiceBusyError();
       }
 
-      const payload = (await response.json()) as NominatimReverse;
+      const payload = (await response.json().catch(() => null)) as NominatimReverse | null;
+      if (!payload || typeof payload !== "object") {
+        console.warn("[places] action blocked action=map_reverse code=MAP_BAD_REPLY");
+        throw new MapServiceBusyError();
+      }
       const name = localityNameFromReverse(payload);
       const parent = findNearestDistrict(lat, lon);
       const districtName = parent.name;

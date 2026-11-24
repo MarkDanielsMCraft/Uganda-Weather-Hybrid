@@ -246,21 +246,29 @@ async function searchOfficialLocalitiesUncached(query: string, limit = 8) {
     .slice(0, limit);
 }
 
+const UNSAVED_LIST_SECONDS = 10;
+const unsavedLists = new Map<string, PlaceSearchHit[]>();
+
+function rememberUnsavedList(key: string, hits: PlaceSearchHit[]) {
+  unsavedLists.set(key, hits);
+  setTimeout(() => unsavedLists.delete(key), UNSAVED_LIST_SECONDS * 1000).unref?.();
+}
+
 export async function searchOfficialLocalities(query: string, limit = 8) {
   const q = query.trim();
   if (q.length < 2) return [];
 
   // A list with a rough point made while the map service was busy is used
   // once and not saved, so the next search tries again for the real point.
-  let unsaved: Awaited<ReturnType<typeof searchOfficialLocalitiesUncached>> | null = null;
+  const listKey = `ug:localities:v4:${q.toLowerCase()}:${limit}`;
   try {
     const { data } = await getCached(
-      `ug:localities:v4:${q.toLowerCase()}:${limit}`,
+      listKey,
       3600,
       async () => {
         const hits = await searchOfficialLocalitiesUncached(q, limit);
         if (hits.some((hit) => "madeWhileMapBusy" in hit)) {
-          unsaved = hits;
+          rememberUnsavedList(listKey, hits);
           throw new MapServiceBusyError();
         }
         return hits;
@@ -268,6 +276,9 @@ export async function searchOfficialLocalities(query: string, limit = 8) {
     );
     return data;
   } catch (error) {
+    // Searches for the same words at the same moment share one lookup, so
+    // they all read the unsaved list from here instead of failing.
+    const unsaved = unsavedLists.get(listKey);
     if (unsaved && error instanceof MapServiceBusyError) return unsaved;
     throw error;
   }

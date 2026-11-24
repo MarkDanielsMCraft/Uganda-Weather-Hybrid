@@ -1,31 +1,49 @@
 // No zod or other heavy imports here. This runs on every page through the
 // place helpers, so it must stay small.
-/** Real Ugandan place names and labels never carry phone numbers, links,
-    emails, markup, or calls to act. Refusing them keeps planted scam text
-    out of the forecast screen, saved places, shared SMS, and the AI
-    advisor's instructions. Text is first folded to plain characters (NFKC),
-    so wide letters such as "ｈｔｔｐｓ" are caught too. */
-const PLACE_TEXT_BLOCKED = /https?:|www\.|@|[<>{}\[\]`\\]|[\u0000-\u001f\u007f]/i;
-const PLACE_TEXT_DOMAIN = /\b[\w-]+\.(?:com|ug|net|org|co|io|info|biz|xyz|me|app|link|site|online|top|shop)\b/i;
-const PLACE_TEXT_SCAM_WORDS =
-  /\b(?:call|whatsapp|send|pay|payment|money|momo|airtime|fee|fees|click|visit|alert|urgent|evacuate|win|prize|loan|password|pin|otp|ignore|instructions?)\b/i;
-const HIDDEN_CHARACTERS = /[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g;
-const MAX_DIGITS_IN_PLACE_TEXT = 4;
+/** Place names and labels arrive from shared links and saved settings, which
+    anyone can write. Blocking bad words always misses some trick (hidden
+    characters, spaced letters, other alphabets, lookalike digits), so this
+    allows only what real Ugandan place names use: Latin letters (including
+    the Luganda ŋ), spaces, apostrophes, hyphens, commas, full stops, and
+    brackets, with at most two digits. Anything else is not shown, saved,
+    shared, or sent to the AI. */
+const INVISIBLE_CHARACTERS = /[\p{Cf}\p{Mn}\p{Me}\u034f\u180e\ufe00-\ufe0f]/gu;
+const ALLOWED_PLACE_TEXT = /^[A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u017f\u014a\u014b0-9 '\u2019.,()-]+$/;
+const MAX_DIGITS_IN_PLACE_TEXT = 2;
+const MAX_SINGLE_LETTER_WORDS = 2;
+/** Checked on a joined, lowercased copy, so "c a l l", "s.e.n.d" and
+    "callnow" are caught. Words a real place name would never contain. */
+const SCAM_FRAGMENTS = [
+  "call", "whatsapp", "telegram", "sendmoney", "money", "momo", "airtime", "payment",
+  "paynow", "password", "verify", "bonus", "prize", "donate", "loan", "bank", "alert",
+  "urgent", "evacuate", "ignore", "instruction", "disregard", "textus",
+  "ssente", "sasula", "weereza", "kubaessimu", "bitly", "dotcom",
+];
 export const MAX_PLACE_NAME_WORDS = 6;
 export const MAX_PLACE_LABEL_WORDS = 10;
 
 export function normalizePlaceText(value: string): string {
-  return value.normalize("NFKC").replace(HIDDEN_CHARACTERS, "").replace(/\s+/g, " ").trim();
+  return value
+    .normalize("NFKC")
+    .replace(INVISIBLE_CHARACTERS, "")
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function isSafePlaceText(value: string, maxWords = MAX_PLACE_LABEL_WORDS): boolean {
   const text = normalizePlaceText(value);
-  if (PLACE_TEXT_BLOCKED.test(text) || PLACE_TEXT_DOMAIN.test(text) || PLACE_TEXT_SCAM_WORDS.test(text)) {
+  if (!text || !ALLOWED_PLACE_TEXT.test(text)) return false;
+  // "evil.tk" or "scam-help.com". Real names put a space after a full stop.
+  if (/[A-Za-z0-9]\.[A-Za-z0-9]/.test(text)) return false;
+  const words = text.split(" ").filter(Boolean);
+  if (words.length > maxWords) return false;
+  if (words.filter((word) => word.replace(/[^A-Za-z]/g, "").length === 1).length > MAX_SINGLE_LETTER_WORDS) {
     return false;
   }
-  if (text.split(" ").filter(Boolean).length > maxWords) return false;
-  const digits = text.match(/\p{Nd}/gu)?.length ?? 0;
-  return digits <= MAX_DIGITS_IN_PLACE_TEXT;
+  if ((text.match(/[0-9]/g)?.length ?? 0) > MAX_DIGITS_IN_PLACE_TEXT) return false;
+  const joined = text.toLowerCase().replace(/[^a-z0-9\u00c0-\u017f\u014b]/g, "");
+  return !SCAM_FRAGMENTS.some((fragment) => joined.includes(fragment));
 }
 
 /** For names read from a shared link or saved settings in the browser.

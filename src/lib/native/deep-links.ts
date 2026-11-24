@@ -157,9 +157,11 @@ export function safeAlertRoute(route: unknown): string {
   if (typeof route !== "string") return "/alerts";
   const trimmed = route.trim();
   const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  // Encoded characters such as "%2e" can turn into dots or slashes later.
+  if (path.includes("%")) return "/alerts";
   if (path.startsWith("//") || path.includes("\\") || /^\/[^/?#]*:/.test(path)) return "/alerts";
   // "/.//other.site" becomes "//other.site" once the dots are resolved.
   if (path.split(/[?#]/)[0]!.split("/").some((part) => part === "." || part === "..")) return "/alerts";
-  if (!/^\/[A-Za-z0-9/_\-?=&.%#]*$/.test(path) || path.length > 200) return "/alerts";
+  if (!/^\/[A-Za-z0-9/_\-?=&.#]*$/.test(path) || path.length > 200) return "/alerts";
   return path;
 }

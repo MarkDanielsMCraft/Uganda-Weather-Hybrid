@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Place names and labels from links and saved settings now go through an allow list: Latin letters (including ŋ), spaces, apostrophes, hyphens, commas, full stops, and brackets, with at most two digits. Hidden characters are removed first, joined up and spaced out scam words in English and Luganda are caught, and web address shapes are refused. This closes the hidden character, other alphabet, and lookalike digit tricks found in the third attack pass.
+- Farming advice for a shared place is built for each visitor from their own place, so it can no longer carry the name another visitor sent. Place labels are no longer sent to the AI advisor.
+- Alert routes with encoded characters are refused, broken map service replies count as busy, and identical searches during a busy spell share one unsaved list.
 - A shared link can no longer plant scam text in someone's saved place, their SMS shares, or the AI advisor. Place names from links and from saved settings are folded to plain characters and checked for links, web addresses, phone numbers, calls to act, and length, and anything that fails shows as "Shared place". Saved places are checked again when the app loads.
 - Made up place names can no longer skip the weather cache to spend paid weather calls. Weather for a place is saved by its point (rounded to about 1 km) and the requested name is added back afterwards. The memory cache now drops the least used entries first.
 - Map service refusals, errors, and timeouts are no longer saved as rough answers, and village lists with rough points made while the map service was busy are not saved.

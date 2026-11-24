@@ -116,7 +116,9 @@ export function withPromptSafePlaceText(weather: WeatherBundle): WeatherBundle {
     district: {
       ...district,
       name: cleanPromptPlaceText(district.name) ?? parentName ?? "this place",
-      placeLabel: cleanPromptPlaceText(district.placeLabel),
+      // Labels are longer free text from the address, so they never reach the
+      // AI. The parent district already tells it where the place is.
+      placeLabel: undefined,
     },
   };
 }
