@@ -70,7 +70,7 @@ describe("buildSavedForecastBriefing", () => {
     const result = buildSavedForecastBriefing({ weather, audience: "general", language: "en" });
 
     expect(result.verdict.level).toBe("caution");
-    expect(result.text).toContain("Chance of rain today: 40%");
+    expect(result.text).toContain("The chance of rain today is 40%.");
   });
 
   it("lists active warnings from the saved forecast", () => {

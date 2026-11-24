@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Rate limits can no longer be dodged by changing the district name in the address: all district detail pages share one count, only the first four path parts form the key, at most 20,000 keys are kept, and the memory sweep runs at most every 10 seconds.
+- Paid voice calls have a monthly ceiling per route (`VOICE_MONTHLY_BUDGET`, 20,000 by default; cached clips do not count). A script that fakes browser headers can no longer run up an unlimited voice bill; once the ceiling is reached the app falls back to the browser voice.
+- The same site check trusts the real Host header before X-Forwarded-Host, which a client can forge.
 - Paid voice routes and data writing routes (`/api/v1/voice/speak`, `/voice/translate`, `/voice/transcribe`, `/feedback/luganda`, `/observability/advisor-error`, `/push/register`) refuse requests that the browser marks as coming from another website (`rejectCrossSiteRequest` in `src/lib/api/route-utils.ts`), so other sites cannot spend this app's voice and AI quota.
 - The speak route only sends English to the Luganda voice service when `VOICE_ENGLISH_CLOUD_ENABLED=true`, closing a path that let anyone use that paid key for English.
 - Cron and push dispatch secrets are compared in constant time (`src/lib/api/bearer-secret.ts`).
@@ -142,6 +145,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Broken numbers from a weather provider (missing, NaN, negative, or impossible values) no longer show up as "NaN" or "1000000000%" in the offline summary; the summary says plainly when no rain chance is known.
+- An SMS made from a reply that holds only in app notes is no longer empty.
 - Offline answers no longer depend on the Firebase client being configured; before, a missing client configuration showed "not ready" offline even though the saved forecast summary needs no Firebase.
 - SMS messages use only basic SMS characters (`24C`, Luganda `ŋ` written as `ng'`), so one forecast fits one paid SMS; advisor replies are limited to two SMS parts ending on a full sentence, without in app notes. The SMS link format now also fills in the message on iPhone.
 - Small screens: the `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.

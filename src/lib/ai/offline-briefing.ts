@@ -35,29 +35,43 @@ export interface SavedForecastBriefing {
 }
 
 interface UpcomingRain {
-  peakChance: number;
+  /** Null when the forecast has no usable rain chance at all. */
+  peakChance: number | null;
   peakLabel: string | null;
   verdictChance: number;
 }
 
+/** A provider can send a broken or impossible number. Rain chances are kept
+    only when they are real numbers, and clamped to 0 to 100. */
+function cleanPercent(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+/** Wind in km/h, or null when the number is broken. */
+function cleanSpeed(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.round(value));
+}
+
 function readUpcomingRain(weather: WeatherBundle): UpcomingRain {
-  const hours = weather.hourly
-    .filter((point) => point.kind === "hour" && typeof point.rainChance === "number")
+  const hours = (weather.hourly ?? [])
+    .filter((point) => point.kind === "hour")
+    .map((point) => ({ label: point.label, chance: cleanPercent(point.rainChance) }))
+    .filter((point): point is { label: string; chance: number } => point.chance !== null)
     .slice(0, LOOKAHEAD_HOURS);
 
   if (hours.length === 0) {
-    const chance = weather.precipitation.chance;
-    return { peakChance: chance, peakLabel: null, verdictChance: chance };
+    const chance = cleanPercent(weather.precipitation?.chance);
+    return { peakChance: chance, peakLabel: null, verdictChance: chance ?? 0 };
   }
 
   let peak = hours[0];
   for (const point of hours) {
-    if ((point.rainChance ?? 0) > (peak.rainChance ?? 0)) peak = point;
+    if (point.chance > peak.chance) peak = point;
   }
-  const verdictChance = Math.max(
-    ...hours.slice(0, VERDICT_WINDOW_HOURS).map((point) => point.rainChance ?? 0),
-  );
-  return { peakChance: peak.rainChance ?? 0, peakLabel: peak.label, verdictChance };
+  const verdictChance = Math.max(...hours.slice(0, VERDICT_WINDOW_HOURS).map((point) => point.chance));
+  return { peakChance: peak.chance, peakLabel: peak.label, verdictChance };
 }
 
 const ADVICE_EN: Record<AdvisorAudience, Record<SafetyVerdictLevel, string>> = {
@@ -121,8 +135,8 @@ function buildEnglish(
   verdict: SafetyVerdict,
   notice: SavedForecastNotice,
 ): string {
-  const wind = Math.round(weather.wind.speedKph);
-  const gust = Math.round(weather.wind.gustKph);
+  const wind = cleanSpeed(weather.wind?.speedKph);
+  const gust = cleanSpeed(weather.wind?.gustKph);
   const updated = formatUpdatedAt(weather, "en");
   const lines: string[] = [];
 
@@ -135,11 +149,15 @@ function buildEnglish(
     : isNowLabel(rain.peakLabel)
       ? "right now"
       : `at ${rain.peakLabel}`;
-  lines.push(
-    peakWhen
-      ? `Highest chance of rain in the next ${LOOKAHEAD_HOURS} hours: ${rain.peakChance}% ${peakWhen}. Wind ${wind} km/h, gusts up to ${gust} km/h.`
-      : `Chance of rain today: ${rain.peakChance}%. Wind ${wind} km/h, gusts up to ${gust} km/h.`,
-  );
+  const rainSentence =
+    rain.peakChance === null
+      ? "The saved forecast has no rain chance for the coming hours."
+      : peakWhen
+        ? `The highest chance of rain in the next ${LOOKAHEAD_HOURS} hours is ${rain.peakChance}% ${peakWhen}.`
+        : `The chance of rain today is ${rain.peakChance}%.`;
+  const windSentence =
+    wind === null ? "" : gust === null ? ` Wind ${wind} km/h.` : ` Wind ${wind} km/h, gusts up to ${gust} km/h.`;
+  lines.push(rainSentence + windSentence);
   lines.push(ADVICE_EN[audience][verdict.level]);
   for (const alert of weather.alerts.slice(0, 2)) {
     lines.push(`Active warning: ${alert.title}.`);
@@ -159,7 +177,7 @@ function buildLuganda(
   verdict: SafetyVerdict,
   notice: SavedForecastNotice,
 ): string {
-  const wind = Math.round(weather.wind.speedKph);
+  const wind = cleanSpeed(weather.wind?.speedKph);
   const lines: string[] = [];
 
   if (notice !== "none") {
@@ -171,11 +189,13 @@ function buildLuganda(
     : isNowLabel(rain.peakLabel)
       ? "kati"
       : `ku ${formatClockLabelForLanguage(rain.peakLabel, "lg", "medium")}`;
-  lines.push(
-    peakWhen
-      ? `Omukisa gw'enkuba ${rain.peakChance}% ${peakWhen}. Empewo ya km/h ${wind}.`
-      : `Omukisa gw'enkuba ${rain.peakChance}%. Empewo ya km/h ${wind}.`,
-  );
+  const rainSentence =
+    rain.peakChance === null
+      ? "Omukisa gw'enkuba tegumanyiddwa."
+      : peakWhen
+        ? `Omukisa gw'enkuba ${rain.peakChance}% ${peakWhen}.`
+        : `Omukisa gw'enkuba ${rain.peakChance}%.`;
+  lines.push(rainSentence + (wind === null ? "" : ` Empewo ya km/h ${wind}.`));
   lines.push(ADVICE_LG[audience][verdict.level]);
   lines.push(
     `${weather.district.name}: obubaka buno buva ku budde obuterekeddwa ku ssimu yo, tebukozesezza AI.`,
@@ -203,7 +223,7 @@ export function buildSavedForecastBriefing({
   notice?: SavedForecastNotice;
 }): SavedForecastBriefing {
   const rain = readUpcomingRain(weather);
-  const verdict = verdictFromRainAndWind(rain.verdictChance, weather.wind.speedKph);
+  const verdict = verdictFromRainAndWind(rain.verdictChance, cleanSpeed(weather.wind?.speedKph) ?? 0);
   const text =
     language === "lg"
       ? buildLuganda(weather, audience, rain, verdict, notice)
