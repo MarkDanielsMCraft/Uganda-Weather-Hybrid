@@ -13,7 +13,9 @@ test("the advisor answers offline from the saved forecast when no on-device mode
   await page.getByTestId("advisor-runtime-badge").click();
   await page.getByRole("button", { name: "Offline", exact: true }).click();
 
-  await page.getByText("Safe to farm or dry crops today?").click();
+  // The suggested questions follow the time of day ("today" in the daytime,
+  // "tomorrow" in the evening), so match the farming one at any hour.
+  await page.getByRole("button", { name: /farm or dry crops/i }).first().click();
 
   const source = page.getByTestId("advisor-source-badge").last();
   await expect(source).toHaveText("Saved forecast", { timeout: 20_000 });
