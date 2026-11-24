@@ -288,16 +288,29 @@ export function deriveSafetyVerdict(
     typeof upcomingHourPoint?.rainChance === "number"
       ? upcomingHourPoint.rainChance
       : weather.precipitation.chance;
-  const wind = weather.wind.speedKph;
+  if (explicitWait) return verdictFromRainAndWind(100, 0);
+  if (explicitCaution) {
+    return verdictFromRainAndWind(Math.max(effectiveRain, RAIN_CAUTION_PERCENT), weather.wind.speedKph);
+  }
+  return verdictFromRainAndWind(effectiveRain, weather.wind.speedKph);
+}
 
-  if (explicitWait || effectiveRain >= 70 || wind >= 38) {
+const RAIN_WAIT_PERCENT = 70;
+const RAIN_CAUTION_PERCENT = 35;
+const WIND_WAIT_KPH = 38;
+const WIND_CAUTION_KPH = 24;
+
+/** Single source of truth for the rain and wind risk thresholds, shared by the
+    AI reply path and the offline saved forecast summary so both always agree. */
+export function verdictFromRainAndWind(rainChance: number, windKph: number): SafetyVerdict {
+  if (rainChance >= RAIN_WAIT_PERCENT || windKph >= WIND_WAIT_KPH) {
     return {
       level: "wait",
       labelEn: "Wait / High risk",
       labelLg: "Linda / Obulabe bwa maanyi",
     };
   }
-  if (explicitCaution || effectiveRain >= 35 || wind >= 24) {
+  if (rainChance >= RAIN_CAUTION_PERCENT || windKph >= WIND_CAUTION_KPH) {
     return {
       level: "caution",
       labelEn: "Caution",
