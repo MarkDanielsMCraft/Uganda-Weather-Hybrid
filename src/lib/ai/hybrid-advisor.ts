@@ -37,6 +37,7 @@ import {
   UGANDA_WEATHER_TOOL,
   type SafetyVerdict,
 } from "@/lib/ai/advisor-tools";
+import { buildSavedForecastBriefing } from "@/lib/ai/offline-briefing";
 import { getAdvisorRemoteConfig } from "@/lib/ai/remote-config";
 import {
   buildServerTemplateVariables,
@@ -79,7 +80,7 @@ export type HybridRuntimeReadiness =
   | "offline_unavailable"
   | "unconfigured";
 
-export type BriefingInferenceSource = "on_device" | "cloud";
+export type BriefingInferenceSource = "on_device" | "cloud" | "saved_forecast";
 
 export type BriefingPhase = "thinking" | "writing";
 
@@ -99,7 +100,6 @@ export type WeatherBriefingErrorCode =
   | "blocked_abuse"
   | "rate_limited"
   | "not_configured"
-  | "offline_no_on_device"
   | "aborted"
   | "failed";
 
@@ -229,6 +229,34 @@ function sanitizeBriefingText(raw: string, language: SupportedLocale = "en"): st
   return cleaned;
 }
 
+/** Offline answer built only from the saved forecast numbers. Used when no
+    on-device model can answer, so the advisor still helps people on entry
+    level phones instead of showing an error. */
+function savedForecastOutcome(
+  weather: WeatherBundle,
+  audience: AdvisorAudience,
+  language: SupportedLocale,
+  answeringCustomQuestion: boolean,
+): WeatherBriefingOutcome {
+  const briefing = buildSavedForecastBriefing({
+    weather,
+    audience,
+    language,
+    answeringCustomQuestion,
+  });
+  return {
+    ok: true,
+    data: {
+      text: briefing.text,
+      source: "saved_forecast",
+      model: "saved-forecast",
+      generatedAt: new Date().toISOString(),
+      usedCachedWeather: Boolean(weather.stale),
+      verdict: briefing.verdict,
+    },
+  };
+}
+
 export async function generateHybridWeatherBriefing({
   weather,
   audience,
@@ -324,7 +352,10 @@ export async function generateHybridWeatherBriefing({
   }
 
   const onDeviceStatus = await detectOnDeviceAvailability();
-  if (!isOnline && onDeviceStatus !== "available") {
+  // On-device Gemini Nano writes English only, so offline Luganda also uses
+  // the saved forecast summary instead of a reply in the wrong language.
+  const onDeviceCanAnswer = onDeviceStatus === "available" && parsed.data.language !== "lg";
+  if (!isOnline && !onDeviceCanAnswer) {
     if (parsed.data.customQuestion) {
       const instant = matchInstantSocialReply(
         parsed.data.customQuestion,
@@ -344,16 +375,12 @@ export async function generateHybridWeatherBriefing({
         };
       }
     }
-    console.warn("[ai-advisor] action blocked action=generate code=OFFLINE_NO_ON_DEVICE");
-    return {
-      ok: false,
-      error: {
-        code: "offline_no_on_device",
-        message: isLg
-          ? "Toli ku mutimbagano kati. Yunga ku mutimbagano osobole okubuuza, oba laba obubaka obuterekeddwa."
-          : "You are offline right now. Turn on your internet to ask a question, or check your saved weather.",
-      },
-    };
+    return savedForecastOutcome(
+      weather,
+      parsed.data.audience,
+      parsed.data.language,
+      Boolean(parsed.data.customQuestion),
+    );
   }
 
   const remoteConfig = getAdvisorRemoteConfig();
@@ -744,15 +771,12 @@ export async function generateHybridWeatherBriefing({
       console.warn(
         `[ai-advisor] action blocked action=generate code=OFFLINE_EXECUTION_FAILED district=${safeDistrictSlug}`,
       );
-      return {
-        ok: false,
-        error: {
-          code: "offline_no_on_device",
-          message: isLg
-            ? "Toli ku mutimbagano kati. Yunga ku mutimbagano oddemu ogezeeko."
-            : "You are offline right now. Please connect to the internet and try again.",
-        },
-      };
+      return savedForecastOutcome(
+        weather,
+        parsed.data.audience,
+        parsed.data.language,
+        Boolean(parsed.data.customQuestion),
+      );
     }
 
     const errMsg = error instanceof Error ? error.message : "";

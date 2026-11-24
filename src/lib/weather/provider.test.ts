@@ -221,3 +221,51 @@ describe("getWeatherBundleForDistrict fallback chain", () => {
     await expect(getWeatherBundleForDistrict(district)).rejects.toThrow(/district slug mismatch/);
   });
 });
+
+describe("configurable primary provider", () => {
+  afterEach(() => {
+    delete process.env.WEATHER_PRIMARY_PROVIDER;
+  });
+
+  it("asks Open-Meteo first and does not call WeatherAPI when Open-Meteo works", async () => {
+    process.env.WEATHERAPI_KEY = "test-key";
+    process.env.WEATHER_PRIMARY_PROVIDER = "open-meteo";
+    fetchOpenMeteoBundleMock.mockResolvedValue(
+      makeWeatherBundle({ source: "open-meteo.com", dailyForecast: days(10) }),
+    );
+
+    const result = await getWeatherBundleForDistrict(district);
+
+    expect(result.source).toBe("open-meteo.com");
+    expect(fetchWeatherApiBundleMock).not.toHaveBeenCalled();
+    expect(fetchOpenMeteoBundleMock).toHaveBeenCalledWith(district, expect.anything(), { asFallback: false });
+  });
+
+  it("uses WeatherAPI as the backup when Open-Meteo fails", async () => {
+    process.env.WEATHERAPI_KEY = "test-key";
+    process.env.WEATHER_PRIMARY_PROVIDER = "open-meteo";
+    fetchOpenMeteoBundleMock.mockRejectedValue(new Error("open-meteo down"));
+    fetchWeatherApiBundleMock.mockResolvedValue(
+      makeWeatherBundle({ source: "weatherapi.com", dailyForecast: days(10) }),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await getWeatherBundleForDistrict(district);
+
+    expect(result.source).toBe("weatherapi.com");
+    expect(fetchWeatherApiBundleMock).toHaveBeenCalled();
+  });
+
+  it("keeps WeatherAPI first when the setting is missing or unknown", async () => {
+    process.env.WEATHERAPI_KEY = "test-key";
+    process.env.WEATHER_PRIMARY_PROVIDER = "something-else";
+    fetchWeatherApiBundleMock.mockResolvedValue(
+      makeWeatherBundle({ source: "weatherapi.com", dailyForecast: days(10) }),
+    );
+
+    const result = await getWeatherBundleForDistrict(district);
+
+    expect(result.source).toBe("weatherapi.com");
+    expect(fetchOpenMeteoBundleMock).not.toHaveBeenCalled();
+  });
+});

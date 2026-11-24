@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 
-const measurementId =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-RDD9SSRHF3";
+// No built in fallback ID: without the env var, analytics stays off rather
+// than sending this site's visits into another property.
+const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || "";
 
 declare global {
   interface Window {

@@ -3,8 +3,20 @@ info:
   title: Uganda Weather API
   version: 1.0.0
   description: |
-    REST API for Uganda Weather — district-level weather, forecasts, alerts,
+    REST API for Uganda Weather: district level weather, forecasts, alerts,
     air quality, marine, and agriculture advisories for Uganda.
+
+    Rate limits: each route allows 240 requests per minute per client
+    address by default (set with API_RATE_LIMIT_PER_MINUTE). Limits are
+    counted per route, so heavy use of one route does not block the others.
+    Successful responses carry X-RateLimit-Limit, X-RateLimit-Remaining,
+    and X-RateLimit-Reset headers. A blocked request gets HTTP 429 with
+    error.details.resetAt (Unix time in milliseconds) in the body.
+
+    Internal POST routes used by the web app (voice, feedback, push
+    registration, error reports) are not part of this public contract and
+    refuse requests that a browser marks as coming from another website
+    (HTTP 403).
   contact:
     name: Uganda Weather Team
   license:
@@ -53,6 +65,8 @@ paths:
             type: integer
             default: 0
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: District list
           content:
@@ -73,6 +87,8 @@ paths:
             type: string
             minLength: 2
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Search results
           content:
@@ -90,6 +106,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/DistrictSlug'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: District details
           content:
@@ -107,6 +125,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/DistrictQuery'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Current weather
           content:
@@ -133,6 +153,8 @@ paths:
             maximum: 14
             default: 10
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Forecast data
           content:
@@ -148,6 +170,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/DistrictQuery'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Active alerts
           content:
@@ -163,6 +187,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/DistrictQuery'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Air quality data
           content:
@@ -183,6 +209,8 @@ paths:
             enum: [central, eastern, western]
             default: central
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Marine conditions
           content:
@@ -203,6 +231,8 @@ paths:
             type: string
             enum: [maize, beans, coffee, cassava, banana, millet]
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '200':
           description: Agriculture advisory
           content:
@@ -237,6 +267,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Too many requests from this address for this route. The body's error.details.resetAt (Unix time in milliseconds) says when to retry.
       content:
         application/json:
           schema:

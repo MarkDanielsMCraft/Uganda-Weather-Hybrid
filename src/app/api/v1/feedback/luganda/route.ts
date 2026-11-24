@@ -1,5 +1,5 @@
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
-import { mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import {
   logBlockedFeedbackAction,
   submitLugandaFeedback,
@@ -12,6 +12,9 @@ const FEEDBACK_RATE_LIMIT = 10;
 const FEEDBACK_WINDOW_MS = 60_000;
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "feedback");
+  if (crossSite) return crossSite;
+
   const ip = clientIpFromRequest(request);
   const limitResult = checkRateLimit(
     `feedback:luganda:${ip}`,

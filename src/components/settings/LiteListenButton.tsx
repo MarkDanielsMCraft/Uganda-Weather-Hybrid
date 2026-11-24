@@ -79,22 +79,6 @@ export function LiteListenButton({
     };
   }, []);
 
-  // Eagerly pre-warm Chunk 1 in the background once /lite mounts so tapping
-  // Listen begins speaking immediately.
-  useEffect(() => {
-    if (!voiceReady) return;
-    const text = language === "lg" ? spokenTextLg : spokenTextEn;
-    if (!text) return;
-    const timer = window.setTimeout(() => {
-      prefetchVoiceClip({
-        text,
-        language,
-        capabilities: serverCapabilities,
-      });
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [language, serverCapabilities, spokenTextEn, spokenTextLg, voiceReady]);
-
   if (!voiceReady) return null;
 
   const isLg = language === "lg";
@@ -143,6 +127,7 @@ export function LiteListenButton({
       onClick={handleToggle}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
+      onPointerDown={handlePrefetch}
       data-testid="lite-listen-toggle"
       aria-pressed={isSpeaking}
       aria-label={label}

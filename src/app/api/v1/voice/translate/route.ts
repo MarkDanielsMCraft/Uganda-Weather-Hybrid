@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
-import { mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 import { isSunbirdConfigured, translateText } from "@/lib/voice/sunbird";
 
@@ -51,6 +51,9 @@ const translateRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "voice");
+  if (crossSite) return crossSite;
+
   const ip = clientIpFromRequest(request);
   const limitResult = checkRateLimit(
     `voice:translate:${ip}`,

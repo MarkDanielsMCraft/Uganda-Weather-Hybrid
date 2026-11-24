@@ -182,7 +182,7 @@ export async function synthesizeSpeechWithFirebaseAi({
     if (!isPrefetch) {
       ttsCooldownUntil = Date.now() + TTS_COOLDOWN_MS;
     }
-    console.warn("[voice] firebase neural tts unavailable, falling back to browser speech");
+    console.warn("[voice] firebase neural tts unavailable, trying the next voice");
     return null;
   }
 }
