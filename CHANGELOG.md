@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- A storm alert can only open pages inside the app. Routes such as `//other.site` now open the alerts page instead.
+- The Luganda feedback form takes at most 200 reports a day across the whole app, and server memory keeps only the newest 500, so a flood cannot fill the inbox or the server.
+- The HTTPS only header now also covers subdomains.
 - Nobody can make a real looking Uganda Weather link preview image with their own words, such as a fake evacuation order. The `/api/og` route that drew any title and subtitle from the address is gone.
 - Storm alert sign ups can no longer be flooded with made up tokens. One address can sign up 10 times an hour, tokens must look like real phone tokens, the store stops taking new tokens at 100,000, alerts go out in groups of 50, and phones that Android or Apple report as gone are removed.
 - The public health page now only says the app is up, its version, and the number of districts. It no longer lists which services are set up, whether Redis is on, or how many phones signed up for alerts.

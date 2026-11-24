@@ -10,6 +10,7 @@ import { lugandaFeedbackSchema } from "@/lib/validation/schemas";
 
 const FEEDBACK_RATE_LIMIT = 10;
 const FEEDBACK_WINDOW_MS = 60_000;
+const FEEDBACK_DAILY_LIMIT = 200;
 
 export async function POST(request: Request) {
   const crossSite = rejectCrossSiteRequest(request, "feedback");
@@ -56,6 +57,16 @@ export async function POST(request: Request) {
   if (!turnstileOk) {
     logBlockedFeedbackAction("submit", "TURNSTILE_FAILED");
     return errorResponse("FORBIDDEN", "Security verification failed", 403);
+  }
+
+  // Each report becomes an email. If the human check is not set up, or a
+  // script gets past it, this caps how many reach the inbox in one day.
+  const daily = checkRateLimit("feedback:luganda:all", FEEDBACK_DAILY_LIMIT, 24 * 60 * 60 * 1000);
+  if (!daily.allowed) {
+    logBlockedFeedbackAction("submit", "DAILY_LIMIT");
+    return errorResponse("RATE_LIMITED", "Too many feedback submissions today", 429, {
+      resetAt: daily.resetAt,
+    });
   }
 
   const result = await submitLugandaFeedback(parsed.data);

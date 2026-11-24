@@ -149,3 +149,15 @@ export function moduleDeepLink(path: string, districtSlug?: string, alertId?: st
   const query = params.toString();
   return query ? `ugandaweather://${normalized}?${query}` : `ugandaweather://${normalized}`;
 }
+
+/** An alert can carry the page to open. Only paths inside this app are
+    allowed, so a route such as "//other.site" or "https://..." can never
+    send someone to another website from a trusted storm alert. */
+export function safeAlertRoute(route: unknown): string {
+  if (typeof route !== "string") return "/alerts";
+  const trimmed = route.trim();
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  if (path.startsWith("//") || path.includes("\\") || /^\/[^/?#]*:/.test(path)) return "/alerts";
+  if (!/^\/[A-Za-z0-9/_\-?=&.%#]*$/.test(path) || path.length > 200) return "/alerts";
+  return path;
+}

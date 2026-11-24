@@ -142,7 +142,7 @@ Between November 11 and 30, 2026, I built
 - the photo checks and the live camera,
 - the low data page, SMS and WhatsApp sharing, the large text and high contrast switches, and community safety warnings (sun protection for people with albinism, livestock heat and water in Karamoja, and landslide watch on mountain slopes),
 - layouts checked from tiny feature phone screens to desktop,
-- and 690 automated unit tests plus 27 browser tests.
+- and 706 automated unit tests plus 27 browser tests.
 
 ## Try it offline
 

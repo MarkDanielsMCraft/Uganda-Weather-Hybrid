@@ -234,3 +234,47 @@ describe("POST /api/v1/feedback/luganda", () => {
     }
   });
 });
+
+describe("feedback flood limits", () => {
+  beforeEach(async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    resetLugandaFeedbackStoreForTests();
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+  });
+
+  afterEach(async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    vi.restoreAllMocks();
+  });
+
+  function report(i: number) {
+    return new Request("http://localhost/api/v1/feedback/luganda", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "sec-fetch-site": "same-origin",
+        // A new address each time, like a script spread over many phones.
+        "x-forwarded-for": `10.1.${Math.floor(i / 250)}.${i % 250}`,
+      },
+      body: JSON.stringify({ category: "grammar", details: `Report number ${i} about a word.` }),
+    });
+  }
+
+  it("takes at most 200 reports a day across the whole app", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 201; i += 1) statuses.push((await POST(report(i))).status);
+    expect(statuses.slice(0, 200).every((status) => status === 201)).toBe(true);
+    expect(statuses[200]).toBe(429);
+  });
+
+  it("keeps only the newest 500 reports in server memory", async () => {
+    const { submitLugandaFeedback, MAX_MEMORY_FEEDBACK_REPORTS } = await import("@/lib/feedback/luganda-feedback");
+    for (let i = 0; i < MAX_MEMORY_FEEDBACK_REPORTS + 20; i += 1) {
+      await submitLugandaFeedback({ category: "grammar", details: `Stored report ${i} text.` });
+    }
+    expect((await listStoredLugandaFeedbackForTests()).length).toBe(MAX_MEMORY_FEEDBACK_REPORTS);
+  });
+});
