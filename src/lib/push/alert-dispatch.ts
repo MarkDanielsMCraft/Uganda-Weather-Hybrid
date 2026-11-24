@@ -7,7 +7,8 @@ import { listDistrictSlugsWithPushTokens } from "@/lib/push/store";
 import { getRedisClient, redisGetJson, redisSet } from "@/lib/cache/redis";
 import { getWeatherBundleForDistrict } from "@/lib/weather/provider";
 import { weatherBundleCacheKey } from "@/lib/weather/resolve-target";
-import { getDictionary, localizeDistrictName } from "@/lib/i18n";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { localizeDistrictName } from "@/lib/i18n";
 import { localizeAlertForLanguage } from "@/lib/weather/copy-lg";
 import type { WeatherAlert } from "@/types/weather";
 

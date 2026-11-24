@@ -87,7 +87,9 @@ export async function GET(request: Request) {
       meta,
       mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers),
     );
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=marine/lake-victoria:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Marine data temporarily unavailable", 503);
   }
 }

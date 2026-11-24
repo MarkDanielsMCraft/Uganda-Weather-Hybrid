@@ -1,15 +1,13 @@
 import { findNearestDistrict, getDistrictBySlug } from "@/lib/districts";
 import { getCached } from "@/lib/cache";
 import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
+import { MapServiceBusyError, waitForNominatimTurn } from "@/lib/places/nominatim-pacer";
+
+const NOMINATIM_USER_AGENT = "uganda-weather/1.0 (+https://hybrid.uganda-weather.com)";
 
 const NOMINATIM_TIMEOUT_MS = 2_500;
-/**
- * Ceiling on the whole multi-attempt geocode for one locality. Each
- * attempt is already timeout-guarded individually, but up to 4 attempts
- * at 2.5s apiece can still sum to 10s for a single item — this bounds the
- * total regardless of how many attempts run, falling back to the
- * district centroid once it's exceeded.
- */
+/** Ceiling on the whole lookup for one place, including the wait for a
+    turn with the map service. Past it the district point is used instead. */
 const GEOCODE_BUDGET_MS = 4_000;
 
 interface NominatimHit {
@@ -23,34 +21,36 @@ interface NominatimHit {
 const PLACE_TYPES = new Set(["village", "hamlet", "town", "suburb", "neighbourhood", "locality"]);
 
 async function nominatimSearch(query: string, limit = 5): Promise<NominatimHit[]> {
+  await waitForNominatimTurn();
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", query);
   url.searchParams.set("countrycodes", "ug");
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", String(limit));
 
+  // Any failure (a refusal such as 429, an error, or a timeout) counts as
+  // busy, so the rough fallback it leads to is never saved.
+  let response: Response;
   try {
-    const response = await fetchWithTimeout(
+    response = await fetchWithTimeout(
       (signal) =>
         fetch(url, {
-          headers: { "User-Agent": "uganda-weather/1.0" },
+          headers: { "User-Agent": NOMINATIM_USER_AGENT },
           next: { revalidate: 86400 },
           signal,
         }),
       NOMINATIM_TIMEOUT_MS,
     );
-
-    if (!response.ok) return [];
-    const payload = (await response.json()) as NominatimHit[];
-    return Array.isArray(payload) ? payload : [];
-  } catch (error) {
-    // Geocoding is an enrichment step (approximate lat/lon for a named
-    // locality), not the core search — a Nominatim outage or timeout
-    // should degrade to "no coordinates found" rather than take down the
-    // whole locality lookup.
-    console.error("Nominatim search failed:", error);
-    return [];
+  } catch {
+    console.warn("[places] action blocked action=map_search code=MAP_UNREACHABLE");
+    throw new MapServiceBusyError();
   }
+  if (!response.ok) {
+    console.warn(`[places] action blocked action=map_search code=MAP_STATUS_${response.status}`);
+    throw new MapServiceBusyError();
+  }
+  const payload = (await response.json().catch(() => null)) as NominatimHit[] | null;
+  return Array.isArray(payload) ? payload : [];
 }
 
 function pickPlaceResult(results: NominatimHit[]) {
@@ -83,25 +83,44 @@ export async function geocodeOfficialLocality(input: {
   districtName: string;
   districtSlug: string;
 }) {
+  try {
+    return await geocodeOfficialLocalityCached(input);
+  } catch (error) {
+    if (!(error instanceof MapServiceBusyError)) throw error;
+    const { lat, lon } = coordsFromResult(undefined, input.districtSlug);
+    return { lat, lon, approximate: true, busy: true as const };
+  }
+}
+
+async function geocodeOfficialLocalityCached(input: {
+  cacheKey: string;
+  name: string;
+  parish: string;
+  subcounty: string;
+  districtName: string;
+  districtSlug: string;
+}) {
   const { data } = await getCached(
     `ug:geocode:v2:${input.cacheKey}`,
     7 * 24 * 3600,
     async () => {
-      const fallback = () => {
-        const { lat, lon } = coordsFromResult(undefined, input.districtSlug);
-        return { lat, lon, approximate: true };
-      };
-
-      const attemptAll = async () => {
+      // Two tries at most per place, because each try waits its turn for the
+      // map service. A busy or slow answer is never saved, so a rough
+      // location made under load does not stick for a week.
+      const attemptAll = async (): Promise<{ lat: number; lon: number; approximate: boolean } | "busy"> => {
         const attempts = [
           `${input.name}, ${input.parish}, ${input.districtName}, Uganda`,
-          `${input.name}, ${input.subcounty}, ${input.districtName}, Uganda`,
           `${input.parish}, ${input.districtName}, Uganda`,
-          `${input.subcounty}, ${input.districtName}, Uganda`,
         ];
 
         for (const [index, query] of attempts.entries()) {
-          const results = await nominatimSearch(query, 5);
+          let results: NominatimHit[];
+          try {
+            results = await nominatimSearch(query, 5);
+          } catch (error) {
+            if (error instanceof MapServiceBusyError) return "busy";
+            throw error;
+          }
           const picked = pickPlaceResult(results);
           if (!picked) continue;
 
@@ -109,14 +128,17 @@ export async function geocodeOfficialLocality(input: {
           return { lat, lon, approximate: index > 0 };
         }
 
-        return fallback();
+        const { lat, lon } = coordsFromResult(undefined, input.districtSlug);
+        return { lat, lon, approximate: true };
       };
 
-      const budget = new Promise<ReturnType<typeof fallback>>((resolve) => {
-        setTimeout(() => resolve(fallback()), GEOCODE_BUDGET_MS);
+      const budget = new Promise<"busy">((resolve) => {
+        setTimeout(() => resolve("busy"), GEOCODE_BUDGET_MS);
       });
 
-      return Promise.race([attemptAll(), budget]);
+      const outcome = await Promise.race([attemptAll().catch(() => "busy" as const), budget]);
+      if (outcome === "busy") throw new MapServiceBusyError();
+      return outcome;
     },
   );
 
@@ -175,6 +197,16 @@ function labelFromReverse(payload: NominatimReverse, districtName: string) {
 }
 
 export async function reverseGeocodeUganda(lat: number, lon: number) {
+  try {
+    return await reverseGeocodeUgandaCached(lat, lon);
+  } catch (error) {
+    if (!(error instanceof MapServiceBusyError)) throw error;
+    const parent = findNearestDistrict(lat, lon);
+    return { name: null as string | null, label: `Near ${parent.name}`, approximate: true };
+  }
+}
+
+async function reverseGeocodeUgandaCached(lat: number, lon: number) {
   const { data } = await getCached(
     `ug:reverse:v1:${lat.toFixed(3)}:${lon.toFixed(3)}`,
     7 * 24 * 3600,
@@ -185,29 +217,34 @@ export async function reverseGeocodeUganda(lat: number, lon: number) {
       url.searchParams.set("format", "json");
       url.searchParams.set("addressdetails", "1");
       url.searchParams.set("zoom", "14");
+      await waitForNominatimTurn();
 
       let response: Response;
       try {
         response = await fetchWithTimeout(
           (signal) =>
             fetch(url, {
-              headers: { "User-Agent": "uganda-weather/1.0" },
+              headers: { "User-Agent": NOMINATIM_USER_AGENT },
               next: { revalidate: 86400 },
               signal,
             }),
           NOMINATIM_TIMEOUT_MS,
         );
-      } catch (error) {
-        console.error("Nominatim reverse geocode failed:", error);
-        const parent = findNearestDistrict(lat, lon);
-        return { name: null as string | null, label: `Near ${parent.name}`, approximate: true };
+      } catch {
+        console.warn("[places] action blocked action=map_reverse code=MAP_UNREACHABLE");
+        throw new MapServiceBusyError();
       }
 
       if (!response.ok) {
-        return { name: null as string | null, label: null as string | null, approximate: true };
+        console.warn(`[places] action blocked action=map_reverse code=MAP_STATUS_${response.status}`);
+        throw new MapServiceBusyError();
       }
 
-      const payload = (await response.json()) as NominatimReverse;
+      const payload = (await response.json().catch(() => null)) as NominatimReverse | null;
+      if (!payload || typeof payload !== "object") {
+        console.warn("[places] action blocked action=map_reverse code=MAP_BAD_REPLY");
+        throw new MapServiceBusyError();
+      }
       const name = localityNameFromReverse(payload);
       const parent = findNearestDistrict(lat, lon);
       const districtName = parent.name;

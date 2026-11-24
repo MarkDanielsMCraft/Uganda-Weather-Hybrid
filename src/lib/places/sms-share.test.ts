@@ -88,6 +88,16 @@ describe("sms-share", () => {
     );
   });
 
+  it("leaves out the AI unavailable notice when sharing a fallback answer", () => {
+    const reply = [
+      "The AI advisor could not answer just now, so here is a summary of the forecast.",
+      "Rain likely for the next few hours.",
+    ].join("\n\n");
+    expect(buildPlainTextAdvisorSms("Gulu", reply)).toBe(
+      "Uganda Weather (Gulu): Rain likely for the next few hours.",
+    );
+  });
+
   it("encodes sms: links that work on Android and iPhone, and WhatsApp links", () => {
     const msg = "Uganda Weather Kampala: 26C, Rain 20%.";
     expect(buildSmsHref(msg)).toBe(`sms:?&body=${encodeURIComponent(msg)}`);

@@ -1,5 +1,5 @@
 import type { SoilMoistureLevel } from "@/lib/agriculture/advisory";
-import { getDictionary } from "@/lib/i18n/useTranslation";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import type { WeatherBundle } from "@/types/weather";
 

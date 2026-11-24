@@ -54,7 +54,9 @@ export async function GET(request: Request) {
     const meta = createMeta(stale);
 
     return jsonResponse(data, meta, mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers));
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=alerts:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Alerts temporarily unavailable", 503);
   }
 }

@@ -8,6 +8,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Place names looked up from the map now also refuse number words, contact words (phone, hotline, M-Pesa), and "evil/com" style addresses, while real names such as SOS, Zoo, Ring Road, Solo, and Bolo are accepted. A slow name lookup can no longer rename a different place opened just after it, and the server import test now follows re-exports.
+- A place name typed into someone else's link is never shown. The place opens as "Shared place" near its district and its name is looked up on our own server from the point on the map. Places a person chose in the app keep their names. The AI is told that the place name is a name, never an instruction. Short scam words are matched as whole words, and words made of digit lookalike letters (such as "OOO") are refused.
+- Place names and labels from links and saved settings now go through an allow list: Latin letters (including ŋ), spaces, apostrophes, hyphens, commas, full stops, and brackets, with at most two digits. Hidden characters are removed first, joined up and spaced out scam words in English and Luganda are caught, and web address shapes are refused. This closes the hidden character, other alphabet, and lookalike digit tricks found in the third attack pass.
+- Farming advice for a shared place is built for each visitor from their own place, so it can no longer carry the name another visitor sent. Place labels are no longer sent to the AI advisor.
+- Alert routes with encoded characters are refused, broken map service replies count as busy, and identical searches during a busy spell share one unsaved list.
+- A shared link can no longer plant scam text in someone's saved place, their SMS shares, or the AI advisor. Place names from links and from saved settings are folded to plain characters and checked for links, web addresses, phone numbers, calls to act, and length, and anything that fails shows as "Shared place". Saved places are checked again when the app loads.
+- Made up place names can no longer skip the weather cache to spend paid weather calls. Weather for a place is saved by its point (rounded to about 1 km) and the requested name is added back afterwards. The memory cache now drops the least used entries first.
+- Map service refusals, errors, and timeouts are no longer saved as rough answers, and village lists with rough points made while the map service was busy are not saved.
+- The push dispatch route checks its secret before reading the request, and alert routes with `.` or `..` parts open the alerts page.
+- A storm alert can only open pages inside the app. Routes such as `//other.site` now open the alerts page instead.
+- The Luganda feedback form takes at most 200 reports a day across the whole app, and server memory keeps only the newest 500, so a flood cannot fill the inbox or the server.
+- The HTTPS only header now also covers subdomains.
+- Nobody can make a real looking Uganda Weather link preview image with their own words, such as a fake evacuation order. The `/api/og` route that drew any title and subtitle from the address is gone.
+- Storm alert sign ups can no longer be flooded with made up tokens. One address can sign up 10 times an hour, tokens must look like real phone tokens, the store stops taking new tokens at 100,000, alerts go out in groups of 50, and phones that Android or Apple report as gone are removed.
+- The public health page now only says the app is up, its version, and the number of districts. It no longer lists which services are set up, whether Redis is on, or how many phones signed up for alerts.
+- Village search can no longer get the app blocked by the free map service. All map lookups wait in one queue that lets one through about every second, a full queue answers at once with the district's location (and that rough answer is not saved), each village takes at most two lookups, and the place search routes allow 60 requests a minute from one address.
+- Nobody can plant a fake place name, wrong location, or scam phone number in the saved forecast that other people see. The saved copy for a place is now tied to every detail in the request, place names and labels with phone numbers, links, emails, or markup are refused, and place text is cleaned again before it reaches the AI advisor. The server keeps at most 5,000 saved copies in memory.
+- Rate limits can no longer be dodged by changing the district name in the address: all district detail pages share one count, only the first four path parts form the key, at most 20,000 keys are kept, and the memory sweep runs at most every 10 seconds.
+- Paid voice calls have a monthly ceiling per route (`VOICE_MONTHLY_BUDGET`, 20,000 by default; cached clips do not count). A script that fakes browser headers can no longer run up an unlimited voice bill; once the ceiling is reached the app falls back to the browser voice.
+- The same site check trusts the real Host header before X-Forwarded-Host, which a client can forge.
 - Paid voice routes and data writing routes (`/api/v1/voice/speak`, `/voice/translate`, `/voice/transcribe`, `/feedback/luganda`, `/observability/advisor-error`, `/push/register`) refuse requests that the browser marks as coming from another website (`rejectCrossSiteRequest` in `src/lib/api/route-utils.ts`), so other sites cannot spend this app's voice and AI quota.
 - The speak route only sends English to the Luganda voice service when `VOICE_ENGLISH_CLOUD_ENABLED=true`, closing a path that let anyone use that paid key for English.
 - Cron and push dispatch secrets are compared in constant time (`src/lib/api/bearer-secret.ts`).
@@ -18,7 +38,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- Offline answers on every phone: when there is no internet and no on-device model, or Luganda is asked offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
+- When the cloud model fails or returns nothing while online, the Weather Advisor answers with the same forecast based summary instead of an error, with a short note that the AI could not answer just then (`src/lib/ai/hybrid-advisor.ts`, `src/lib/ai/offline-briefing.ts`). Failures are still logged and reported.
+- Browser tests for the offline saved forecast answer (`e2e/advisor-offline.spec.ts`) and for full words on `/lite` at 240x320 in English and Luganda (`e2e/lite-small-screen.spec.ts`).
+- Every phone now gets an offline answer. When there is no internet and no on device model, or someone asks in Luganda while offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
 - `WEATHER_PRIMARY_PROVIDER` setting (`weatherapi` by default, or `open-meteo`) to choose which forecast provider is asked first; the other becomes the backup, then Pirate Weather (`src/lib/weather/provider.ts`).
 - `API_RATE_LIMIT_PER_MINUTE` setting for the per route, per address request limit.
 - The floating advisor button steps aside while people scroll down to read and returns when they scroll up (`src/hooks/useHideOnScrollDown.ts`).
@@ -90,7 +112,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- Natural voice order for English: the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
+- Every district page now has its own search title and description, built from that district's facts (city or district, region, lake, and rain seasons), within the lengths search results show. Luganda pages name the region in Luganda, and "okulabula" replaces "obulabula" for warnings.
+- The sitemap now lists only page addresses, including the `/lite` page. It no longer stamps every page with the build time or sets priority and change frequency, which Google ignores or distrusts.
+- Every page now shares one link preview picture (`public/og-image.jpg`, 1200 by 630), made from the Android splash screen, a map of Uganda in green with a sun, cloud, and rain icon.
+- The README, CONTRIBUTING, and SECURITY files are rewritten in plain everyday English, with simple diagram labels and up to date test counts.
+- English answers now use the most natural voice first. The order is the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
 - Spoken audio is fetched only when someone taps or focuses Listen, never on page load, so no quota or mobile data is spent unless asked.
 - Rate limits now count per route and per address with a default of 240 requests a minute, so many people sharing one mobile network address are not blocked together; expired entries are cleared from memory.
 - Phones with 2 GB of memory get the still weather scene instead of the animation, saving battery on entry level Android phones.
@@ -140,11 +166,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Farming advice works again on the live site. It had answered 503 for everyone because server code read its words from a browser only file. The words now live in a plain shared file, storm alerts in Luganda use it too, a test stops any server file from importing a browser only file again, and weather routes now log real failures instead of hiding them.
+- Real villages with a slash in their name (such as Mbuule/masiko) or with letters like "bank" or "momo" inside a word (Tebankiza, Bumomolo) are no longer shown as "Shared place".
+- The Luganda feedback form no longer says thank you when a report could not be emailed or saved. It shows its "could not send" message instead. One address can send 5 reports a day.
+- The privacy page now says that the Luganda feedback form can take an optional email address, how reports are sent and kept, and that the Android and iOS apps send a phone alert token and the chosen district when storm alerts are allowed. The terms no longer say alerts are switched off. Both pages are updated in English and Luganda.
+- Broken numbers from a weather provider (missing, NaN, negative, or impossible values) no longer show up as "NaN" or "1000000000%" in the offline summary; the summary says plainly when no rain chance is known.
+- An SMS made from a reply that holds only in app notes is no longer empty.
+- Offline answers no longer depend on the Firebase client being configured; before, a missing client configuration showed "not ready" offline even though the saved forecast summary needs no Firebase.
 - SMS messages use only basic SMS characters (`24C`, Luganda `ŋ` written as `ng'`), so one forecast fits one paid SMS; advisor replies are limited to two SMS parts ending on a full sentence, without in app notes. The SMS link format now also fills in the message on iPhone.
-- Small screens: the `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
+- Small screens work better. The `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
 - The header place pill now reads its place name to screen readers.
 - Removed the footer emoji and third party coffee link; Google Analytics no longer falls back to a hard coded ID.
-- Luganda spelling: "Weereza" on the `/lite` sharing card.
+- The Luganda word "Weereza" on the `/lite` sharing card is now spelled correctly.
 - Mobile Voice Reader playback reliability on iOS and Android browsers (`src/lib/ai/advisor-voice.ts`, `src/components/settings/WeatherListenButton.tsx`, `src/components/settings/LiteListenButton.tsx`): primed the shared inline audio element unmuted inside the user tap gesture, removed src teardown between chunks, retained and chunked mobile browser speech utterances without idle cancel races, and prevented background header instances from cancelling active playback on capability hydration.
 - Home screen widgets on iOS and Android no longer show made up weather when a reading is missing. Stand in values such as wind "6 km/h", humidity "65%", UV "3 Mod", "AQI Good", sunrise "6:42 AM", sunset "6:51 PM", a fixed lake wave height, a fixed "12h 09m" daylight length, and "Bimodal Rainy Season" are replaced with `--` or "not available". Missing temperatures no longer show as "0°".
 - Android widgets other than Forecast kept the layout's sample values ("Kampala", "22°", "Tue 19° 28°") when no data was saved or the data could not be read. Every widget now sets every field on every update, and forecast rows with no data are hidden.
@@ -243,8 +276,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Hourly and 10 day forecasts, with a dense, balanced tile layout on every screen size.
 - Severe weather alerts sourced from Uganda's official CAP feed.
 - Air quality index and pollutant breakdown (PM2.5, PM10, ozone, and more).
-- Agriculture advisory: season outlook, soil moisture, crop guidance, and a weekly rain chance chart.
-- Fishing safety conditions for four lakes: Victoria, Kyoga, Albert, and Edward.
+- Farming advice with the season outlook, soil moisture, crop tips, and a weekly rain chance chart.
+- Fishing safety conditions for Lake Victoria, Lake Kyoga, Lake Albert, and Lake Edward.
 - National park weather for Uganda's 10 gazetted parks.
 - Mountain weather for 5 major summit points, with an accuracy note about high altitude readings.
 - Airport weather (METAR) for 6 reporting Ugandan airports, sourced from official aviation weather reports.
@@ -265,7 +298,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [0.1.0] - 2026-07-07
 
-- Initial project scaffold: Next.js App Router, TypeScript, Tailwind, weather provider integration, and the core district weather screen.
+- The first version of the project, built with Next.js, TypeScript, and Tailwind, with forecasts from a weather provider and the main district weather screen.
 
 [unreleased]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.0.0...v1.1.0

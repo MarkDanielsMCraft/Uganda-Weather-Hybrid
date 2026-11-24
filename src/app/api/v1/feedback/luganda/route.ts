@@ -10,6 +10,8 @@ import { lugandaFeedbackSchema } from "@/lib/validation/schemas";
 
 const FEEDBACK_RATE_LIMIT = 10;
 const FEEDBACK_WINDOW_MS = 60_000;
+const FEEDBACK_DAILY_LIMIT = 200;
+const FEEDBACK_DAILY_LIMIT_PER_ADDRESS = 5;
 
 export async function POST(request: Request) {
   const crossSite = rejectCrossSiteRequest(request, "feedback");
@@ -58,7 +60,32 @@ export async function POST(request: Request) {
     return errorResponse("FORBIDDEN", "Security verification failed", 403);
   }
 
+  // Each report becomes an email. If the human check is not set up, or a
+  // script gets past it, this caps how many reach the inbox in one day.
+  const perAddress = checkRateLimit(`feedback:luganda:day:${ip}`, FEEDBACK_DAILY_LIMIT_PER_ADDRESS, 24 * 60 * 60 * 1000);
+  if (!perAddress.allowed) {
+    logBlockedFeedbackAction("submit", "DAILY_LIMIT_ADDRESS");
+    return errorResponse("RATE_LIMITED", "Too many feedback submissions today", 429, {
+      resetAt: perAddress.resetAt,
+    });
+  }
+
+  const daily = checkRateLimit("feedback:luganda:all", FEEDBACK_DAILY_LIMIT, 24 * 60 * 60 * 1000);
+  if (!daily.allowed) {
+    logBlockedFeedbackAction("submit", "DAILY_LIMIT");
+    return errorResponse("RATE_LIMITED", "Too many feedback submissions today", 429, {
+      resetAt: daily.resetAt,
+    });
+  }
+
   const result = await submitLugandaFeedback(parsed.data);
+
+  // Never say thank you for a report nobody will read. If it was neither
+  // emailed nor saved, the form shows its "could not send" message instead.
+  if (!result.emailed && !result.persisted) {
+    logBlockedFeedbackAction("submit", "NO_DELIVERY", result.reportId);
+    return errorResponse("SERVICE_UNAVAILABLE", "Feedback cannot be delivered right now", 503);
+  }
 
   return jsonResponse(
     {

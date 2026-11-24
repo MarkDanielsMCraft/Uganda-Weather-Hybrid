@@ -338,7 +338,7 @@ export default async function LiteWeatherPage({
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h1 className="truncate text-[22px] font-semibold leading-tight text-white">
+                    <h1 className="break-words text-[22px] font-semibold leading-tight text-white">
                       {district.name}
                     </h1>
                     <p className="mt-1 text-[46px] font-light leading-none tracking-tight text-white">
@@ -351,7 +351,7 @@ export default async function LiteWeatherPage({
                     isDay={bundle.isDay}
                   />
                 </div>
-                <p className="mt-2 truncate text-[16px] text-white/95">{conditionText}</p>
+                <p className="mt-2 break-words text-[16px] text-white/95">{conditionText}</p>
                 <p className="mt-1 text-[13px] text-white/75">
                   {isLg
                     ? `Waggulu ${Math.round(bundle.daily.high)}°C, Wansi ${Math.round(bundle.daily.low)}°C`

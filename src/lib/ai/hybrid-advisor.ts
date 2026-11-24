@@ -14,6 +14,7 @@ import {
   matchInstantSocialReply,
   redactPiiForCloud,
   sanitizeUserMessage,
+  withPromptSafePlaceText,
 } from "@/lib/ai/advisor-guard";
 import {
   AdvisorRequestInputSchema,
@@ -37,7 +38,7 @@ import {
   UGANDA_WEATHER_TOOL,
   type SafetyVerdict,
 } from "@/lib/ai/advisor-tools";
-import { buildSavedForecastBriefing } from "@/lib/ai/offline-briefing";
+import { buildSavedForecastBriefing, type SavedForecastNotice } from "@/lib/ai/offline-briefing";
 import { getAdvisorRemoteConfig } from "@/lib/ai/remote-config";
 import {
   buildServerTemplateVariables,
@@ -229,20 +230,20 @@ function sanitizeBriefingText(raw: string, language: SupportedLocale = "en"): st
   return cleaned;
 }
 
-/** Offline answer built only from the saved forecast numbers. Used when no
-    on-device model can answer, so the advisor still helps people on entry
-    level phones instead of showing an error. */
+/** Answer built only from the forecast numbers. Used when no model can
+    answer (offline with no on-device model, or the cloud model failing), so
+    the advisor still helps instead of showing an error. */
 function savedForecastOutcome(
   weather: WeatherBundle,
   audience: AdvisorAudience,
   language: SupportedLocale,
-  answeringCustomQuestion: boolean,
+  notice: SavedForecastNotice,
 ): WeatherBriefingOutcome {
   const briefing = buildSavedForecastBriefing({
     weather,
     audience,
     language,
-    answeringCustomQuestion,
+    notice,
   });
   return {
     ok: true,
@@ -258,7 +259,7 @@ function savedForecastOutcome(
 }
 
 export async function generateHybridWeatherBriefing({
-  weather,
+  weather: rawWeather,
   audience,
   language,
   customQuestion,
@@ -286,6 +287,7 @@ export async function generateHybridWeatherBriefing({
   onPhaseChange?: (phase: BriefingPhase) => void;
   onChunk?: (accumulatedText: string) => void;
 }): Promise<WeatherBriefingOutcome> {
+  const weather = withPromptSafePlaceText(rawWeather);
   const isLg = language === "lg";
   const sanitizedQuestion =
     typeof customQuestion === "string" ? sanitizeUserMessage(customQuestion) : undefined;
@@ -338,6 +340,16 @@ export async function generateHybridWeatherBriefing({
   }
 
   const ai = getFirebaseAiClient();
+  if (!ai && !isOnline) {
+    // The offline summary needs no Firebase client, so a missing or broken
+    // client configuration must not take offline answers away.
+    return savedForecastOutcome(
+      weather,
+      parsed.data.audience,
+      parsed.data.language,
+      parsed.data.customQuestion ? "offline" : "none",
+    );
+  }
   if (!ai) {
     console.warn("[ai-advisor] action blocked action=generate code=NOT_CONFIGURED");
     return {
@@ -379,7 +391,7 @@ export async function generateHybridWeatherBriefing({
       weather,
       parsed.data.audience,
       parsed.data.language,
-      Boolean(parsed.data.customQuestion),
+      parsed.data.customQuestion ? "offline" : "none",
     );
   }
 
@@ -712,15 +724,8 @@ export async function generateHybridWeatherBriefing({
     const resolvedFollowUps = parsedDirectives.followUps;
 
     if (!responseText) {
-      return {
-        ok: false,
-        error: {
-          code: "failed",
-          message: isLg
-            ? "Tewali kuddibwamu kuzze. Ddamu ogezeeko."
-            : "No answer came back. Please try again.",
-        },
-      };
+      console.warn("[ai-advisor] action blocked action=generate code=EMPTY_REPLY_FALLBACK");
+      return savedForecastOutcome(weather, parsed.data.audience, generationLanguage, "ai_unavailable");
     }
 
     if (containsInternalPromptLeakage(responseText)) {
@@ -775,7 +780,7 @@ export async function generateHybridWeatherBriefing({
         weather,
         parsed.data.audience,
         parsed.data.language,
-        Boolean(parsed.data.customQuestion),
+        parsed.data.customQuestion ? "offline" : "none",
       );
     }
 
@@ -841,14 +846,8 @@ export async function generateHybridWeatherBriefing({
       }
     }
 
-    return {
-      ok: false,
-      error: {
-        code: "failed",
-        message: isLg
-          ? "Tetuyinza kuddamu kati. Ddamu ogezeeko."
-          : "We could not reply right now. Please try again.",
-      },
-    };
+    // The failure is logged and reported above. The person still gets a
+    // summary of the real forecast instead of a dead end.
+    return savedForecastOutcome(weather, parsed.data.audience, parsed.data.language, "ai_unavailable");
   }
 }

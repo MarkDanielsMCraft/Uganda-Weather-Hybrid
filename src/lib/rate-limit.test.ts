@@ -82,3 +82,14 @@ describe("rate limit memory", () => {
     expect(trackedRateLimitKeysForTests()).toBeLessThan(5_100);
   });
 });
+
+describe("rate limit memory ceiling", () => {
+  it("never tracks more than 20000 keys even under a flood of new addresses", async () => {
+    const { checkRateLimit, resetRateLimitsForTests, trackedRateLimitKeysForTests } = await import("./rate-limit");
+    resetRateLimitsForTests();
+    for (let i = 0; i < 25_000; i += 1) {
+      checkRateLimit(`flood:${i}`, 5, 60_000);
+    }
+    expect(trackedRateLimitKeysForTests()).toBeLessThanOrEqual(20_000);
+  });
+});

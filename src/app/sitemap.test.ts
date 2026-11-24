@@ -17,14 +17,23 @@ describe("sitemap.ts", () => {
     const kampala = entries.find(
       (e) => e.url.endsWith("/district/kampala") && !e.url.includes("/lg/"),
     );
-    expect(kampala?.priority).toBe(0.95);
-    expect(kampala?.changeFrequency).toBe("hourly");
+    expect(kampala).toBeDefined();
 
     expect(urls.some((u) => u.endsWith("/lg"))).toBe(true);
     expect(urls.some((u) => u.endsWith("/lg/forecast"))).toBe(true);
     expect(urls.some((u) => u.endsWith("/lg/lake-victoria"))).toBe(true);
-    const kampalaLg = entries.find((e) => e.url.endsWith("/lg/district/kampala"));
-    expect(kampalaLg?.priority).toBe(0.9);
-    expect(kampalaLg?.changeFrequency).toBe("hourly");
+    expect(urls.some((u) => u.endsWith("/lg/district/kampala"))).toBe(true);
+    expect(urls.some((u) => u.endsWith("/lite"))).toBe(true);
+  });
+
+  it("lists each address once and claims no dates or priorities it cannot back up", () => {
+    const entries = sitemap();
+    const urls = entries.map((e) => e.url);
+    expect(new Set(urls).size).toBe(urls.length);
+    for (const entry of entries) {
+      expect(entry.lastModified).toBeUndefined();
+      expect(entry.priority).toBeUndefined();
+      expect(entry.changeFrequency).toBeUndefined();
+    }
   });
 });

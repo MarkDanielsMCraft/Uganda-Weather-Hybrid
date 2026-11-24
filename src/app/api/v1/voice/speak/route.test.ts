@@ -10,6 +10,11 @@ vi.mock("@/lib/voice/sunbird", () => ({
   synthesizeSunbirdSpeech: (...args: unknown[]) => synthesizeSunbirdSpeech(...args),
 }));
 
+const quota = { allowed: true };
+vi.mock("@/lib/quota/monthly-budget", () => ({
+  reserveQuota: async () => quota.allowed,
+}));
+
 vi.mock("@/lib/voice/gemini-tts", () => ({
   isGeminiTtsConfigured: () => flags.gemini,
   synthesizeEnglishNeuralSpeech: (...args: unknown[]) => synthesizeEnglishNeuralSpeech(...args),
@@ -35,6 +40,7 @@ describe("POST /api/v1/voice/speak", () => {
     flags.sunbird = true;
     flags.englishCloud = false;
     flags.gemini = false;
+    quota.allowed = true;
     synthesizeSunbirdSpeech.mockReset().mockResolvedValue(AUDIO);
     synthesizeEnglishNeuralSpeech.mockReset().mockResolvedValue(AUDIO);
   });
@@ -97,6 +103,17 @@ describe("POST /api/v1/voice/speak", () => {
     );
 
     expect(response.status).toBe(403);
+    expect(synthesizeSunbirdSpeech).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("stops paid voice calls once the monthly budget is used up", async () => {
+    quota.allowed = false;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const response = await POST(speakRequest("Budget test sentence.", "lg"));
+
+    expect(response.status).toBe(503);
     expect(synthesizeSunbirdSpeech).not.toHaveBeenCalled();
     warn.mockRestore();
   });

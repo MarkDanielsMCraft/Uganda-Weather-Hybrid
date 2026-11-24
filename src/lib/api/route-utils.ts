@@ -18,17 +18,25 @@ function readApiRateLimit(): number {
     : DEFAULT_API_RATE_LIMIT_PER_MINUTE;
 }
 
+/** One counting bucket per route, never per address typed. District detail
+    pages share one bucket, so changing the name in the address cannot reset
+    the count, and the number of keys stays small. Only the first four path
+    parts are used for the same reason. */
 function routeKey(request: Request): string {
+  let pathname: string;
   try {
-    return new URL(request.url).pathname.replace(/[^\w/.-]/g, "").slice(0, 80);
+    pathname = new URL(request.url).pathname;
   } catch {
     return "unknown";
   }
+  const parts = pathname.split("/").filter(Boolean).slice(0, 4);
+  if (parts[2] === "districts" && parts[3] && parts[3] !== "search") parts[3] = ":slug";
+  return `/${parts.join("/")}`.replace(/[^\w/.:-]/g, "").slice(0, 80);
 }
 
-export function enforceRateLimit(request: Request) {
+export function enforceRateLimit(request: Request, limitPerMinute = readApiRateLimit()) {
   const ip = clientIpFromRequest(request);
-  const result = checkRateLimit(`api:${routeKey(request)}:${ip}`, readApiRateLimit());
+  const result = checkRateLimit(`api:${routeKey(request)}:${ip}`, limitPerMinute);
 
   if (!result.allowed) {
     return errorResponse("RATE_LIMITED", "Too many requests", 429, {
@@ -74,8 +82,10 @@ export function rejectCrossSiteRequest(request: Request, component: string): Res
 
   if (!fetchSite) {
     const originHost = hostOf(request.headers.get("origin"));
+    // The real Host header comes first. X-Forwarded-Host is only a fallback,
+    // because a client can send its own copy of it.
     const requestHost = (
-      request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? ""
+      request.headers.get("host") ?? request.headers.get("x-forwarded-host") ?? ""
     )
       .split(",")[0]
       ?.trim()

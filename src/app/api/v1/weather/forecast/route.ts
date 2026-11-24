@@ -2,7 +2,7 @@ import { getCached, createMeta, jsonResponse, errorResponse } from "@/lib/cache"
 import { enforceRateLimit, mergeRateLimitHeaders } from "@/lib/api/route-utils";
 import { forecastQuerySchema } from "@/lib/validation/schemas";
 import { getWeatherBundleForDistrict } from "@/lib/weather/provider";
-import { resolveWeatherTarget } from "@/lib/weather/resolve-target";
+import { resolveWeatherTarget, withRequestedPlace } from "@/lib/weather/resolve-target";
 
 const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_FORECAST ?? 3600);
 
@@ -32,9 +32,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: bundle, stale } = await getCached(target.cacheKey, CACHE_TTL_SECONDS, () =>
+    const { data: cachedBundle, stale } = await getCached(target.cacheKey, CACHE_TTL_SECONDS, () =>
       getWeatherBundleForDistrict(target.district),
     );
+    const bundle = withRequestedPlace(cachedBundle, target);
 
     const days = parsed.data.days ?? 10;
     const meta = createMeta(stale);
@@ -55,7 +56,9 @@ export async function GET(request: Request) {
       meta,
       mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers),
     );
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=weather/forecast:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Forecast temporarily unavailable", 503);
   }
 }

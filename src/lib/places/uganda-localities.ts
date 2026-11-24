@@ -3,6 +3,7 @@ import { findNearestDistrict, getDistrictBySlug } from "@/lib/districts";
 import type { Region } from "@/types/weather";
 import { districtSlugFromOfficialName } from "@/lib/places/district-match";
 import { geocodeOfficialLocality } from "@/lib/places/geocode";
+import { MapServiceBusyError } from "@/lib/places/nominatim-pacer";
 import { buildOfficialPlaceKey, type PlaceSearchHit } from "@/lib/places/types";
 import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
 
@@ -188,6 +189,7 @@ async function localityToPlaceHit(
     region,
     placeType: type,
     approximate: geocoded.approximate,
+    ...("busy" in geocoded && geocoded.busy ? { madeWhileMapBusy: true } : {}),
     matchScore: localityScore(name, query) + (type === "village" ? 2 : 0),
   };
 }
@@ -244,15 +246,40 @@ async function searchOfficialLocalitiesUncached(query: string, limit = 8) {
     .slice(0, limit);
 }
 
+const UNSAVED_LIST_SECONDS = 10;
+const unsavedLists = new Map<string, PlaceSearchHit[]>();
+
+function rememberUnsavedList(key: string, hits: PlaceSearchHit[]) {
+  unsavedLists.set(key, hits);
+  setTimeout(() => unsavedLists.delete(key), UNSAVED_LIST_SECONDS * 1000).unref?.();
+}
+
 export async function searchOfficialLocalities(query: string, limit = 8) {
   const q = query.trim();
   if (q.length < 2) return [];
 
-  const { data } = await getCached(
-    `ug:localities:v4:${q.toLowerCase()}:${limit}`,
-    3600,
-    () => searchOfficialLocalitiesUncached(q, limit),
-  );
-
-  return data;
+  // A list with a rough point made while the map service was busy is used
+  // once and not saved, so the next search tries again for the real point.
+  const listKey = `ug:localities:v4:${q.toLowerCase()}:${limit}`;
+  try {
+    const { data } = await getCached(
+      listKey,
+      3600,
+      async () => {
+        const hits = await searchOfficialLocalitiesUncached(q, limit);
+        if (hits.some((hit) => "madeWhileMapBusy" in hit)) {
+          rememberUnsavedList(listKey, hits);
+          throw new MapServiceBusyError();
+        }
+        return hits;
+      },
+    );
+    return data;
+  } catch (error) {
+    // Searches for the same words at the same moment share one lookup, so
+    // they all read the unsaved list from here instead of failing.
+    const unsaved = unsavedLists.get(listKey);
+    if (unsaved && error instanceof MapServiceBusyError) return unsaved;
+    throw error;
+  }
 }

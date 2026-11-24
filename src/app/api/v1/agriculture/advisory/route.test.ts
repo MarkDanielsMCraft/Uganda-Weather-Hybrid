@@ -57,3 +57,19 @@ describe("GET /api/v1/agriculture/advisory", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("farming advice for shared places", () => {
+  it("shows each visitor their own place name, never the name the first visitor sent", async () => {
+    getWeatherBundleForDistrictMock.mockImplementation(async (district: { name: string }) =>
+      makeWeatherBundle({ district: makeDistrict({ slug: "place-x", name: district.name }) }),
+    );
+    const ask = (name: string) =>
+      GET(new Request(`http://localhost/api/v1/agriculture/advisory?place=village-77&name=${name}&lat=0.4711&lon=32.5511`));
+
+    await ask("Planted%20Name");
+    const second = await (await ask("Kireka")).json();
+    const text = JSON.stringify(second.data);
+    expect(second.data.district.name).toBe("Kireka");
+    expect(text).not.toContain("Planted Name");
+  });
+});

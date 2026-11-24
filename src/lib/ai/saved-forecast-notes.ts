@@ -4,16 +4,21 @@
 export const OFFLINE_NOTICE_EN =
   "This phone cannot run the AI advisor without internet, so here is a summary of your saved forecast.";
 export const OFFLINE_NOTICE_LG = "Toli ku mutimbagano kati.";
+export const AI_UNAVAILABLE_NOTICE_EN =
+  "The AI advisor could not answer just now, so here is a summary of the forecast.";
+export const AI_UNAVAILABLE_NOTICE_LG = "Omuwi w'amagezi tali mwetegefu kati.";
 const SAVED_NOTE_ENDINGS = ["without AI.", "tebukozesezza AI."];
 
-/** True for the lines that only make sense inside the app (the offline notice
-    and the saved forecast footer), so sharing by SMS can leave them out and
+/** True for the lines that only make sense inside the app (the offline and AI
+    unavailable notices and the saved forecast footer), so sharing by SMS can leave them out and
     keep the message short. */
 export function isSavedForecastAppNote(paragraph: string): boolean {
   const trimmed = paragraph.trim();
   return (
     trimmed === OFFLINE_NOTICE_EN ||
     trimmed === OFFLINE_NOTICE_LG ||
+    trimmed === AI_UNAVAILABLE_NOTICE_EN ||
+    trimmed === AI_UNAVAILABLE_NOTICE_LG ||
     SAVED_NOTE_ENDINGS.some((ending) => trimmed.endsWith(ending))
   );
 }

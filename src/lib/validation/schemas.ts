@@ -1,4 +1,17 @@
 import { z } from "zod";
+import {
+  SHARED_PLACE_FALLBACK_NAME,
+  safePlaceLabel,
+  safePlaceName,
+} from "@/lib/places/place-text";
+
+export {
+  isSafePlaceText,
+  normalizePlaceText,
+  safePlaceLabel,
+  safePlaceName,
+  SHARED_PLACE_FALLBACK_NAME,
+} from "@/lib/places/place-text";
 
 export const districtSlugSchema = z
   .string()
@@ -16,12 +29,29 @@ const coordNumber = (min: number, max: number) =>
     z.coerce.number().finite().min(min).max(max),
   );
 
+/** A name or label that fails the checks is replaced, not refused, so a real
+    village whose name happens to trip a rule still gets its forecast, and
+    planted text is never shown, saved, or shared. */
+const placeNameSchema = z
+  .string()
+  .max(240)
+  .transform((value) => safePlaceName(value) ?? SHARED_PLACE_FALLBACK_NAME);
+
+const placeLabelSchema = z
+  .string()
+  .max(320)
+  .transform((value) => safePlaceLabel(value));
+
+/** Place keys are made by the app (for example village-101 or
+    gps-0_313_32_581), so anything else is refused. */
+const placeKeySchema = z.string().regex(/^[A-Za-z0-9:_-]{2,120}$/);
+
 export const placeWeatherQuerySchema = z.object({
-  place: z.string().min(2).max(120),
-  name: z.string().min(2).max(120),
+  place: placeKeySchema,
+  name: placeNameSchema,
   lat: coordNumber(-4, 5),
   lon: coordNumber(29, 36),
-  label: z.string().max(160).optional(),
+  label: placeLabelSchema.optional(),
   parent: districtSlugSchema.optional(),
 });
 
@@ -49,8 +79,12 @@ export const regionQuerySchema = z.object({
   region: z.enum(["central", "eastern", "northern", "western"]).optional(),
 });
 
+/** Android (FCM) tokens use letters, digits, colons, dashes, and
+    underscores. iPhone (APNs) tokens are hex. Anything else is not a token. */
+const pushTokenSchema = z.string().min(16).max(512).regex(/^[A-Za-z0-9_:.-]+$/);
+
 export const pushRegisterSchema = z.object({
-  token: z.string().min(16).max(512),
+  token: pushTokenSchema,
   platform: z.enum(["ios", "android", "web"]),
   districtSlug: z
     .string()
@@ -68,7 +102,7 @@ export const cronPrefetchQuerySchema = z.object({
 });
 
 export const pushUnregisterSchema = z.object({
-  token: z.string().min(16).max(512),
+  token: pushTokenSchema,
 });
 
 export const pushDispatchSchema = z.object({
