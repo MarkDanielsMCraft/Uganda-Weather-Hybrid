@@ -1,3 +1,4 @@
+import { bearerTokenMatches } from "@/lib/api/bearer-secret";
 import { getDistrictBySlug } from "@/lib/districts";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
 import { dispatchStormAlert } from "@/lib/push/dispatch";
@@ -11,7 +12,7 @@ function authorizeDispatch(request: Request, dryRun = false) {
 
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return false;
-  return header.slice("Bearer ".length) === secret;
+  return bearerTokenMatches(header.slice("Bearer ".length), secret);
 }
 
 export async function POST(request: Request) {

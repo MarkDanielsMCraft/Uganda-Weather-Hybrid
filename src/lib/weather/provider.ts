@@ -391,8 +391,8 @@ async function topUpDailyForecast(bundle: WeatherBundle, district: District) {
  * Whether a locally generated bundle may stand in for a real one.
  *
  * Never in production. A fallback exists to reach a different provider, not
- * to invent numbers: WeatherAPI, then Open-Meteo, then Pirate Weather are all
- * tried first, and if every one of them fails then the honest answer is that
+ * to invent numbers: WeatherAPI and Open-Meteo (in the configured order), then
+ * Pirate Weather are all tried first, and if every one of them fails then the honest answer is that
  * the weather is unavailable. The routes turn the thrown error into a 503 and
  * the UI into its existing retry state, which is a truthful empty rather than
  * a plausible looking figure nobody can tell apart from a measurement.
@@ -413,23 +413,41 @@ function syntheticWeatherAllowed() {
  * means more of them hitting the provider's rate limit and degrading to the
  * demo bundle, which is the opposite of what the top up is for.
  */
+export type PrimaryWeatherProvider = "weatherapi" | "open-meteo";
+
+/** Which provider is asked first. Defaults to WeatherAPI. Setting
+    WEATHER_PRIMARY_PROVIDER=open-meteo puts the keyless Open-Meteo first and
+    keeps WeatherAPI as the backup, so a deployment can choose its order
+    without a code change. Read at call time so tests can switch it. */
+export function readPrimaryWeatherProvider(): PrimaryWeatherProvider {
+  return process.env.WEATHER_PRIMARY_PROVIDER?.trim().toLowerCase() === "open-meteo"
+    ? "open-meteo"
+    : "weatherapi";
+}
+
+async function tryWeatherApiWithTopUp(district: District, fullForecast: boolean) {
+  const bundle = await tryWeatherApi(district);
+  if (!bundle) return null;
+  return fullForecast ? topUpDailyForecast(bundle, district) : bundle;
+}
+
 export async function getWeatherBundleForDistrict(
   district: District,
   { fullForecast = true }: { fullForecast?: boolean } = {},
 ) {
   const hadLiveProvider = Boolean(process.env.WEATHERAPI_KEY);
+  const openMeteoFirst = readPrimaryWeatherProvider() === "open-meteo";
 
-  const primary = await tryWeatherApi(district);
-  if (primary) {
-    const topped = fullForecast ? await topUpDailyForecast(primary, district) : primary;
-    validateWeatherBundle(topped, district.slug);
-    return topped;
-  }
+  const attempts = openMeteoFirst
+    ? [() => tryOpenMeteo(district, false), () => tryWeatherApiWithTopUp(district, fullForecast)]
+    : [() => tryWeatherApiWithTopUp(district, fullForecast), () => tryOpenMeteo(district, hadLiveProvider)];
 
-  const fallback = await tryOpenMeteo(district, hadLiveProvider);
-  if (fallback) {
-    validateWeatherBundle(fallback, district.slug);
-    return fallback;
+  for (const attempt of attempts) {
+    const bundle = await attempt();
+    if (bundle) {
+      validateWeatherBundle(bundle, district.slug);
+      return bundle;
+    }
   }
 
   const tertiary = await tryPirateWeather(district);

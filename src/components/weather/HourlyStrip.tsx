@@ -277,14 +277,16 @@ export function HourlyStrip({
             <div
               key={`${hour.label}-${index}`}
               className={`flex shrink-0 flex-col items-center gap-1.5 sm:gap-2 ${
-                isLuganda ? "w-[58px] sm:w-[66px]" : "w-[48px] sm:w-[52px]"
+                isLuganda ? "w-[58px] sm:w-[66px]" : "w-[58px] sm:w-[64px]"
               }`}
             >
+              {/* Sunrise and sunset carry minutes ("6:39 pm"), so this column is
+                  wider than an hour column instead of cutting the time short. */}
               <span
                 className={`whitespace-nowrap text-white/80 ${
                   isLuganda
                     ? "max-w-[64px] text-[12px] sm:text-[13.5px]"
-                    : "max-w-[52px] truncate text-[13px] sm:text-[15px]"
+                    : "text-[12.5px] sm:text-[14px]"
                 }`}
               >
                 {labelText}

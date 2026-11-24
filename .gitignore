@@ -41,6 +41,8 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 .env*
+# The template has placeholders only and is needed by the setup steps.
+!.env.example
 *.mobileprovision
 *.p12
 *.p8
@@ -59,3 +61,7 @@ ios/App/App/GoogleService-Info.plist
 .agents/
 .claude/
 skills-lock.json
+
+# Local browser test and performance trace output (never commit)
+/.playwright-mcp/
+/.perf-tmp/

@@ -252,7 +252,7 @@ export default async function LiteWeatherPage({
   return (
     <div className="main-scroll h-dvh max-h-dvh w-full overflow-y-auto overscroll-contain bg-[radial-gradient(ellipse_at_top,_rgba(13,144,59,0.18),_transparent_55%),linear-gradient(180deg,_#0f1422_0%,_#12101a_100%)] text-[#f7f4ef]">
       <main className="mx-auto max-w-md px-3 pt-4 pb-24">
-        <header className="mb-3.5 flex items-center justify-between gap-1.5">
+        <header className="mb-3.5 flex flex-wrap items-center justify-between gap-x-1.5 gap-y-2">
           <Link
             href={fullAppHref}
             className="flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-full pr-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
@@ -274,7 +274,7 @@ export default async function LiteWeatherPage({
             </div>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-1 text-[12px]">
+          <div className="ml-auto flex shrink-0 items-center gap-1 text-[12px]">
             <LiteLanguageDropdown
               districtSlug={district.slug}
               lang={langParam}
@@ -365,28 +365,28 @@ export default async function LiteWeatherPage({
               )}
             </GlassPanel>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <GlassPanel className="flex min-h-[72px] flex-col justify-center p-3">
-                <p className="truncate text-[11px] font-medium text-white/70">
+            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-3 min-[360px]:text-center">
+              <GlassPanel className="flex min-h-[52px] items-center justify-between gap-2 p-3 min-[360px]:min-h-[72px] min-[360px]:flex-col min-[360px]:items-stretch min-[360px]:justify-center min-[360px]:gap-0">
+                <p className="text-[12px] font-medium leading-snug text-white/70 min-[360px]:text-[11px]">
                   {isLg ? "Enkuba" : "Rain"}
                 </p>
-                <p className="mt-0.5 text-[17px] font-semibold text-white">
+                <p className="whitespace-nowrap text-[17px] font-semibold text-white min-[360px]:mt-0.5">
                   {currentRainChance}%
                 </p>
               </GlassPanel>
-              <GlassPanel className="flex min-h-[72px] flex-col justify-center p-3">
-                <p className="truncate text-[11px] font-medium text-white/70">
+              <GlassPanel className="flex min-h-[52px] items-center justify-between gap-2 p-3 min-[360px]:min-h-[72px] min-[360px]:flex-col min-[360px]:items-stretch min-[360px]:justify-center min-[360px]:gap-0">
+                <p className="text-[12px] font-medium leading-snug text-white/70 min-[360px]:text-[11px]">
                   {isLg ? "Empewo" : "Wind"}
                 </p>
-                <p className="mt-0.5 text-[17px] font-semibold text-white">
+                <p className="whitespace-nowrap text-[17px] font-semibold text-white min-[360px]:mt-0.5">
                   {Math.round(bundle.wind.speedKph)} km/h
                 </p>
               </GlassPanel>
-              <GlassPanel className="flex min-h-[72px] flex-col justify-center p-3">
-                <p className="truncate text-[11px] font-medium text-white/70">
+              <GlassPanel className="flex min-h-[52px] items-center justify-between gap-2 p-3 min-[360px]:min-h-[72px] min-[360px]:flex-col min-[360px]:items-stretch min-[360px]:justify-center min-[360px]:gap-0">
+                <p className="text-[12px] font-medium leading-snug text-white/70 min-[360px]:text-[11px]">
                   {isLg ? "Obunnyogovu" : "Humidity"}
                 </p>
-                <p className="mt-0.5 text-[17px] font-semibold text-white">
+                <p className="whitespace-nowrap text-[17px] font-semibold text-white min-[360px]:mt-0.5">
                   {Math.round(bundle.humidity)}%
                 </p>
               </GlassPanel>
@@ -426,16 +426,18 @@ export default async function LiteWeatherPage({
                     return (
                       <li
                         key={day.date ?? day.day}
-                        className="grid grid-cols-[1fr_3.5rem_5.25rem] items-center gap-2"
+                        className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5"
                       >
-                        <span className="truncate font-medium text-white">
+                        {/* Below 360px the day name gets its own line so long
+                            Luganda day names are never cut short. */}
+                        <span className="w-full font-medium text-white min-[360px]:w-auto min-[360px]:flex-1">
                           {isLg ? formatDayLg(day.day) : day.day}
                         </span>
-                        <span className="text-right tabular-nums text-white/75">
-                          {displayRainChance}%
-                        </span>
-                        <span className="text-right font-semibold tabular-nums text-white">
-                          {Math.round(day.low)}° / {Math.round(day.high)}°
+                        <span className="ml-auto flex items-center gap-3 tabular-nums">
+                          <span className="text-white/75">{displayRainChance}%</span>
+                          <span className="whitespace-nowrap font-semibold text-white">
+                            {Math.round(day.low)}° / {Math.round(day.high)}°
+                          </span>
                         </span>
                       </li>
                     );
@@ -450,7 +452,7 @@ export default async function LiteWeatherPage({
                 </h2>
                 <p className="mt-0.5 text-[12.5px] leading-snug text-white/65">
                   {isLg
-                    ? "Wereza obubaka bw'obudde bwa leero ku ssimu ya bulijjo oba WhatsApp."
+                    ? "Weereza obubaka bw'obudde bwa leero ku ssimu ya bulijjo oba WhatsApp."
                     : "Send today's forecast as plain text to family or neighbours."}
                 </p>
               </div>

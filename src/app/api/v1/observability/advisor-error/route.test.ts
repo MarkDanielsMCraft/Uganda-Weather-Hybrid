@@ -11,7 +11,7 @@ describe("POST /api/v1/observability/advisor-error", () => {
     const req = new Request("http://localhost:3000/api/v1/observability/advisor-error", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": `10.0.0.${Math.floor(Math.random() * 200) + 1}`,
       },
       body: JSON.stringify({
@@ -35,7 +35,7 @@ describe("POST /api/v1/observability/advisor-error", () => {
     const req = new Request("http://localhost:3000/api/v1/observability/advisor-error", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": `10.0.1.${Math.floor(Math.random() * 200) + 1}`,
       },
       body: JSON.stringify({

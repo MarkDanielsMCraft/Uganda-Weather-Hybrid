@@ -157,19 +157,63 @@ describe("hybrid-advisor", () => {
     );
   });
 
-  it("returns an explicit offline error instead of hanging when offline without on-device model", async () => {
+  it("answers from the saved forecast when offline without an on-device model", async () => {
     const outcome = await generateHybridWeatherBriefing({
       weather: makeWeatherBundle({ stale: true }),
       audience: "general",
       language: "en",
+      customQuestion: "Will it rain later?",
       isOnline: false,
     });
 
-    expect(outcome.ok).toBe(false);
-    if (!outcome.ok) {
-      expect(outcome.error.code).toBe("offline_no_on_device");
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.data.source).toBe("saved_forecast");
+      expect(outcome.data.usedCachedWeather).toBe(true);
+      expect(outcome.data.verdict?.level).toBe("go");
+      expect(outcome.data.text).toContain("without AI");
+      expect(outcome.data.text).toContain("cannot run the AI advisor without internet");
     }
-    expect(mockGenerateContent).not.toHaveBeenCalled();
+    expect(mockGetGenerativeModel).not.toHaveBeenCalled();
+  });
+
+  it("uses the saved forecast for Luganda offline because Gemini Nano writes English only", async () => {
+    (globalThis as Record<string, unknown>).LanguageModel = {
+      availability: vi.fn().mockResolvedValue("available"),
+    };
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle({ stale: true }),
+      audience: "farmer",
+      language: "lg",
+      isOnline: false,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.data.source).toBe("saved_forecast");
+      expect(outcome.data.text).toContain("tebukozesezza AI");
+    }
+    expect(mockGetGenerativeModel).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the saved forecast when the on-device model fails offline", async () => {
+    (globalThis as Record<string, unknown>).LanguageModel = {
+      availability: vi.fn().mockResolvedValue("available"),
+    };
+    mockGenerateContent.mockRejectedValue(new Error("on-device session failed"));
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle({ stale: true }),
+      audience: "fisher",
+      language: "en",
+      isOnline: false,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.data.source).toBe("saved_forecast");
+    }
   });
 
   it("streams chunks and emits thinking then writing phase callbacks", async () => {

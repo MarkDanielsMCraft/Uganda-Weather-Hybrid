@@ -34,8 +34,10 @@ export function prefersLightweightScene(): boolean {
   if (connection?.saveData) return true;
 
   // Reported in GiB, rounded down to a power of two, and absent on Safari.
+  // A 2 GB Android Go phone reports exactly 2, and those are among the most
+  // common phones in Uganda, so 2 counts as constrained.
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  if (typeof memory === "number" && memory < 2) return true;
+  if (typeof memory === "number" && memory <= 2) return true;
 
   // Constrained devices with 2 or fewer cores.
   const cores = navigator.hardwareConcurrency;
