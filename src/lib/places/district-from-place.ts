@@ -13,6 +13,7 @@ import { getDistrictBySlug, findNearestDistrict } from "@/lib/districts";
 import type { District, Region } from "@/types/weather";
 import type { PlaceLocation } from "./types";
 import { buildGpsPlaceKey, buildPlaceKey } from "./types";
+import { trustedPlace } from "./trusted-place";
 
 export function inferParentDistrictSlug(lat: number, lon: number, hint?: string) {
   if (hint && getDistrictBySlug(hint)) return hint;
@@ -35,18 +36,17 @@ export function createPlaceLocation(input: {
     input.parentDistrictSlug,
   );
   const parent = getDistrictBySlug(parentDistrictSlug) ?? findNearestDistrict(input.lat, input.lon);
-  const label = input.label?.trim() || parent.name;
-
-  return {
+  const place = trustedPlace({
     key: input.key?.trim() || buildPlaceKey(input.name, input.lat, input.lon),
-    name: input.name.trim(),
-    label,
+    name: input.name,
+    label: input.label ?? "",
     lat: input.lat,
     lon: input.lon,
     parentDistrictSlug: parent.slug,
     region: input.region ?? parent.region,
     approximate: input.approximate,
-  };
+  });
+  return { ...place, label: place.label || parent.name };
 }
 
 export function districtFromPlace(place: PlaceLocation): District {

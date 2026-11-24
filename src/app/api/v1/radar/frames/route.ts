@@ -38,7 +38,9 @@ export async function GET(request: Request) {
 
     const meta = createMeta(stale);
     return jsonResponse(data, meta, mergeRateLimitHeaders({}, rateLimit.headers));
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=radar/frames:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Radar frames temporarily unavailable", 503);
   }
 }

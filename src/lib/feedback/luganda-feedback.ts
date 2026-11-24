@@ -12,6 +12,8 @@ const RESEND_TIMEOUT_MS = 5_000;
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const TURNSTILE_TIMEOUT_MS = 5_000;
 const FEEDBACK_TTL_SECONDS = 90 * 24 * 60 * 60;
+/** Server memory only keeps the newest reports, so a flood cannot fill it. */
+export const MAX_MEMORY_FEEDBACK_REPORTS = 500;
 const FEEDBACK_INDEX_KEY = "uw:feedback:luganda:ids";
 
 export interface LugandaFeedbackRecord {
@@ -350,7 +352,13 @@ export async function submitLugandaFeedback(input: LugandaFeedbackInput): Promis
     ...(input.contactEmail ? { contactEmail: input.contactEmail } : {}),
   };
 
-  memoryFeedbackStore().set(reportId, entry);
+  const memory = memoryFeedbackStore();
+  while (memory.size >= MAX_MEMORY_FEEDBACK_REPORTS) {
+    const oldest = memory.keys().next().value;
+    if (oldest === undefined) break;
+    memory.delete(oldest);
+  }
+  memory.set(reportId, entry);
 
   const persistPromise = (async (): Promise<boolean> => {
     if (!getRedisClient()) return false;

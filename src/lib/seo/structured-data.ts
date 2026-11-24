@@ -27,7 +27,7 @@ export function districtStructuredData(
     ? `Embeera y'obudde e ${district.name}`
     : `${district.name} Weather`;
   const pageDescription = isLuganda
-    ? `Embeera y'obudde eya leero, essaawa ku ssaawa, n'obulabula e ${district.name}, Uganda.`
+    ? `Embeera y'obudde eya leero, essaawa ku ssaawa, n'okulabula e ${district.name}, Uganda.`
     : `Live weather, hourly forecast, and alerts for ${district.name}, Uganda.`;
 
   const regionLabel = `${district.region.charAt(0).toUpperCase()}${district.region.slice(1)} Region`;

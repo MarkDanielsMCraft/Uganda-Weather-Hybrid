@@ -9,6 +9,7 @@ import { parseDeepLink } from "@/lib/native/deep-links";
 import { isNativeApp } from "@/lib/native/platform";
 import { requestNativeAppPermissions } from "@/lib/native/startup-permissions";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { openPlaceFromLink } from "@/lib/places/shared-link-place";
 import { useOptionalDetailSheet } from "@/components/sheet/DetailSheetProvider";
 
 function buildModuleHref(
@@ -64,10 +65,14 @@ export function CapacitorBootstrap() {
         let districtSlug: string | null = null;
 
         if (parsed.location?.kind === "place") {
-          selectPlace(parsed.location.place);
-          districtSlug = parsed.location.place.parentDistrictSlug;
+          const linked = parsed.location.place;
+          void openPlaceFromLink(
+            { key: linked.key, lat: linked.lat, lon: linked.lon, parentDistrictSlug: linked.parentDistrictSlug },
+            usePreferencesStore,
+          );
+          districtSlug = linked.parentDistrictSlug;
           if (typeof window !== "undefined" && !parsed.modulePath) {
-            window.history.replaceState(null, "", placeHomeHref(parsed.location.place));
+            window.history.replaceState(null, "", placeHomeHref(usePreferencesStore.getState().activePlace ?? linked));
           }
         } else if (parsed.location?.kind === "district" && getDistrictBySlug(parsed.location.slug)) {
           selectDistrict(parsed.location.slug);

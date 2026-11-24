@@ -74,7 +74,7 @@ export function AccessibilityControls({
       <div className="flex items-center justify-between gap-2">
         <label
           htmlFor="a11y-large-text-switch"
-          className="cursor-pointer truncate text-[12.5px] font-semibold leading-tight text-white/75"
+          className="min-w-0 cursor-pointer break-words text-[12.5px] font-semibold leading-tight text-white/75"
         >
           {largeTextLabel}
         </label>
@@ -102,7 +102,7 @@ export function AccessibilityControls({
       <div className="flex items-center justify-between gap-2">
         <label
           htmlFor="a11y-contrast-switch"
-          className="cursor-pointer truncate text-[12.5px] font-semibold leading-tight text-white/75"
+          className="min-w-0 cursor-pointer break-words text-[12.5px] font-semibold leading-tight text-white/75"
         >
           {contrastLabel}
         </label>

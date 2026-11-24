@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PlaceLocation } from "@/lib/places/types";
+import { trustedPlace, trustedPlaceOrNull } from "@/lib/places/trusted-place";
 
 interface PreferencesState {
   districtSlug: string;
@@ -82,7 +83,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       analyticsConsent: null,
       _hasHydrated: false,
       setDistrictSlug: (districtSlug) => set({ districtSlug }),
-      setActivePlace: (activePlace) => set({ activePlace }),
+      setActivePlace: (activePlace) => set({ activePlace: activePlace ? trustedPlace(activePlace) : null }),
       setUiLanguage: (uiLanguage) => set({ uiLanguage, hasExplicitLanguageChoice: true }),
       applyDetectedLanguage: (uiLanguage) => set({ uiLanguage }),
       selectDistrict: (districtSlug) =>
@@ -91,12 +92,15 @@ export const usePreferencesStore = create<PreferencesState>()(
           activePlace: null,
           recentDistricts: pushRecent(state.recentDistricts, districtSlug),
         })),
-      selectPlace: (place) =>
-        set((state) => ({
-          districtSlug: place.parentDistrictSlug,
-          activePlace: place,
-          recentPlaces: pushRecentPlace(state.recentPlaces, place),
-        })),
+      selectPlace: (rawPlace) =>
+        set((state) => {
+          const place = trustedPlace(rawPlace);
+          return {
+            districtSlug: place.parentDistrictSlug,
+            activePlace: place,
+            recentPlaces: pushRecentPlace(state.recentPlaces, place),
+          };
+        }),
       setLiteModePreference: (liteModePreference) => set({ liteModePreference }),
       setVoiceMode: (voiceMode) => set({ voiceMode }),
       setLargeText: (largeText) => set({ largeText }),
@@ -125,6 +129,19 @@ export const usePreferencesStore = create<PreferencesState>()(
         recentPlaces: state.recentPlaces,
         analyticsConsent: state.analyticsConsent,
       }),
+      // Saved settings can be edited by anyone with the phone or by a script
+      // on an old version, so saved places are checked again on load.
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<PreferencesState>;
+        return {
+          ...current,
+          ...saved,
+          activePlace: trustedPlaceOrNull(saved.activePlace),
+          recentPlaces: Array.isArray(saved.recentPlaces)
+            ? saved.recentPlaces.flatMap((place) => trustedPlaceOrNull(place) ?? [])
+            : current.recentPlaces,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

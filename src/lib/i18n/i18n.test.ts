@@ -6,7 +6,7 @@ import { en } from "./dictionaries/en";
 import { lg } from "./dictionaries/lg";
 import { formatDistrictPhrase } from "./index";
 import { interpolate } from "./interpolate";
-import { getDictionary } from "./useTranslation";
+import { getDictionary } from "./dictionary";
 
 describe("i18n dictionary system", () => {
   it("has exact matching structure and keys between English and Luganda", () => {

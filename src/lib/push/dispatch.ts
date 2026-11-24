@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
-import { listPushTokensForDistrict } from "@/lib/push/store";
+import { listPushTokensForDistrict, removePushToken } from "@/lib/push/store";
+import { mapInBatches, PUSH_SEND_BATCH_SIZE } from "@/lib/push/batches";
 import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
 import { sendApnsNotifications } from "./apns";
 
@@ -137,7 +138,7 @@ export async function getFcmAccessToken(): Promise<string | null> {
 async function sendFcmNotification(
   tokens: string[],
   payload: StormAlertPayload,
-): Promise<{ sent: number; failed: number }> {
+): Promise<{ sent: number; failed: number; goneTokens?: string[] }> {
   if (tokens.length === 0) {
     return { sent: 0, failed: 0 };
   }
@@ -150,8 +151,11 @@ async function sendFcmNotification(
   if (projectId && accessToken) {
     let sent = 0;
     let failed = 0;
-    await Promise.all(
-      tokens.map(async (token) => {
+    const goneTokens: string[] = [];
+    await mapInBatches(
+      tokens,
+      PUSH_SEND_BATCH_SIZE,
+      async (token) => {
         try {
           const response = await fetchWithTimeout(
             (signal) =>
@@ -186,14 +190,20 @@ async function sendFcmNotification(
               }),
             FCM_TIMEOUT_MS,
           );
-          if (response.ok) sent += 1;
-          else failed += 1;
+          if (response.ok) {
+            sent += 1;
+          } else {
+            failed += 1;
+            // The FCM HTTP v1 API answers 404 when the app was removed or the
+            // token expired, so that token will never work again.
+            if (response.status === 404) goneTokens.push(token);
+          }
         } catch {
           failed += 1;
         }
-      }),
+      },
     );
-    return { sent, failed };
+    return { sent, failed, goneTokens };
   }
 
   // 2. Legacy server key fallback with deprecation guard
@@ -247,6 +257,16 @@ async function sendFcmNotification(
     sent: result.success ?? 0,
     failed: result.failure ?? Math.max(tokens.length - (result.success ?? 0), 0),
   };
+}
+
+async function forgetGoneTokens(tokens: string[]): Promise<void> {
+  if (tokens.length === 0) return;
+  const outcomes = await Promise.allSettled(tokens.map((token) => removePushToken(token)));
+  const failures = outcomes.filter((outcome) => outcome.status === "rejected").length;
+  console.info(`[push] removed tokens for phones that no longer exist count=${tokens.length - failures}`);
+  if (failures > 0) {
+    console.warn(`[push] action blocked action=remove_gone_tokens code=REMOVE_FAILED count=${failures}`);
+  }
 }
 
 export async function dispatchStormAlert(
@@ -348,6 +368,12 @@ export async function dispatchStormAlert(
           })
         : Promise.resolve({ sent: 0, failed: 0 }),
     ]);
+
+    const goneTokens = [
+      ...("goneTokens" in fcmResult ? (fcmResult.goneTokens ?? []) : []),
+      ...("goneTokens" in apnsResult ? (apnsResult.goneTokens ?? []) : []),
+    ];
+    await forgetGoneTokens(goneTokens);
 
     return {
       sent: fcmResult.sent + apnsResult.sent,

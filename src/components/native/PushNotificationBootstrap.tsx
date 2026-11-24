@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useRouter } from "next/navigation";
 import { isNativeApp } from "@/lib/native/platform";
+import { safeAlertRoute } from "@/lib/native/deep-links";
 
 export function PushNotificationBootstrap() {
   const router = useRouter();
@@ -43,9 +44,7 @@ export function PushNotificationBootstrap() {
 
       listeners.push(
         await PushNotifications.addListener("pushNotificationActionPerformed", (event) => {
-          const route =
-            (event.notification.data?.route as string | undefined) ?? "/alerts";
-          router.push(route.startsWith("/") ? route : `/${route}`);
+          router.push(safeAlertRoute(event.notification.data?.route ?? "/alerts"));
         }),
       );
     }

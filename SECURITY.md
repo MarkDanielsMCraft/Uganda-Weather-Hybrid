@@ -1,33 +1,33 @@
-# Security Policy
+# Reporting a security problem
 
-Uganda Weather is a weather app for Uganda serving forecasts, alerts, air quality, marine safety data, and hybrid offline and cloud weather guidance for 152 districts. We take the security of the application and its users seriously.
+Uganda Weather gives forecasts, alerts, air quality, lake safety, and weather advice for all 152 districts of Uganda, online and offline. We take the safety of the app and the people who use it seriously.
 
-## Reporting a vulnerability
+## How to tell us
 
-Please do not report security vulnerabilities through public GitHub issues.
+Please do not report security problems in public GitHub issues.
 
-The preferred way to report a vulnerability is to open a private security advisory on GitHub for this repository (Security tab, "Report a vulnerability"). If you are unable to use that method, reach out through [mcraftportfolio.dev](https://www.mcraftportfolio.dev/).
+The best way is a private security report on GitHub. Open the Security tab of this repository and choose "Report a vulnerability". If you cannot do that, contact us through [mcraftportfolio.dev](https://www.mcraftportfolio.dev/).
 
-When reporting, please include as much of the following as you can:
+It helps a lot if you can tell us
 
-- A description of the vulnerability and its potential impact
-- Steps to reproduce, including any affected endpoints, pages, or components
-- Any proof-of-concept code or requests
-- The version or commit hash you tested against
+- what the problem is and what harm it could do,
+- the steps to make it happen, including the page, address, or part of the app,
+- any example code or requests you used,
+- and the version or commit you tested.
 
-## Scope
+## What to report
 
-The following are in scope for security reports:
+Please report problems in
 
-- The live Uganda Weather web application
-- The Next.js API routes and any backend services it depends on directly (caching, cron jobs, push notification dispatch)
+- the live Uganda Weather web app,
+- and its own server routes and the services it runs directly, such as saved data, scheduled jobs, and push alerts.
 
-The following are generally out of scope unless they demonstrate a concrete impact on Uganda Weather itself:
+These are usually not covered, unless you can show real harm to Uganda Weather itself.
 
-- Third-party weather data providers and other upstream services the app consumes
-- Vulnerabilities that require physical access to a user's device
-- Issues in dependencies that have no demonstrated exploit path within this application
+- Problems inside the outside weather services and other providers the app reads from
+- Problems that need someone to hold the person's phone in their hands
+- Weaknesses in packages we use, when there is no way to reach them through this app
 
-## Response expectations
+## What to expect
 
-Uganda Weather is a small, independently maintained project. We will do our best to acknowledge reports promptly and keep you updated as we investigate, but we cannot commit to a service-level agreement or guaranteed response time. Please be patient, and thank you for helping keep the project and its users safe.
+Uganda Weather is a small project run by one person. We will try to reply quickly and keep you updated while we look into it, but we cannot promise a fixed reply time. Thank you for your patience and for helping keep people safe.

@@ -4,7 +4,7 @@ import { fetchPollutantBreakdown } from "@/lib/air-quality/openweathermap";
 import { reserveQuota } from "@/lib/quota/monthly-budget";
 import { getWeatherBundleForDistrict } from "@/lib/weather/provider";
 import { coordinatesForWeather } from "@/lib/weather/location-query";
-import { resolveWeatherTarget } from "@/lib/weather/resolve-target";
+import { resolveWeatherTarget, withRequestedPlace } from "@/lib/weather/resolve-target";
 
 const WEATHER_TTL_SECONDS = Number(process.env.CACHE_TTL_CURRENT ?? 600);
 const AIR_QUALITY_TTL_SECONDS = 600;
@@ -58,11 +58,13 @@ export async function GET(request: Request) {
     const meta = createMeta(stale);
 
     return jsonResponse(
-      { ...data, pollutants },
+      { ...withRequestedPlace(data, target), pollutants },
       meta,
       mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers),
     );
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=air-quality:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Air quality temporarily unavailable", 503);
   }
 }

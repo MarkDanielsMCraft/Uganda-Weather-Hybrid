@@ -1,3 +1,4 @@
+import { reserveVoiceCall } from "@/lib/voice/voice-budget";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
@@ -103,6 +104,9 @@ export async function POST(request: Request) {
       ),
     );
   }
+
+  const overBudget = await reserveVoiceCall("translate");
+  if (overBudget) return overBudget;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), VOICE_TIMEOUT_MS);
