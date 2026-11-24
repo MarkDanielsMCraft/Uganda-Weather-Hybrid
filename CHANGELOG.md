@@ -107,6 +107,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Every district page now has its own search title and description, built from that district's facts (city or district, region, lake, and rain seasons), within the lengths search results show. Luganda pages name the region in Luganda, and "okulabula" replaces "obulabula" for warnings.
 - The sitemap now lists only page addresses, including the `/lite` page. It no longer stamps every page with the build time or sets priority and change frequency, which Google ignores or distrusts.
 - Every page now shares one link preview picture (`public/og-image.jpg`, 1200 by 630), made from the Android splash screen, a map of Uganda in green with a sun, cloud, and rain icon.
 - The README, CONTRIBUTING, and SECURITY files are rewritten in plain everyday English, with simple diagram labels and up to date test counts.

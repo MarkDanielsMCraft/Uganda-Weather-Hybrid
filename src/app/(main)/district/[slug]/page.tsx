@@ -4,7 +4,11 @@ import { DistrictWeatherPage } from "@/components/district/DistrictWeatherPage";
 import { getAllDistricts, getDistrictBySlug } from "@/lib/districts";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { districtGeoMeta, districtStructuredData } from "@/lib/seo/structured-data";
-import { districtFaqStructuredData } from "@/lib/seo/district-content";
+import {
+  districtFaqStructuredData,
+  districtSearchDescription,
+  districtSearchTitle,
+} from "@/lib/seo/district-content";
 import { DistrictReference } from "@/components/district/DistrictReference";
 
 type PageProps = {
@@ -19,8 +23,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "District not found | Uganda Weather" };
   }
 
-  const title = `${district.name} Weather`;
-  const description = `Live weather, hourly forecast, and alerts for ${district.name} in Uganda's ${district.region} region.`;
+  const title = districtSearchTitle(district);
+  const description = districtSearchDescription(district);
 
   return {
     ...buildPageMetadata({

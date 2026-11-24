@@ -313,3 +313,48 @@ export function districtFaqStructuredData(
     })),
   };
 }
+
+const MAX_TITLE_LENGTH = 60;
+const MAX_DESCRIPTION_LENGTH = 155;
+
+/** The page title without the "| Uganda Weather" ending the layout adds.
+    The longer form is used only while the full title stays short enough for
+    search results. */
+export function districtSearchTitle(district: District): string {
+  const full = `${district.name} Weather Today and 10 Day Forecast`;
+  const ending = " | Uganda Weather";
+  return full.length + ending.length <= MAX_TITLE_LENGTH ? full : `${district.name} Weather and Forecast`;
+}
+
+/** A search description made from this place's own facts, so every district
+    reads differently and nothing is invented. Facts are added in order of
+    usefulness while the text stays within what search results show. */
+export function districtSearchDescription(district: District): string {
+  const kind = district.isCity ? "city" : "district";
+  const facts = [
+    `${district.name} weather today, with hourly and 10 day forecasts and storm alerts.`,
+    `A ${kind} in Uganda's ${REGION_LABEL[district.region]} region`,
+  ];
+  const lake = lakeFor(district);
+  const extras = [
+    lake ? ` on ${lake}` : "",
+    ` with ${RAINFALL_SHORT[district.rainfallPattern]}`,
+  ];
+  let description = `${facts[0]} ${facts[1]}`;
+  for (const extra of extras) {
+    if (extra && `${description}${extra}.`.length <= MAX_DESCRIPTION_LENGTH) description += extra;
+  }
+  description += ".";
+  return description.length <= MAX_DESCRIPTION_LENGTH ? description : facts[0];
+}
+
+/** Luganda search description, reusing the wording already checked for the
+    district intro, with the region named in Luganda. */
+export function districtSearchDescriptionLg(district: District): string {
+  const region = REGION_LABEL_LG[district.region];
+  const where = district.isCity ? "kibuga ekisangibwa" : "disitulikiti esangibwa";
+  const full = `Embeera y'obudde e ${district.name} eya leero, essaawa ku ssaawa n'ennaku 10, n'okulabula. ${district.name} ${where} mu kitundu kya ${region} ekya Uganda.`;
+  return full.length <= MAX_DESCRIPTION_LENGTH
+    ? full
+    : `Embeera y'obudde e ${district.name} eya leero, essaawa ku ssaawa n'ennaku 10, n'okulabula.`;
+}
