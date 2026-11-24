@@ -1,3 +1,4 @@
+import { reserveVoiceCall } from "@/lib/voice/voice-budget";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
 import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
 
   const fileName =
     audioEntry instanceof File && audioEntry.name ? audioEntry.name : "voice.webm";
+
+  const overBudget = await reserveVoiceCall("transcribe");
+  if (overBudget) return overBudget;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), VOICE_TIMEOUT_MS);
