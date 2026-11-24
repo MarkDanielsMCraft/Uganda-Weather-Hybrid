@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- When the cloud model fails or returns nothing while online, the Weather Advisor answers with the same forecast based summary instead of an error, with a short note that the AI could not answer just then (`src/lib/ai/hybrid-advisor.ts`, `src/lib/ai/offline-briefing.ts`). Failures are still logged and reported.
 - Offline answers on every phone: when there is no internet and no on-device model, or Luganda is asked offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
 - `WEATHER_PRIMARY_PROVIDER` setting (`weatherapi` by default, or `open-meteo`) to choose which forecast provider is asked first; the other becomes the backup, then Pirate Weather (`src/lib/weather/provider.ts`).
 - `API_RATE_LIMIT_PER_MINUTE` setting for the per route, per address request limit.
