@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
-import { mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 
 const OBSERVABILITY_RATE_LIMIT = 10;
@@ -23,6 +23,9 @@ const advisorErrorPayloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "ai-advisor");
+  if (crossSite) return crossSite;
+
   const ip = clientIpFromRequest(request);
   const limitResult = checkRateLimit(
     `observability:advisor-error:${ip}`,

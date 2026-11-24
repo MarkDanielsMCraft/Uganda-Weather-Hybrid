@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { errorResponse } from "@/lib/cache";
-import { mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 import { isGeminiTtsConfigured, synthesizeEnglishNeuralSpeech } from "@/lib/voice/gemini-tts";
-import { isSunbirdConfigured, synthesizeSunbirdSpeech, type SynthesizedAudio } from "@/lib/voice/sunbird";
+import {
+  isEnglishCloudVoiceEnabled,
+  isSunbirdConfigured,
+  synthesizeSunbirdSpeech,
+  type SynthesizedAudio,
+} from "@/lib/voice/sunbird";
 
 export const maxDuration = 60;
 
@@ -52,6 +57,9 @@ const speakRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "voice");
+  if (crossSite) return crossSite;
+
   const ip = clientIpFromRequest(request);
   const limitResult = checkRateLimit(
     `voice:speak:${ip}`,
@@ -111,10 +119,12 @@ export async function POST(request: Request) {
         return errorResponse("VOICE_UNAVAILABLE", "Luganda neural voice is not configured", 503);
       }
       synthesized = await synthesizeSunbirdSpeech(text, "lg", controller.signal, sourceLanguage);
-    } else if (isSunbirdConfigured()) {
-      synthesized = await synthesizeSunbirdSpeech(text, "en", controller.signal);
     } else if (isGeminiTtsConfigured()) {
       synthesized = await synthesizeEnglishNeuralSpeech(text, controller.signal);
+    } else if (isSunbirdConfigured() && isEnglishCloudVoiceEnabled()) {
+      // English through the Luganda voice service stays off unless the owner
+      // turns it on, so the paid key cannot be used for English by anyone.
+      synthesized = await synthesizeSunbirdSpeech(text, "en", controller.signal);
     } else {
       return errorResponse("VOICE_UNAVAILABLE", "English neural voice is not configured", 503);
     }

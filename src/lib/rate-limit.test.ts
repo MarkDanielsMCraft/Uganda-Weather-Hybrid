@@ -72,3 +72,13 @@ describe("rateLimitHeaders", () => {
     });
   });
 });
+
+describe("rate limit memory", () => {
+  it("sweeps expired buckets instead of keeping every address forever", async () => {
+    const { checkRateLimit, trackedRateLimitKeysForTests } = await import("./rate-limit");
+    for (let i = 0; i < 5_100; i += 1) {
+      checkRateLimit(`sweep:${i}`, 5, -1);
+    }
+    expect(trackedRateLimitKeysForTests()).toBeLessThan(5_100);
+  });
+});
