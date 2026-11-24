@@ -109,3 +109,22 @@ describe("rate limit attacks", () => {
     expect(trackedRateLimitKeysForTests()).toBe(1);
   });
 });
+
+describe("place lookup routes", () => {
+  it("stop a single address after 60 searches a minute", async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    const { GET } = await import("@/app/api/v1/locations/search/route");
+    let firstRefused = 0;
+    for (let i = 1; i <= 61; i += 1) {
+      const response = await GET(
+        new Request(`https://hybrid.uganda-weather.com/api/v1/locations/search?q=x`, {
+          headers: { "x-forwarded-for": "203.0.113.77" },
+        }),
+      );
+      if (response.status === 429 && firstRefused === 0) firstRefused = i;
+    }
+    expect(firstRefused).toBe(61);
+    resetRateLimitsForTests();
+  });
+});

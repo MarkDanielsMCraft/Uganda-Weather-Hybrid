@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Village search can no longer get the app blocked by the free map service. All map lookups wait in one queue that lets one through about every second, a full queue answers at once with the district's location (and that rough answer is not saved), each village takes at most two lookups, and the place search routes allow 60 requests a minute from one address.
 - Nobody can plant a fake place name, wrong location, or scam phone number in the saved forecast that other people see. The saved copy for a place is now tied to every detail in the request, place names and labels with phone numbers, links, emails, or markup are refused, and place text is cleaned again before it reaches the AI advisor. The server keeps at most 5,000 saved copies in memory.
 - Rate limits can no longer be dodged by changing the district name in the address: all district detail pages share one count, only the first four path parts form the key, at most 20,000 keys are kept, and the memory sweep runs at most every 10 seconds.
 - Paid voice calls have a monthly ceiling per route (`VOICE_MONTHLY_BUDGET`, 20,000 by default; cached clips do not count). A script that fakes browser headers can no longer run up an unlimited voice bill; once the ceiling is reached the app falls back to the browser voice.

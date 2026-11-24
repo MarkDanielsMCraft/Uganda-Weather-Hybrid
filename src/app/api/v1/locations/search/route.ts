@@ -3,8 +3,12 @@ import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
 import { enforceRateLimit, mergeRateLimitHeaders } from "@/lib/api/route-utils";
 import { searchQuerySchema } from "@/lib/validation/schemas";
 
+/** Place lookups can reach the free map service, which blocks apps that ask
+    too often, so this route allows far fewer requests than the others. */
+const PLACE_LOOKUP_RATE_LIMIT_PER_MINUTE = 60;
+
 export async function GET(request: Request) {
-  const rateLimit = enforceRateLimit(request);
+  const rateLimit = enforceRateLimit(request, PLACE_LOOKUP_RATE_LIMIT_PER_MINUTE);
   if (rateLimit instanceof Response) return rateLimit;
 
   const { searchParams } = new URL(request.url);

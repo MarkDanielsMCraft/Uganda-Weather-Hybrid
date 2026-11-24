@@ -34,9 +34,9 @@ function routeKey(request: Request): string {
   return `/${parts.join("/")}`.replace(/[^\w/.:-]/g, "").slice(0, 80);
 }
 
-export function enforceRateLimit(request: Request) {
+export function enforceRateLimit(request: Request, limitPerMinute = readApiRateLimit()) {
   const ip = clientIpFromRequest(request);
-  const result = checkRateLimit(`api:${routeKey(request)}:${ip}`, readApiRateLimit());
+  const result = checkRateLimit(`api:${routeKey(request)}:${ip}`, limitPerMinute);
 
   if (!result.allowed) {
     return errorResponse("RATE_LIMITED", "Too many requests", 429, {
