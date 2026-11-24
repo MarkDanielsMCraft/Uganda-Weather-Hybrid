@@ -6,7 +6,6 @@ import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-u
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 import { isGeminiTtsConfigured, synthesizeEnglishNeuralSpeech } from "@/lib/voice/gemini-tts";
 import {
-  isEnglishCloudVoiceEnabled,
   isSunbirdConfigured,
   synthesizeSunbirdSpeech,
   type SynthesizedAudio,
@@ -125,10 +124,6 @@ export async function POST(request: Request) {
       synthesized = await synthesizeSunbirdSpeech(text, "lg", controller.signal, sourceLanguage);
     } else if (isGeminiTtsConfigured()) {
       synthesized = await synthesizeEnglishNeuralSpeech(text, controller.signal);
-    } else if (isSunbirdConfigured() && isEnglishCloudVoiceEnabled()) {
-      // English through the Luganda voice service stays off unless the owner
-      // turns it on, so the paid key cannot be used for English by anyone.
-      synthesized = await synthesizeSunbirdSpeech(text, "en", controller.signal);
     } else {
       return errorResponse("VOICE_UNAVAILABLE", "English neural voice is not configured", 503);
     }

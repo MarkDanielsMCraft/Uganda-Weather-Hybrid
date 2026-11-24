@@ -226,7 +226,7 @@ export function MapExpandedView({
             <svg width="32" height="42" viewBox="0 0 32 42" fill="none" aria-hidden="true">
               <path
                 d="M16 0C7.16 0 0 7.16 0 16C0 28 16 42 16 42C16 42 32 28 32 16C32 7.16 24.84 0 16 0Z"
-                fill="#E8A838"
+                fill="#0284c7"
               />
               <path
                 d="M16 1.5C8 1.5 1.5 8 1.5 16C1.5 27.2 16 40.2 16 40.2C16 40.2 30.5 27.2 30.5 16C30.5 8 24 1.5 16 1.5Z"

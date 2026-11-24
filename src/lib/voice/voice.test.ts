@@ -117,7 +117,6 @@ describe("voice providers and API routes", () => {
 
     process.env.SUNBIRD_API_TOKEN = "sb-token";
     delete process.env.GEMINI_API_KEY;
-    delete process.env.VOICE_ENGLISH_CLOUD_ENABLED;
     const resSunbirdOnly = await getVoiceStatus();
     const jsonSunbirdOnly = (await resSunbirdOnly.json()) as {
       data: {
@@ -134,23 +133,6 @@ describe("voice providers and API routes", () => {
       englishNeuralTts: false,
     });
 
-    process.env.VOICE_ENGLISH_CLOUD_ENABLED = "true";
-    const resCloudEn = await getVoiceStatus();
-    const jsonCloudEn = (await resCloudEn.json()) as {
-      data: {
-        lugandaTts: boolean;
-        lugandaStt: boolean;
-        lugandaTranslation: boolean;
-        englishNeuralTts: boolean;
-      };
-    };
-    expect(jsonCloudEn.data).toEqual({
-      lugandaTts: true,
-      lugandaStt: true,
-      lugandaTranslation: true,
-      englishNeuralTts: true,
-    });
-    delete process.env.VOICE_ENGLISH_CLOUD_ENABLED;
 
     process.env.GEMINI_API_KEY = "gm-key";
     const resOn = await getVoiceStatus();

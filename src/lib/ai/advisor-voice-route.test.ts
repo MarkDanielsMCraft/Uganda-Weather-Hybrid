@@ -101,3 +101,29 @@ describe("neural voice route", () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 });
+
+describe("Gemini voice request count", () => {
+  it("sends a long answer to the Gemini voice in two requests at most", async () => {
+    isFirebaseNeuralTtsAvailable.mockReturnValue(true);
+    synthesizeSpeechWithFirebaseAi.mockResolvedValue(new Blob(["fb"], { type: "audio/wav" }));
+    const longAnswer = Array.from({ length: 9 }, (_, i) => `Sentence number ${i + 1} about rain and wind over the farms today.`).join(" ");
+    await new Promise<void>((resolve) => {
+      speakAdvisorReply({ text: longAnswer, language: "en", capabilities: ENGLISH_SERVER_READY, onEnd: () => resolve() });
+    });
+    expect(synthesizeSpeechWithFirebaseAi.mock.calls.length).toBeLessThanOrEqual(2);
+    const spoken = synthesizeSpeechWithFirebaseAi.mock.calls.map((call) => (call[0] as { text: string }).text).join(" ");
+    expect(spoken).toContain("Sentence number 9");
+  });
+});
+
+describe("twoPartSpeech", () => {
+  it("never drops a word, even from a long clause with no commas", async () => {
+    const { twoPartSpeech } = await import("@/lib/ai/advisor-voice");
+    const long = "word ".repeat(120).trim() + ". Second sentence here.";
+    const parts = twoPartSpeech(long);
+    expect(parts.length).toBeLessThanOrEqual(2);
+    expect(parts.join(" ").split(/\s+/).length).toBe(long.split(/\s+/).length);
+    const normal = "Rain is likely this afternoon. Keep crops covered. Wind is light.";
+    expect(twoPartSpeech(normal)).toEqual(["Rain is likely this afternoon.", "Keep crops covered. Wind is light."]);
+  });
+});
