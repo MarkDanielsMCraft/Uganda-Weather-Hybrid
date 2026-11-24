@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Nobody can make a real looking Uganda Weather link preview image with their own words, such as a fake evacuation order. The app signs the title and subtitle of every preview it makes (`OG_IMAGE_SECRET`), and the image route draws only signed text. Anything else gets the plain brand card.
 - Storm alert sign ups can no longer be flooded with made up tokens. One address can sign up 10 times an hour, tokens must look like real phone tokens, the store stops taking new tokens at 100,000, alerts go out in groups of 50, and phones that Android or Apple report as gone are removed.
 - The public health page now only says the app is up, its version, and the number of districts. It no longer lists which services are set up, whether Redis is on, or how many phones signed up for alerts.
 - Village search can no longer get the app blocked by the free map service. All map lookups wait in one queue that lets one through about every second, a full queue answers at once with the district's location (and that rough answer is not saved), each village takes at most two lookups, and the place search routes allow 60 requests a minute from one address.

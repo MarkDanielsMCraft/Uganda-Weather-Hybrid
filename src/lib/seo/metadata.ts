@@ -1,7 +1,18 @@
 import type { Metadata } from "next";
+import { signOgText } from "@/lib/seo/og-sign";
+import { OG_SIGNATURE_PARAM } from "@/lib/seo/og-text";
 
 export function appBaseUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL ?? "https://uganda-weather.com").replace(/\/$/, "");
+}
+
+/** The image route draws only text that is signed here. Without a secret the
+    link still works and shows the plain brand card. */
+export function ogImageUrl(base: string, title: string, subtitle: string): string {
+  const params = new URLSearchParams({ title, subtitle });
+  const signature = signOgText(title, subtitle);
+  if (signature) params.set(OG_SIGNATURE_PARAM, signature);
+  return `${base}/api/og?${params.toString()}`;
 }
 
 /** Builds one consistent Metadata object for a static or dynamic route:
@@ -28,7 +39,7 @@ export function buildPageMetadata({
 }): Metadata {
   const base = appBaseUrl();
   const canonical = `${base}${path}`;
-  const imageUrl = `${base}/api/og?title=${encodeURIComponent(ogTitle ?? title)}&subtitle=${encodeURIComponent(ogSubtitle ?? description)}`;
+  const imageUrl = ogImageUrl(base, ogTitle ?? title, ogSubtitle ?? description);
   const isRoot = path === "/" || path === "/lg" || title === "Uganda Weather";
 
   return {

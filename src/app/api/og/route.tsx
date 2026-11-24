@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { isSignedOgText } from "@/lib/seo/og-verify";
+import { OG_SIGNATURE_PARAM } from "@/lib/seo/og-text";
 import {
   BRAND_CREAM,
   BRAND_GREEN,
@@ -24,6 +26,9 @@ const ACCENT = BRAND_GREEN;
 const CREAM = BRAND_CREAM;
 const MARK_SIZE = 200;
 
+const DEFAULT_TITLE = "Uganda Weather";
+const DEFAULT_SUBTITLE = "District level weather for all of Uganda";
+
 function clampText(value: string | null, fallback: string, maxLength: number) {
   const text = (value ?? "").trim() || fallback;
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
@@ -36,12 +41,18 @@ function clampText(value: string | null, fallback: string, maxLength: number) {
     `openGraph.images` in their own `generateMetadata` to point here. */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const title = clampText(searchParams.get("title"), "Uganda Weather", 60);
-  const subtitle = clampText(
-    searchParams.get("subtitle"),
-    "District level weather for all of Uganda",
-    90,
+  const askedTitle = searchParams.get("title") ?? "";
+  const askedSubtitle = searchParams.get("subtitle") ?? "";
+  const signed = await isSignedOgText(
+    askedTitle,
+    askedSubtitle,
+    searchParams.get(OG_SIGNATURE_PARAM),
   );
+  if (!signed && (askedTitle || askedSubtitle)) {
+    console.warn("[og] action blocked action=render code=UNSIGNED_TEXT");
+  }
+  const title = clampText(signed ? askedTitle : null, DEFAULT_TITLE, 60);
+  const subtitle = clampText(signed ? askedSubtitle : null, DEFAULT_SUBTITLE, 90);
 
   return new ImageResponse(
     (
