@@ -943,6 +943,37 @@ export function splitTextForPipelinedSpeech(
   return chunks.slice(0, maxChunks);
 }
 
+interface NeuralVoiceRoute {
+  useFirebase: boolean;
+  useServer: boolean;
+  serverBackupForEnglish: boolean;
+}
+
+/** Picks the most natural voice available. English tries the Firebase AI
+    Logic Gemini voice first, then the server voice if one is set up, and
+    only then the browser voice. Luganda uses the server voice. */
+function selectNeuralVoiceRoute(
+  language: SupportedLocale,
+  capabilities: VoiceServerCapabilities | undefined,
+  isOnline: boolean,
+): NeuralVoiceRoute {
+  if (!isOnline) return { useFirebase: false, useServer: false, serverBackupForEnglish: false };
+  if (language === "lg") {
+    return {
+      useFirebase: false,
+      useServer: Boolean(capabilities?.lugandaTts),
+      serverBackupForEnglish: false,
+    };
+  }
+  const englishServerReady = Boolean(capabilities?.englishNeuralTts);
+  const useFirebase = isFirebaseNeuralTtsAvailable();
+  return {
+    useFirebase,
+    useServer: !useFirebase && englishServerReady,
+    serverBackupForEnglish: useFirebase && englishServerReady,
+  };
+}
+
 export function prefetchVoiceClip({
   text,
   language,
@@ -960,11 +991,9 @@ export function prefetchVoiceClip({
   const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
   if (nav.connection?.saveData) return;
 
-  const shouldUseServer =
-    (language === "lg" && Boolean(capabilities?.lugandaTts)) ||
-    (language === "en" && Boolean(capabilities?.englishNeuralTts));
-  const shouldUseFirebaseNeuralTts =
-    !shouldUseServer && language === "en" && isFirebaseNeuralTtsAvailable();
+  const route = selectNeuralVoiceRoute(language, capabilities, true);
+  const shouldUseServer = route.useServer;
+  const shouldUseFirebaseNeuralTts = route.useFirebase;
   if (!shouldUseServer && !shouldUseFirebaseNeuralTts) return;
 
   const cleaned = text.trim();
@@ -1273,6 +1302,9 @@ export function selectPreferredVoice(
 
     if (/(natural|neural|wavenet|studio)/.test(name)) score += 60;
     if (/(enhanced|premium|online)/.test(name)) score += 45;
+    // Chrome's "Google ..." voices are streamed and sound far more natural
+    // than the basic voices built into many entry level phones.
+    if (/\bgoogle\b/.test(name)) score += 30;
     if (!voice.localService) score += 20;
 
     if (language === "en") {
@@ -1414,12 +1446,9 @@ export function speakAdvisorReply({
   }
 
   const isOnline = typeof navigator === "undefined" ? true : navigator.onLine !== false;
-  const shouldUseServer =
-    isOnline &&
-    ((language === "lg" && Boolean(capabilities?.lugandaTts)) ||
-      (language === "en" && Boolean(capabilities?.englishNeuralTts)));
-  const shouldUseFirebaseNeuralTts =
-    isOnline && !shouldUseServer && language === "en" && isFirebaseNeuralTtsAvailable();
+  const route = selectNeuralVoiceRoute(language, capabilities, isOnline);
+  const shouldUseServer = route.useServer;
+  const shouldUseFirebaseNeuralTts = route.useFirebase;
 
   if (!shouldUseServer && !shouldUseFirebaseNeuralTts) {
     onStateChange?.("playing");
@@ -1528,25 +1557,37 @@ export function speakAdvisorReply({
       }
     }
 
-    const blob = shouldUseFirebaseNeuralTts
-      ? await synthesizeSpeechWithFirebaseAi({
-          text: chunkText,
-          signal: controller.signal,
-        }).then((result) => {
-          if (!result) throw new Error("FIREBASE_TTS_EMPTY");
-          return result;
-        })
-      : await fetch("/api/v1/voice/speak", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: chunkText, language, sourceLanguage }),
-          signal: controller.signal,
-        }).then(async (response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP_${response.status}`);
-          }
-          return response.blob();
-        });
+    const fetchServerBlob = () =>
+      fetch("/api/v1/voice/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: chunkText, language, sourceLanguage }),
+        signal: controller.signal,
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP_${response.status}`);
+        }
+        return response.blob();
+      });
+
+    let blob: Blob;
+    if (shouldUseFirebaseNeuralTts) {
+      const firebaseBlob = await synthesizeSpeechWithFirebaseAi({
+        text: chunkText,
+        signal: controller.signal,
+      });
+      if (firebaseBlob) {
+        blob = firebaseBlob;
+      } else if (route.serverBackupForEnglish && !controller.signal.aborted) {
+        // Firebase voice is busy or out of quota: use the server's natural
+        // voice before falling back to the more robotic browser voice.
+        blob = await fetchServerBlob();
+      } else {
+        throw new Error("FIREBASE_TTS_EMPTY");
+      }
+    } else {
+      blob = await fetchServerBlob();
+    }
 
     rememberAudioClip(key, blob);
     return blob;
