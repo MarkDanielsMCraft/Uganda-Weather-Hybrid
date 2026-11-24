@@ -45,6 +45,7 @@ import {
   type VoiceServerCapabilities,
 } from "@/lib/ai/advisor-voice";
 import { loadWeatherCache } from "@/lib/offline/weather-cache";
+import { useHideOnScrollDown } from "@/hooks/useHideOnScrollDown";
 import { buildPlainTextAdvisorSms, buildSmsHref } from "@/lib/places/sms-share";
 import { useTranslation } from "@/lib/i18n";
 import { formatConditionLg } from "@/lib/weather/copy-lg";
@@ -73,6 +74,8 @@ export function HybridWeatherAdvisor({
   const isDetailSheetOpen = Boolean(detailSheet?.sheet);
 
   const [isOpen, setIsOpen] = useState(false);
+  // Steps the closed launcher out of the way while people scroll down to read.
+  const { hidden: launcherHidden, reveal: revealLauncher } = useHideOnScrollDown(!isOpen);
   const [showRuntimeDetails, setShowRuntimeDetails] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [districtModalOpen, setDistrictModalOpen] = useState(false);
@@ -953,9 +956,10 @@ export function HybridWeatherAdvisor({
   return (
     <div
       ref={containerRef}
-      className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] z-[55] flex flex-col items-end gap-1.5 sm:bottom-6 sm:right-6 ${
+      onFocusCapture={revealLauncher}
+      className={`fixed bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] z-[55] flex flex-col items-end gap-1.5 transition-transform duration-200 ease-out motion-reduce:transition-none sm:bottom-6 sm:right-6 ${
         isOpen ? "left-[max(0.75rem,env(safe-area-inset-left,0px))] sm:left-auto" : ""
-      }`}
+      } ${!isOpen && launcherHidden ? "pointer-events-none translate-y-[calc(100%+2rem)]" : ""}`}
     >
       {isOpen && (
         <GlassPanel
@@ -1205,7 +1209,9 @@ export function HybridWeatherAdvisor({
                         >
                           {msg.source === "on_device"
                             ? copy.sourceOnDevice
-                            : copy.sourceCloud}
+                            : msg.source === "saved_forecast"
+                              ? copy.sourceSavedForecast
+                              : copy.sourceCloud}
                         </span>
                         <span aria-hidden="true">/</span>
                         <span
@@ -1225,7 +1231,9 @@ export function HybridWeatherAdvisor({
                                 msg.text,
                               ),
                             )}
-                            className="inline-flex items-center rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-white/75 transition hover:bg-white/[0.15] hover:text-white"
+                            aria-label={copy.shareReplySms}
+                            data-testid="advisor-share-sms"
+                            className="pointer-fine:hidden inline-flex items-center rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-white/75 transition hover:bg-white/[0.15] hover:text-white relative before:absolute before:-inset-x-1 before:-inset-y-[10px] before:content-['']"
                           >
                             SMS
                           </a>
@@ -1240,7 +1248,7 @@ export function HybridWeatherAdvisor({
                                 ? copy.stopListenReply
                                 : copy.listenReply
                             }
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition relative before:absolute before:-inset-x-1 before:-inset-y-[10px] before:content-[''] ${
                               speakingMessageId === msg.id
                                 ? "bg-brand-green/65 text-white"
                                 : "bg-white/[0.08] text-white/75 hover:bg-white/[0.15] hover:text-white"
@@ -1644,7 +1652,7 @@ export function HybridWeatherAdvisor({
         {showPopup && !installGuideOpen && (
           <GlassPanel
             clip={false}
-            className="relative flex max-w-[min(248px,calc(100vw-96px))] items-center gap-2 rounded-full px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+            className="relative flex max-w-[min(248px,calc(100vw-96px))] items-center gap-2 rounded-full px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.45)] max-[359px]:hidden"
           >
             <button
               type="button"
@@ -1709,7 +1717,7 @@ export function HybridWeatherAdvisor({
             hidePopupTemporarily();
             setIsOpen(true);
           }}
-          className={`inline-flex h-12 w-14 shrink-0 cursor-pointer items-center justify-center rounded-[18px] rounded-bl-[4px] transition hover:bg-brand-green/80 active:scale-95 focus-visible:outline-none motion-reduce:transition-none ${BRAND_GLASS_GREEN}`}
+          className={`inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[16px] rounded-bl-[4px] min-[360px]:h-12 min-[360px]:w-14 min-[360px]:rounded-[18px] transition hover:bg-brand-green/80 active:scale-95 focus-visible:outline-none motion-reduce:transition-none ${BRAND_GLASS_GREEN}`}
         >
           <span className="flex items-center gap-1.5" aria-hidden="true">
             <span className="h-2 w-2 rounded-full bg-white" />

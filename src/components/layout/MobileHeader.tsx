@@ -58,7 +58,9 @@ export function MobileHeader() {
         <Link
           href="/"
           aria-label={dict.common.goToHomeAria}
-          className="flex shrink-0 items-center"
+          // On narrow phones the logo steps aside once the compact title shows,
+          // so the place name and temperature are not cut short.
+          className={`flex shrink-0 items-center ${progress > 0.6 ? "max-[379px]:hidden" : ""}`}
         >
           <WeatherGlyph size={28} />
         </Link>
@@ -80,7 +82,8 @@ export function MobileHeader() {
         </p>
         {temp != null && (
           <p className="w-full truncate text-[11px] font-medium text-white/70">
-            {temp}° · {conditionText}
+            {temp}°
+            <span className="max-[379px]:hidden"> · {conditionText}</span>
           </p>
         )}
       </div>
@@ -89,7 +92,8 @@ export function MobileHeader() {
         <LiteHeaderButton testId="mobile-lite-toggle" />
         <Link
           href="/search"
-          aria-label={dict.common.search}
+          // Screen readers must hear the visible place name first, then the action.
+          aria-label={progress > 0.6 ? dict.common.search : `${displayName}, ${dict.common.search}`}
           className="flex h-9 items-center justify-center rounded-full border border-white/15 bg-white/10 px-2.5 text-[12.5px] text-white/90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           {progress > 0.6 ? (
