@@ -57,10 +57,11 @@ flowchart LR
   Clean --> Router{"Internet Available?"}
   Router -->|"Offline"| HasNano{"Gemini Nano on this device?"}
   HasNano -->|"Yes"| PhoneOnly["Runs on Device (0 KB Data)"]
-  HasNano -->|"No"| Saved["Safety Summary from Saved Forecast (No AI)"]
+  HasNano -->|"No"| Saved["Safety Summary from the Forecast Numbers (No AI)"]
   Saved --> Reply
   Router -->|"Online"| PhoneFirst["Tries Device First (Saves Data)"]
   PhoneFirst -->|"Fallback, Photos, or Luganda"| Cloud["Cloud Gemini (via Firebase)"]
+  Cloud -->|"Fails or no reply"| Saved
   PhoneOnly --> Reply["Safety Advice, Voice Reader, and SMS or WhatsApp Share"]
   PhoneFirst --> Reply
   Cloud --> Reply
@@ -107,8 +108,8 @@ During the submission period (November 11 to November 30, 2026), I built:
 
 - **The Hybrid AI Advisor and Firebase setup:** Live streaming answers with a stop button, automatic privacy protection (removes phone numbers, emails, ID numbers, and hidden photo GPS before cloud requests), Firebase Remote Config live controls, Firebase App Check bot protection, server side prompt templates, and built in English neural voice (`src/lib/ai/`).
 - **Hands free Voice Reader, Live Camera, and Feature Phone Lite Mode:** Tap once to listen to any screen or detail card in clear English or natural Luganda, talk hands free (say `one`, `two`, `emu`, `bbiri`, `stop`, or `lekera awo`, and interrupt cleanly by speaking), take a live sky or crop photo or upload from gallery (checking that the photo is recent and from Uganda), and use the low data `/lite` page, checked in automated tests at `240x320` and `320x568` screen sizes.
-- **Offline answers for every phone, voice reliability, and security:** When there is no internet and no on-device model, the advisor now answers from the saved forecast instead of showing an error (`src/lib/ai/offline-briefing.ts`). Natural voice is only fetched when you tap Listen and has a server backup before the browser voice. Paid voice routes refuse requests from other websites, and server secrets are compared in constant time. Text messages use only basic SMS characters so a forecast fits one paid SMS, the SMS button shows only on phones and tablets, every layout was checked from `240x320` feature phone screens to desktop, and request limits are counted per route so many people sharing one mobile network address are not blocked together.
-- **Everyday inclusion, safety, and polish:** Cleaner cards and readable text over bright skies, `Large text` and `High contrast` switches that do not resize cards, one tap `SMS` and `WhatsApp` plain text forecast sharing for neighbours on 2G basic phones, offline search across all 152 districts plus cached parishes and major Ugandan towns, community safety warnings (High UV sun protection including persons with albinism, Karamoja livestock heat and water watch, and 72 hour mountain slope landslide watch), and 649 automated unit tests across 116 files plus 23 browser tests (including feature phone and small phone screen sizes).
+- **Offline answers for every phone, voice reliability, and security:** When there is no internet and no on-device model, or when the cloud model fails, the advisor answers from the forecast numbers instead of showing an error (`src/lib/ai/offline-briefing.ts`). Natural voice is only fetched when you tap Listen and has a server backup before the browser voice. Paid voice routes refuse requests from other websites, and server secrets are compared in constant time. Text messages use only basic SMS characters so a forecast fits one paid SMS, the SMS button shows only on phones and tablets, every layout was checked from `240x320` feature phone screens to desktop, and request limits are counted per route so many people sharing one mobile network address are not blocked together.
+- **Everyday inclusion, safety, and polish:** Cleaner cards and readable text over bright skies, `Large text` and `High contrast` switches that do not resize cards, one tap `SMS` and `WhatsApp` plain text forecast sharing for neighbours on 2G basic phones, offline search across all 152 districts plus cached parishes and major Ugandan towns, community safety warnings (High UV sun protection including persons with albinism, Karamoja livestock heat and water watch, and 72 hour mountain slope landslide watch), and 651 automated unit tests across 116 files plus 26 browser tests (including feature phone and small phone screen sizes).
 
 ## Testing On-Device Mode in Chrome
 

@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - When the cloud model fails or returns nothing while online, the Weather Advisor answers with the same forecast based summary instead of an error, with a short note that the AI could not answer just then (`src/lib/ai/hybrid-advisor.ts`, `src/lib/ai/offline-briefing.ts`). Failures are still logged and reported.
+- Browser tests for the offline saved forecast answer (`e2e/advisor-offline.spec.ts`) and for full words on `/lite` at 240x320 in English and Luganda (`e2e/lite-small-screen.spec.ts`).
 - Offline answers on every phone: when there is no internet and no on-device model, or Luganda is asked offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
 - `WEATHER_PRIMARY_PROVIDER` setting (`weatherapi` by default, or `open-meteo`) to choose which forecast provider is asked first; the other becomes the backup, then Pirate Weather (`src/lib/weather/provider.ts`).
 - `API_RATE_LIMIT_PER_MINUTE` setting for the per route, per address request limit.
@@ -141,6 +142,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Offline answers no longer depend on the Firebase client being configured; before, a missing client configuration showed "not ready" offline even though the saved forecast summary needs no Firebase.
 - SMS messages use only basic SMS characters (`24C`, Luganda `ŋ` written as `ng'`), so one forecast fits one paid SMS; advisor replies are limited to two SMS parts ending on a full sentence, without in app notes. The SMS link format now also fills in the message on iPhone.
 - Small screens: the `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
 - The header place pill now reads its place name to screen readers.
