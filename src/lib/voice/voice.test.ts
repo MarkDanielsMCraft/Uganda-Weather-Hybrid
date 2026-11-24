@@ -144,11 +144,13 @@ describe("voice providers and API routes", () => {
         englishNeuralTts: boolean;
       };
     };
+    // The Luganda service reading English is too slow to count as the
+    // natural English voice, so the browser voice is the backup instead.
     expect(jsonCloudEn.data).toEqual({
       lugandaTts: true,
       lugandaStt: true,
       lugandaTranslation: true,
-      englishNeuralTts: true,
+      englishNeuralTts: false,
     });
     delete process.env.VOICE_ENGLISH_CLOUD_ENABLED;
 

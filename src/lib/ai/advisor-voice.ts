@@ -943,6 +943,13 @@ export function splitTextForPipelinedSpeech(
   return chunks.slice(0, maxChunks);
 }
 
+function twoPartSpeech(text: string): string[] {
+  const [first, ...rest] = splitTextForPipelinedSpeech(text, 180, 40);
+  if (!first) return [];
+  const remainder = rest.join(" ").trim();
+  return remainder ? [first, remainder] : [first];
+}
+
 interface NeuralVoiceRoute {
   useFirebase: boolean;
   useServer: boolean;
@@ -1472,8 +1479,12 @@ export function speakAdvisorReply({
     1500,
   );
 
-  const chunks =
-    shouldUseServer || shouldUseFirebaseNeuralTts
+  // The Gemini voice allows only a few requests a minute, so it gets the
+  // answer in two parts at most: a short first sentence so speech starts fast,
+  // then everything else in one request.
+  const chunks = shouldUseFirebaseNeuralTts
+    ? twoPartSpeech(payloadText)
+    : shouldUseServer
       ? splitTextForPipelinedSpeech(payloadText)
       : [payloadText];
 

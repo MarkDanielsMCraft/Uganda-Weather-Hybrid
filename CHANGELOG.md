@@ -112,6 +112,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The offline notice is a plain neutral strip instead of a gold border, and the map pin is blue instead of gold.
 - Every district page now has its own search title and description, built from that district's facts (city or district, region, lake, and rain seasons), within the lengths search results show. Luganda pages name the region in Luganda, and "okulabula" replaces "obulabula" for warnings.
 - The sitemap now lists only page addresses, including the `/lite` page. It no longer stamps every page with the build time or sets priority and change frequency, which Google ignores or distrusts.
 - Every page now shares one link preview picture (`public/og-image.jpg`, 1200 by 630), made from the Android splash screen, a map of Uganda in green with a sun, cloud, and rain icon.
@@ -166,6 +167,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Listen in the advisor now reads only the answer, in one natural Gemini voice. The voice model is told to read word for word, a long answer goes out in two requests at most instead of many (which hit Google's per minute limit), a 429 is retried once, and when Gemini cannot answer the English backup is the browser's instant voice instead of the slow Luganda service. Answers no longer switch voice partway through.
+- A place whose key matches a district name (for example `place=kampala` with a point in Kabale) no longer gets that district's weather saved under its own point.
 - Farming advice works again on the live site. It had answered 503 for everyone because server code read its words from a browser only file. The words now live in a plain shared file, storm alerts in Luganda use it too, a test stops any server file from importing a browser only file again, and weather routes now log real failures instead of hiding them.
 - Real villages with a slash in their name (such as Mbuule/masiko) or with letters like "bank" or "momo" inside a word (Tebankiza, Bumomolo) are no longer shown as "Shared place".
 - The Luganda feedback form no longer says thank you when a report could not be emailed or saved. It shows its "could not send" message instead. One address can send 5 reports a day.

@@ -31,7 +31,7 @@ export function OfflineIndicator() {
   if (online) return null;
 
   return (
-    <div className="mb-3 rounded-xl border border-caution/35 bg-caution/10 px-4 py-2.5 text-center text-[13px] text-white/80">
+    <div role="status" className="mb-3 rounded-xl bg-white/[0.07] px-4 py-2.5 text-center text-[13px] text-white/85">
       {dict.common.offlineMessage}
     </div>
   );

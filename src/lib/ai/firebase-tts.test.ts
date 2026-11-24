@@ -101,3 +101,43 @@ describe("firebase-tts", () => {
     expect(isFirebaseNeuralTtsAvailable()).toBe(false);
   });
 });
+
+describe("firebase-tts reading and retries", () => {
+  const audioReply = {
+    response: { candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/wav", data: btoa("RIFFxxxx") } }] } }] },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetFirebaseTtsForTests();
+    isFirebaseAiConfiguredMock.mockReturnValue(true);
+    getFirebaseAiClientMock.mockReturnValue({ app: {} });
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  it("tells the voice model to read the text word for word", async () => {
+    const generateContent = vi.fn().mockResolvedValue(audioReply);
+    getGenerativeModelMock.mockReturnValue({ generateContent });
+    await synthesizeSpeechWithFirebaseAi({ text: "Rain is likely after 3 pm." });
+    const prompt = String(generateContent.mock.calls[0]?.[0]);
+    expect(prompt).toMatch(/word for word/i);
+    expect(prompt).toMatch(/do not add/i);
+    expect(prompt.trim().endsWith("Rain is likely after 3 pm.")).toBe(true);
+  });
+
+  it("retries once after a 429 and keeps the same voice", async () => {
+    vi.useFakeTimers();
+    const generateContent = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("[429] RESOURCE_EXHAUSTED"))
+      .mockResolvedValueOnce(audioReply);
+    getGenerativeModelMock.mockReturnValue({ generateContent });
+    const pending = synthesizeSpeechWithFirebaseAi({ text: "Strong wind tonight." });
+    await vi.advanceTimersByTimeAsync(2_000);
+    const blob = await pending;
+    vi.useRealTimers();
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(blob).not.toBeNull();
+    expect(isFirebaseNeuralTtsAvailable()).toBe(true);
+  });
+});
