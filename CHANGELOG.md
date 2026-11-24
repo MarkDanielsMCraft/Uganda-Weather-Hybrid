@@ -107,6 +107,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The sitemap now lists only page addresses, including the `/lite` page. It no longer stamps every page with the build time or sets priority and change frequency, which Google ignores or distrusts.
 - Every page now shares one link preview picture (`public/og-image.jpg`, 1200 by 630), made from the Android splash screen, a map of Uganda in green with a sun, cloud, and rain icon.
 - The README, CONTRIBUTING, and SECURITY files are rewritten in plain everyday English, with simple diagram labels and up to date test counts.
 - English answers now use the most natural voice first. The order is the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
