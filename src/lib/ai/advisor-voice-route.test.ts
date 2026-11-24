@@ -45,7 +45,13 @@ describe("neural voice route", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockReset();
-    fetchMock.mockResolvedValue(new Response(new Blob(["audio"], { type: "audio/mpeg" })));
+    // A minimal reply with only what the voice code reads. Building a real
+    // Response from a jsdom Blob fails on some Node versions used in CI.
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(["audio"], { type: "audio/mpeg" }),
+    });
     synthesizeSpeechWithFirebaseAi.mockReset();
     isFirebaseNeuralTtsAvailable.mockReset();
     URL.createObjectURL = vi.fn(() => "blob:voice");
