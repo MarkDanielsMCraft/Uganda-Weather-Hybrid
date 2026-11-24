@@ -2,21 +2,8 @@
 
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { en } from "./dictionaries/en";
-import { lg } from "./dictionaries/lg";
+import { DICTIONARIES } from "./dictionary";
 import { interpolate } from "./interpolate";
-import type { SupportedLocale, TranslationDictionary } from "./types";
-
-const DICTIONARIES: Record<SupportedLocale, TranslationDictionary> = {
-  en,
-  lg,
-};
-
-/**
- * Retrieve dictionary for a specific locale without hooks (useful for static/SSR contexts).
- */
-export function getDictionary(locale: SupportedLocale): TranslationDictionary {
-  return DICTIONARIES[locale] ?? en;
-}
 
 /**
  * Access localized dictionary and safe parameter interpolation helper.

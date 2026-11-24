@@ -31,7 +31,9 @@ export async function GET(request: Request) {
         rateLimit.headers,
       ),
     );
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=weather/current:", error);
     return errorResponse(
       "SERVICE_UNAVAILABLE",
       "Weather data temporarily unavailable",

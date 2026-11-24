@@ -22,7 +22,9 @@ export async function GET(request: Request) {
     const meta = createMeta(false);
 
     return jsonResponse({ results }, meta, mergeRateLimitHeaders({}, rateLimit.headers));
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=locations/search:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Search temporarily unavailable", 503);
   }
 }

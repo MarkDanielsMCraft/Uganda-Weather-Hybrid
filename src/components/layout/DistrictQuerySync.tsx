@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getDistrictBySlug } from "@/lib/districts";
-import { createPlaceLocation } from "@/lib/places/district-from-place";
+import { openPlaceFromLink } from "@/lib/places/shared-link-place";
 import { isWithinUganda } from "@/lib/places/uganda-bounds";
 import { districtHomeHref } from "@/lib/places/share";
 import { useAppReady } from "@/hooks/useAppReady";
@@ -63,15 +63,14 @@ export function DistrictQuerySync() {
         return;
       }
 
-      selectPlace(
-        createPlaceLocation({
+      void openPlaceFromLink(
+        {
           key: placeKey,
-          name: placeName,
           lat,
           lon,
-          label: searchParams.get("label")?.trim() || undefined,
           parentDistrictSlug: searchParams.get("parent")?.trim().toLowerCase() || undefined,
-        }),
+        },
+        usePreferencesStore,
       );
       return;
     }

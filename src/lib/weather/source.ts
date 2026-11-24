@@ -1,4 +1,4 @@
-import { getDictionary } from "@/lib/i18n/useTranslation";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { formatUgandaDateTime } from "@/lib/time/uganda";
 import type { WeatherBundle } from "@/types/weather";

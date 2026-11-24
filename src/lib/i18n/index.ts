@@ -2,7 +2,8 @@ import type { SupportedLocale, TranslationDictionary } from "./types";
 
 export * from "./types";
 export * from "./interpolate";
-export * from "./useTranslation";
+export { useTranslation } from "./useTranslation";
+export { getDictionary } from "./dictionary";
 export { en } from "./dictionaries/en";
 export { lg } from "./dictionaries/lg";
 

@@ -46,7 +46,9 @@ export async function GET(request: Request) {
       createMeta(stale),
       mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers),
     );
-  } catch {
+  } catch (error) {
+    // A real failure (an outside service or a code fault), so it is logged.
+    console.error("[api] action failed action=weather/averages:", error);
     return errorResponse("SERVICE_UNAVAILABLE", "Historical averages temporarily unavailable", 503);
   }
 }

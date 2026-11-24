@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- A place name typed into someone else's link is never shown. The place opens as "Shared place" near its district and its name is looked up on our own server from the point on the map. Places a person chose in the app keep their names. The AI is told that the place name is a name, never an instruction. Short scam words are matched as whole words, and words made of digit lookalike letters (such as "OOO") are refused.
 - Place names and labels from links and saved settings now go through an allow list: Latin letters (including ŋ), spaces, apostrophes, hyphens, commas, full stops, and brackets, with at most two digits. Hidden characters are removed first, joined up and spaced out scam words in English and Luganda are caught, and web address shapes are refused. This closes the hidden character, other alphabet, and lookalike digit tricks found in the third attack pass.
 - Farming advice for a shared place is built for each visitor from their own place, so it can no longer carry the name another visitor sent. Place labels are no longer sent to the AI advisor.
 - Alert routes with encoded characters are refused, broken map service replies count as busy, and identical searches during a busy spell share one unsaved list.
@@ -164,6 +165,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Farming advice works again on the live site. It had answered 503 for everyone because server code read its words from a browser only file. The words now live in a plain shared file, storm alerts in Luganda use it too, a test stops any server file from importing a browser only file again, and weather routes now log real failures instead of hiding them.
+- Real villages with a slash in their name (such as Mbuule/masiko) or with letters like "bank" or "momo" inside a word (Tebankiza, Bumomolo) are no longer shown as "Shared place".
 - The Luganda feedback form no longer says thank you when a report could not be emailed or saved. It shows its "could not send" message instead. One address can send 5 reports a day.
 - The privacy page now says that the Luganda feedback form can take an optional email address, how reports are sent and kept, and that the Android and iOS apps send a phone alert token and the chosen district when storm alerts are allowed. The terms no longer say alerts are switched off. Both pages are updated in English and Luganda.
 - Broken numbers from a weather provider (missing, NaN, negative, or impossible values) no longer show up as "NaN" or "1000000000%" in the offline summary; the summary says plainly when no rain chance is known.

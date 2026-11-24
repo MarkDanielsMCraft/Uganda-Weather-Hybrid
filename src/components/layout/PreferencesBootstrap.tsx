@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { getDistrictBySlug } from "@/lib/districts";
 import { isWithinUganda } from "@/lib/places/uganda-bounds";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { openPlaceFromLink } from "@/lib/places/shared-link-place";
 
 export function detectDeviceUiLanguage(): "en" | "lg" {
   if (typeof navigator === "undefined") return "en";
@@ -103,16 +104,10 @@ export function PreferencesBootstrap() {
           Number.isFinite(lon) &&
           isWithinUganda(lat, lon)
         ) {
-          const parentDistrict = getDistrictBySlug(parent);
-          store.selectPlace({
-            key: placeKey,
-            name: placeName,
-            label: params.get("label")?.trim() || placeName,
-            lat,
-            lon,
-            parentDistrictSlug: parentDistrict?.slug ?? parent,
-            region: parentDistrict?.region ?? "central",
-          });
+          void openPlaceFromLink(
+            { key: placeKey, lat, lon, parentDistrictSlug: getDistrictBySlug(parent)?.slug },
+            usePreferencesStore,
+          );
         }
       }
       store.setHasHydrated(true);
