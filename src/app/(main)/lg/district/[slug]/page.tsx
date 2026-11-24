@@ -27,8 +27,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       path: `/lg/district/${district.slug}`,
-      ogTitle: title,
-      ogSubtitle: `Ekitundu kya ${district.region}, Uganda`,
       locale: "lg",
       languagePaths: {
         en: `/district/${district.slug}`,

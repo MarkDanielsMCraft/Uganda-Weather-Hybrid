@@ -9,8 +9,6 @@ export const metadata: Metadata = buildPageMetadata({
   title: "Uganda Weather | Embeera y'obudde mu Uganda",
   description: LUGANDA_DESCRIPTION,
   path: "/lg",
-  ogTitle: "Embeera y'obudde mu Uganda",
-  ogSubtitle: "Disitulikiti zonna 152 eza Uganda",
   locale: "lg",
   languagePaths: { en: "/", lg: "/lg" },
 });
