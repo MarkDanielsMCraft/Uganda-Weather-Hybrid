@@ -338,6 +338,16 @@ export async function generateHybridWeatherBriefing({
   }
 
   const ai = getFirebaseAiClient();
+  if (!ai && !isOnline) {
+    // The offline summary needs no Firebase client, so a missing or broken
+    // client configuration must not take offline answers away.
+    return savedForecastOutcome(
+      weather,
+      parsed.data.audience,
+      parsed.data.language,
+      parsed.data.customQuestion ? "offline" : "none",
+    );
+  }
   if (!ai) {
     console.warn("[ai-advisor] action blocked action=generate code=NOT_CONFIGURED");
     return {

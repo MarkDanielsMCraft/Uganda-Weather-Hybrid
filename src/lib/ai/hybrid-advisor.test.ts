@@ -217,6 +217,37 @@ describe("hybrid-advisor", () => {
     }
   });
 
+  it("still answers offline from the saved forecast when Firebase is not configured", async () => {
+    mockGetFirebaseAiClient.mockReturnValue(null);
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle({ stale: true }),
+      audience: "general",
+      language: "en",
+      isOnline: false,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.data.source).toBe("saved_forecast");
+    expect(mockGetGenerativeModel).not.toHaveBeenCalled();
+  });
+
+  it("reports the advisor as not ready online when Firebase is not configured", async () => {
+    mockGetFirebaseAiClient.mockReturnValue(null);
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle(),
+      audience: "general",
+      language: "en",
+      isOnline: true,
+    });
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.error.code).toBe("not_configured");
+    warnLog.mockRestore();
+  });
+
   it("answers from the forecast instead of an error when the cloud model fails online", async () => {
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
     mockGenerateContent.mockRejectedValue(Object.assign(new Error("server error"), { code: "fetch-error" }));
