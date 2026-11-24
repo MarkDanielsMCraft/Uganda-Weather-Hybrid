@@ -115,3 +115,15 @@ describe("Gemini voice request count", () => {
     expect(spoken).toContain("Sentence number 9");
   });
 });
+
+describe("twoPartSpeech", () => {
+  it("never drops a word, even from a long clause with no commas", async () => {
+    const { twoPartSpeech } = await import("@/lib/ai/advisor-voice");
+    const long = "word ".repeat(120).trim() + ". Second sentence here.";
+    const parts = twoPartSpeech(long);
+    expect(parts.length).toBeLessThanOrEqual(2);
+    expect(parts.join(" ").split(/\s+/).length).toBe(long.split(/\s+/).length);
+    const normal = "Rain is likely this afternoon. Keep crops covered. Wind is light.";
+    expect(twoPartSpeech(normal)).toEqual(["Rain is likely this afternoon.", "Keep crops covered. Wind is light."]);
+  });
+});

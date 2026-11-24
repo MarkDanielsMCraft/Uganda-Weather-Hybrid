@@ -943,11 +943,24 @@ export function splitTextForPipelinedSpeech(
   return chunks.slice(0, maxChunks);
 }
 
-function twoPartSpeech(text: string): string[] {
-  const [first, ...rest] = splitTextForPipelinedSpeech(text, 180, 40);
-  if (!first) return [];
-  const remainder = rest.join(" ").trim();
-  return remainder ? [first, remainder] : [first];
+const FIRST_PART_MAX_CHARS = 180;
+
+/** Splits only once, and never drops words: part one is the first sentence
+    (or the first 180 characters, cut at a space), and part two is exactly
+    everything after it. */
+export function twoPartSpeech(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  const sentenceEnd = trimmed.search(/[.!?](\s|$)/);
+  let cut = sentenceEnd >= 0 && sentenceEnd < FIRST_PART_MAX_CHARS ? sentenceEnd + 1 : -1;
+  if (cut < 0) {
+    if (trimmed.length <= FIRST_PART_MAX_CHARS) return [trimmed];
+    const space = trimmed.lastIndexOf(" ", FIRST_PART_MAX_CHARS);
+    cut = space > 0 ? space : FIRST_PART_MAX_CHARS;
+  }
+  const first = trimmed.slice(0, cut).trim();
+  const rest = trimmed.slice(cut).trim();
+  return rest ? [first, rest] : [first];
 }
 
 interface NeuralVoiceRoute {
@@ -1010,7 +1023,9 @@ export function prefetchVoiceClip({
     1500,
   );
   // Prefetch the first short sentence chunk so clicking Listen starts speaking instantly
-  const firstChunk = splitTextForPipelinedSpeech(payloadText)[0] ?? payloadText;
+  const firstChunk =
+    (shouldUseFirebaseNeuralTts ? twoPartSpeech(payloadText)[0] : splitTextForPipelinedSpeech(payloadText)[0])
+    ?? payloadText;
   const cacheKey = `${shouldUseFirebaseNeuralTts ? "fb-tts" : (sourceLanguage ?? language)}:${language}:${firstChunk}`;
   if (audioClipCache.has(cacheKey) || inflightPrefetches.has(cacheKey)) return;
 
