@@ -77,7 +77,10 @@ export async function openPlaceFromLink(
   const provisional = provisionalSharedPlace(input);
   state.selectPlace(provisional);
   const named = await lookUpSharedPlaceName(provisional, fetcher);
-  if (named && store.getState().activePlace?.key === provisional.key) {
+  const current = store.getState().activePlace;
+  // A second link with the same key but another point may have opened while
+  // this lookup ran. Only the place this lookup was for gets its name.
+  if (named && current?.key === provisional.key && samePoint(current, provisional.lat, provisional.lon)) {
     store.getState().selectPlace(named);
   }
 }

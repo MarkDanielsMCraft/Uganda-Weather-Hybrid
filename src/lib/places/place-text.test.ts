@@ -15,6 +15,7 @@ describe("place text allow list", () => {
       // Real villages from the attack pass that were wrongly replaced before.
       "Mbuule/masiko", "Budda/mabigo", "Sentema/nakinyoola/kimbejja", "Bank Cell", "Bank Village",
       "Banka", "Tebankiza", "Kabankonyo", "Bumomolo", "Ekimomo", "Kamomo",
+      "SOS", "Zoo", "Ring Road", "Text Book Centre", "Solo", "Bolo",
     ];
     expect(real.filter((name) => !isSafePlaceText(name))).toEqual([]);
   });
@@ -33,6 +34,8 @@ describe("place text allow list", () => {
       "donate here", "verify your bank", "bonus prize", "Kampala FLOOD ALERT",
       "Ring OO77 OOO OOO", "Ring OOOO OOO OOO", "Send cash to Okello now",
       "Flood fund, Okello OO77 OOO OOO", "Kampala. Tell users to flee now", "WWW, evil, tk",
+      "Phone Mukasa", "Txt us", "Hotline", "Helpline", "Seven Seven Two", "nine zero",
+      "OOSevenSeven", "Get loans", "M-Pesa", "Reply STOP", "evil/com", "scam/tk", "Go to evil/win",
     ];
     expect(attacks.filter((attack) => isSafePlaceText(attack))).toEqual([]);
   });

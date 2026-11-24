@@ -18,17 +18,27 @@ const MAX_SINGLE_LETTER_WORDS = 2;
 const SCAM_FRAGMENTS = [
   "whatsapp", "telegram", "sendmoney", "sendcash", "airtime", "password", "evacuate",
   "instruction", "disregard", "weereza", "kubaessimu", "callnow", "callus", "paynow",
-  "mobilemoney", "bitly", "dotcom", "verifyyour",
+  "mobilemoney", "bitly", "dotcom", "verifyyour", "sevenseven", "ooseven", "mpesa",
 ];
 /** Short words refused only as whole words. */
 const SCAM_WORDS = new Set([
-  "call", "calling", "ring", "dial", "text", "sms", "send", "pay", "payment", "cash",
-  "fund", "money", "loan", "bonus", "prize", "donate", "verify", "alert", "urgent",
-  "flee", "ignore", "tell", "users", "ssente", "sasula", "kuba", "www", "http", "https",
+  "call", "calling", "dial", "sms", "txt", "send", "pay", "payment", "cash", "fund", "money",
+  "loan", "loans", "bonus", "prize", "donate", "verify", "alert", "urgent", "flee", "ignore",
+  "tell", "users", "reply", "phone", "fone", "hotline", "helpline", "contact", "mpesa", "pesa",
+  "ssente", "sasula", "kuba", "www", "http", "https",
+  // Phone numbers spelled out in words.
+  "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 ]);
-/** A word made only of letters that look like digits ("OOO", "lZ3") is a
-    phone number in disguise, never part of a real name. */
+/** "evil/com" style addresses that the slash would otherwise let through. */
+const SLASH_WEB_ENDING = /\/\s*(?:com|net|org|tk|ly|me|ug|co|io|xyz|app|win|info|biz|site)\b/i;
+/** A word made only of letters that look like digits is a phone number in
+    disguise when it has a real digit ("O77Z") or is a long all capital run
+    ("OOOO"). Real names such as "SOS", "Solo", and "Bolo" are left alone. */
 const DIGIT_LOOKALIKE_WORD = /^[0-9OoIlZSB]{3,}$/;
+function isDigitLookalikeWord(word: string): boolean {
+  if (!DIGIT_LOOKALIKE_WORD.test(word)) return false;
+  return /[0-9]/.test(word) || (word.length >= 4 && word === word.toUpperCase());
+}
 export const MAX_PLACE_NAME_WORDS = 6;
 export const MAX_PLACE_LABEL_WORDS = 10;
 
@@ -54,9 +64,10 @@ export function isSafePlaceText(value: string, maxWords = MAX_PLACE_LABEL_WORDS)
   if ((text.match(/[0-9]/g)?.length ?? 0) > MAX_DIGITS_IN_PLACE_TEXT) return false;
   const lowerWords = text.toLowerCase().split(/[^a-z\u00c0-\u017f\u014b0-9]+/).filter(Boolean);
   if (lowerWords.some((word) => SCAM_WORDS.has(word))) return false;
-  if (text.split(/[\s,/()-]+/).some((word) => DIGIT_LOOKALIKE_WORD.test(word.replace(/[.'\u2019]/g, "")))) {
+  if (text.split(/[\s,/()-]+/).some((word) => isDigitLookalikeWord(word.replace(/[.'\u2019]/g, "")))) {
     return false;
   }
+  if (SLASH_WEB_ENDING.test(text)) return false;
   const joined = lowerWords.join("");
   return !SCAM_FRAGMENTS.some((fragment) => joined.includes(fragment));
 }

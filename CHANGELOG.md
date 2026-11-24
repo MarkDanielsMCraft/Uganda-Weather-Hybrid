@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Place names looked up from the map now also refuse number words, contact words (phone, hotline, M-Pesa), and "evil/com" style addresses, while real names such as SOS, Zoo, Ring Road, Solo, and Bolo are accepted. A slow name lookup can no longer rename a different place opened just after it, and the server import test now follows re-exports.
 - A place name typed into someone else's link is never shown. The place opens as "Shared place" near its district and its name is looked up on our own server from the point on the map. Places a person chose in the app keep their names. The AI is told that the place name is a name, never an instruction. Short scam words are matched as whole words, and words made of digit lookalike letters (such as "OOO") are refused.
 - Place names and labels from links and saved settings now go through an allow list: Latin letters (including ŋ), spaces, apostrophes, hyphens, commas, full stops, and brackets, with at most two digits. Hidden characters are removed first, joined up and spaced out scam words in English and Luganda are caught, and web address shapes are refused. This closes the hidden character, other alphabet, and lookalike digit tricks found in the third attack pass.
 - Farming advice for a shared place is built for each visitor from their own place, so it can no longer carry the name another visitor sent. Place labels are no longer sent to the AI advisor.

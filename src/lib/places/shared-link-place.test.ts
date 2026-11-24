@@ -43,4 +43,27 @@ describe("opening a place from a link", () => {
     await openPlaceFromLink({ key: "x9", lat: 0.5, lon: 32.6 }, usePreferencesStore, fetcher);
     expect(usePreferencesStore.getState().activePlace?.name).toBe("Shared place");
   });
+
+  it("does not put the first link's name on a second link opened quickly with the same key", async () => {
+    let finishFirst: (value: Response) => void = () => undefined;
+    const slowFirst = vi.fn(
+      () => new Promise<Response>((resolve) => { finishFirst = resolve; }),
+    ) as unknown as typeof fetch;
+    const first = openPlaceFromLink({ key: "same", lat: 0.3461, lon: 32.6481 }, usePreferencesStore, slowFirst);
+    await openPlaceFromLink(
+      { key: "same", lat: 1.2, lon: 33.1 },
+      usePreferencesStore,
+      vi.fn(async () => new Response("busy", { status: 503 })) as unknown as typeof fetch,
+    );
+    finishFirst(
+      new Response(
+        JSON.stringify({ data: { place: { key: "gps", name: "Kyaliwajala B", label: "x", lat: 0.3461, lon: 32.6481, parentDistrictSlug: "kampala", region: "central" } } }),
+        { status: 200 },
+      ),
+    );
+    await first;
+    const active = usePreferencesStore.getState().activePlace;
+    expect(active?.lat).toBe(1.2);
+    expect(active?.name).toBe("Shared place");
+  });
 });
