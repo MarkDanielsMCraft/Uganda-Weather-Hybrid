@@ -29,8 +29,34 @@ function isDegradedBundle(value: unknown): boolean {
   );
 }
 
+/** Every distinct address can create an entry, so without a ceiling a script
+    could fill server memory. When full, expired entries go first, then the
+    oldest ones (a Map keeps the order entries were added). */
+const MAX_MEMORY_CACHE_ENTRIES = 5_000;
+
 const store = new Map<string, CacheEntry<unknown>>();
 const inflight = new Map<string, Promise<{ data: unknown; stale: boolean }>>();
+
+function makeRoomForOneEntry(now: number) {
+  if (store.size < MAX_MEMORY_CACHE_ENTRIES) return;
+  for (const [key, entry] of store) {
+    if (entry.expiresAt <= now) store.delete(key);
+  }
+  while (store.size >= MAX_MEMORY_CACHE_ENTRIES) {
+    const oldestKey = store.keys().next().value;
+    if (oldestKey === undefined) break;
+    store.delete(oldestKey);
+  }
+}
+
+export function memoryCacheSizeForTests(): number {
+  return store.size;
+}
+
+export function clearMemoryCacheForTests(): void {
+  store.clear();
+  inflight.clear();
+}
 
 export async function getCachedMemory<T>(
   key: string,
@@ -54,6 +80,8 @@ export async function getCachedMemory<T>(
       const data = await fetcher();
       const degraded = isDegradedBundle(data);
       const effectiveTtl = degraded ? Math.min(ttlSeconds, 15) : ttlSeconds;
+      store.delete(key);
+      makeRoomForOneEntry(Date.now());
       store.set(key, { value: data, expiresAt: Date.now() + effectiveTtl * 1000 });
       return { data, stale: false };
     } catch (error) {

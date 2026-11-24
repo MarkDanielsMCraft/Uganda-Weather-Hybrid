@@ -45,3 +45,48 @@ describe("resolveWeatherTarget", () => {
     if (!result.ok) expect(result.code).toBe("BAD_REQUEST");
   });
 });
+
+function target(query: string) {
+  return resolveWeatherTarget(new URLSearchParams(query));
+}
+
+const REAL = "place=village-101&name=Kireka&lat=0.3460&lon=32.6480&label=Kira%2C%20Wakiso";
+
+describe("resolveWeatherTarget cache keys", () => {
+  it("gives the same key to the same real place", () => {
+    const a = target(REAL);
+    const b = target(REAL);
+    expect(a.ok && b.ok && a.cacheKey === b.cacheKey).toBe(true);
+  });
+
+  it("keeps a request with a made up name out of the real visitors' entry", () => {
+    const real = target(REAL);
+    const planted = target(REAL.replace("name=Kireka", "name=Wrong%20Place"));
+    expect(real.ok && planted.ok).toBe(true);
+    if (real.ok && planted.ok) expect(planted.cacheKey).not.toBe(real.cacheKey);
+  });
+
+  it("keeps a request with a moved point out of the real visitors' entry", () => {
+    const real = target(REAL);
+    const moved = target(REAL.replace("lat=0.3460", "lat=-3.9000"));
+    if (real.ok && moved.ok) expect(moved.cacheKey).not.toBe(real.cacheKey);
+  });
+
+  it("refuses a label with a phone number, as the attack pass sent it", () => {
+    const result = target(
+      "place=pentest-key-1&name=POISONED%20NAME&lat=-3.9&lon=29.1&label=Fake%20label%20call%200772000000",
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses names with links, emails, or markup", () => {
+    for (const name of ["www.scam.ug", "help%40scam.ug", "%3Cscript%3E", "call%20https%3A%2F%2Fx.ug"]) {
+      expect(target(`place=village-1&name=${name}&lat=0.3&lon=32.5`).ok).toBe(false);
+    }
+  });
+
+  it("still accepts real place names with apostrophes and brackets", () => {
+    expect(target("place=village-2&name=Ng%27ombe&lat=0.3&lon=32.5").ok).toBe(true);
+    expect(target("place=airport-ebb&name=Entebbe%20(EBB)&lat=0.04&lon=32.44").ok).toBe(true);
+  });
+});

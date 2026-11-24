@@ -1,6 +1,8 @@
-import { getAllDistricts } from "@/lib/districts";
+import { getAllDistricts, getDistrictBySlug } from "@/lib/districts";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { AIRPORTS, MOUNTAIN_PEAKS, NATIONAL_PARKS } from "@/lib/places/points-of-interest";
+import { isSafePlaceText } from "@/lib/validation/schemas";
+import type { WeatherBundle } from "@/types/weather";
 
 export interface InstantReply {
   text: string;
@@ -84,6 +86,39 @@ function normalizeInput(raw: string): string {
 
 function stripTrailingPunctuation(text: string): string {
   return text.replace(/[!?.:,;]+$/g, "").trim().toLowerCase();
+}
+
+const MAX_PROMPT_PLACE_TEXT = 80;
+
+/** Place names reach the AI's own instructions, where nothing checks them
+    the way the user's question is checked. Text that looks planted (phone
+    numbers, links, markup) is dropped, and the rest keeps only the letters
+    and punctuation real place names use. */
+export function cleanPromptPlaceText(raw: string | undefined): string | undefined {
+  if (typeof raw !== "string" || !isSafePlaceText(raw)) return undefined;
+  const cleaned = raw
+    .replace(/[^\p{L}\p{M}\p{Nd}\s'’.,()-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_PROMPT_PLACE_TEXT)
+    .trim();
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+export function withPromptSafePlaceText(weather: WeatherBundle): WeatherBundle {
+  const district = weather.district;
+  if (!district) return weather;
+  const parentName = district.parentDistrictSlug
+    ? getDistrictBySlug(district.parentDistrictSlug)?.name
+    : undefined;
+  return {
+    ...weather,
+    district: {
+      ...district,
+      name: cleanPromptPlaceText(district.name) ?? parentName ?? "this place",
+      placeLabel: cleanPromptPlaceText(district.placeLabel),
+    },
+  };
 }
 
 export function sanitizeUserMessage(raw: string): string {

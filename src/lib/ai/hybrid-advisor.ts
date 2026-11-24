@@ -14,6 +14,7 @@ import {
   matchInstantSocialReply,
   redactPiiForCloud,
   sanitizeUserMessage,
+  withPromptSafePlaceText,
 } from "@/lib/ai/advisor-guard";
 import {
   AdvisorRequestInputSchema,
@@ -258,7 +259,7 @@ function savedForecastOutcome(
 }
 
 export async function generateHybridWeatherBriefing({
-  weather,
+  weather: rawWeather,
   audience,
   language,
   customQuestion,
@@ -286,6 +287,7 @@ export async function generateHybridWeatherBriefing({
   onPhaseChange?: (phase: BriefingPhase) => void;
   onChunk?: (accumulatedText: string) => void;
 }): Promise<WeatherBriefingOutcome> {
+  const weather = withPromptSafePlaceText(rawWeather);
   const isLg = language === "lg";
   const sanitizedQuestion =
     typeof customQuestion === "string" ? sanitizeUserMessage(customQuestion) : undefined;

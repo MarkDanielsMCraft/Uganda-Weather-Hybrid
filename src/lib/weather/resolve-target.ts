@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getDistrictBySlug } from "@/lib/districts";
 import { createPlaceLocation, districtFromPlace } from "@/lib/places/district-from-place";
 import { placeWeatherCacheKey } from "@/lib/places/types";
@@ -12,6 +13,27 @@ export const BUNDLE_CACHE_VERSION = "v6";
 
 export function weatherBundleCacheKey(slugOrPlaceKey: string): string {
   return `ug:weather:${slugOrPlaceKey}:bundle:${BUNDLE_CACHE_VERSION}`;
+}
+
+/** The saved forecast for a place holds its name, label, and point, all sent
+    in the address. Putting every one of them in the key means a request with
+    made up values only ever fills its own entry, never the one real visitors
+    read, so nobody can plant text or a wrong location for other people. */
+function placeFingerprint(place: {
+  name: string;
+  label?: string;
+  lat: number;
+  lon: number;
+  parentDistrictSlug?: string;
+}): string {
+  const canonical = JSON.stringify([
+    place.name,
+    place.label ?? "",
+    place.lat.toFixed(4),
+    place.lon.toFixed(4),
+    place.parentDistrictSlug ?? "",
+  ]);
+  return createHash("sha256").update(canonical).digest("hex").slice(0, 16);
 }
 
 export function resolveWeatherTarget(searchParams: URLSearchParams): ResolvedWeatherTarget {
@@ -37,7 +59,7 @@ export function resolveWeatherTarget(searchParams: URLSearchParams): ResolvedWea
     return {
       ok: true,
       district: districtFromPlace(place),
-      cacheKey: weatherBundleCacheKey(placeWeatherCacheKey(place)),
+      cacheKey: weatherBundleCacheKey(`${placeWeatherCacheKey(place)}:${placeFingerprint(place)}`),
     };
   }
 

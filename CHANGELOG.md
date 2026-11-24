@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- Nobody can plant a fake place name, wrong location, or scam phone number in the saved forecast that other people see. The saved copy for a place is now tied to every detail in the request, place names and labels with phone numbers, links, emails, or markup are refused, and place text is cleaned again before it reaches the AI advisor. The server keeps at most 5,000 saved copies in memory.
 - Rate limits can no longer be dodged by changing the district name in the address: all district detail pages share one count, only the first four path parts form the key, at most 20,000 keys are kept, and the memory sweep runs at most every 10 seconds.
 - Paid voice calls have a monthly ceiling per route (`VOICE_MONTHLY_BUDGET`, 20,000 by default; cached clips do not count). A script that fakes browser headers can no longer run up an unlimited voice bill; once the ceiling is reached the app falls back to the browser voice.
 - The same site check trusts the real Host header before X-Forwarded-Host, which a client can forge.
@@ -146,6 +147,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- The privacy page now says that the Luganda feedback form can take an optional email address, how reports are sent and kept, and that the Android and iOS apps send a phone alert token and the chosen district when storm alerts are allowed. The terms no longer say alerts are switched off. Both pages are updated in English and Luganda.
 - Broken numbers from a weather provider (missing, NaN, negative, or impossible values) no longer show up as "NaN" or "1000000000%" in the offline summary; the summary says plainly when no rain chance is known.
 - An SMS made from a reply that holds only in app notes is no longer empty.
 - Offline answers no longer depend on the Firebase client being configured; before, a missing client configuration showed "not ready" offline even though the saved forecast summary needs no Firebase.

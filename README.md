@@ -65,16 +65,28 @@ flowchart LR
   Question["You ask by typing, talking, or sending a photo"] --> Privacy["Phone numbers, emails, ID numbers, and photo locations are removed"]
   Forecast["The real forecast for your place"] --> Privacy
   Privacy --> Signal{"Do you have internet?"}
-  Signal -->|"No"| Nano{"Does this phone have Gemini Nano?"}
+  Signal -->|"No"| Nano{"Is the question in English, and does this phone have Gemini Nano?"}
   Nano -->|"Yes"| OnPhone["Answered on the phone, no data used"]
   Nano -->|"No"| Summary["Short safety summary from the forecast numbers, no AI"]
   Signal -->|"Yes"| PhoneFirst["Tries the phone first to save data"]
-  PhoneFirst -->|"Luganda, photos, or no phone model"| Cloud["Gemini in the cloud through Firebase"]
+  PhoneFirst -->|"Luganda, photos, comparing districts, or no phone model"| Cloud["Gemini in the cloud through Firebase"]
   Cloud -->|"Busy or fails"| Summary
   OnPhone --> Answer["Answer with a Go, Caution, or Wait verdict, read aloud, ready to share"]
   PhoneFirst --> Answer
   Cloud --> Answer
   Summary --> Answer
+```
+
+The forecast itself comes from weather services, with backups in case one is down.
+
+```mermaid
+flowchart LR
+  First["Open-Meteo, asked first"] -->|"Down or no answer"| Second["WeatherAPI.com, the backup"]
+  Second -->|"Down or no answer"| Third["Pirate Weather, the last backup"]
+  First --> Server["Uganda Weather server puts the forecast together"]
+  Second --> Server
+  Third --> Server
+  Server --> Phone["Your phone shows it and saves a copy for when there is no signal"]
 ```
 
 The routing lives in `src/lib/ai/hybrid-advisor.ts`. It picks a Firebase AI Logic inference mode for every question.
@@ -130,7 +142,7 @@ Between November 11 and 30, 2026, I built
 - the photo checks and the live camera,
 - the low data page, SMS and WhatsApp sharing, the large text and high contrast switches, and community safety warnings (sun protection for people with albinism, livestock heat and water in Karamoja, and landslide watch on mountain slopes),
 - layouts checked from tiny feature phone screens to desktop,
-- and 681 automated unit tests plus 27 browser tests.
+- and 690 automated unit tests plus 27 browser tests.
 
 ## Try it offline
 

@@ -16,12 +16,27 @@ const coordNumber = (min: number, max: number) =>
     z.coerce.number().finite().min(min).max(max),
   );
 
+/** Real Ugandan place names and labels never carry phone numbers, links,
+    emails, or markup. Refusing them keeps planted scam text out of the
+    forecast screen and out of the AI advisor's instructions. */
+const PLACE_TEXT_BLOCKED = /https?:|www\.|@|[<>{}\[\]`\\]|[\u0000-\u001f\u007f]/i;
+const MAX_DIGITS_IN_PLACE_TEXT = 4;
+
+export function isSafePlaceText(value: string): boolean {
+  if (PLACE_TEXT_BLOCKED.test(value)) return false;
+  const digits = value.match(/\p{Nd}/gu)?.length ?? 0;
+  return digits <= MAX_DIGITS_IN_PLACE_TEXT;
+}
+
+const placeTextSchema = (min: number, max: number) =>
+  z.string().min(min).max(max).refine(isSafePlaceText, "Place text is not allowed");
+
 export const placeWeatherQuerySchema = z.object({
   place: z.string().min(2).max(120),
-  name: z.string().min(2).max(120),
+  name: placeTextSchema(2, 120),
   lat: coordNumber(-4, 5),
   lon: coordNumber(29, 36),
-  label: z.string().max(160).optional(),
+  label: placeTextSchema(0, 160).optional(),
   parent: districtSlugSchema.optional(),
 });
 
