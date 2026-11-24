@@ -32,10 +32,6 @@ export function isSunbirdConfigured(): boolean {
   return Boolean(getSunbirdApiToken());
 }
 
-export function isEnglishCloudVoiceEnabled(): boolean {
-  return process.env.VOICE_ENGLISH_CLOUD_ENABLED?.trim().toLowerCase() === "true";
-}
-
 export interface SynthesizedAudio {
   audio: ArrayBuffer;
   contentType: string;

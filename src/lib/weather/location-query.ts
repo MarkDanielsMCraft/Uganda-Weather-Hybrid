@@ -35,6 +35,10 @@ const CITY_QUERY_SLUGS = new Set([
 ]);
 
 export function coordinatesForWeather(district: District) {
+  // A place's slug is the key sent in the address, so a place named "gulu"
+  // must never pick up Gulu's fixed point. Places always use their own point,
+  // which is also the point their saved weather is filed under.
+  if (district.isPlace) return district.coordinates;
   return WEATHER_COORD_OVERRIDES[district.slug] ?? district.coordinates;
 }
 
