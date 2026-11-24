@@ -23,7 +23,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - When the cloud model fails or returns nothing while online, the Weather Advisor answers with the same forecast based summary instead of an error, with a short note that the AI could not answer just then (`src/lib/ai/hybrid-advisor.ts`, `src/lib/ai/offline-briefing.ts`). Failures are still logged and reported.
 - Browser tests for the offline saved forecast answer (`e2e/advisor-offline.spec.ts`) and for full words on `/lite` at 240x320 in English and Luganda (`e2e/lite-small-screen.spec.ts`).
-- Offline answers on every phone: when there is no internet and no on-device model, or Luganda is asked offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
+- Every phone now gets an offline answer. When there is no internet and no on device model, or someone asks in Luganda while offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
 - `WEATHER_PRIMARY_PROVIDER` setting (`weatherapi` by default, or `open-meteo`) to choose which forecast provider is asked first; the other becomes the backup, then Pirate Weather (`src/lib/weather/provider.ts`).
 - `API_RATE_LIMIT_PER_MINUTE` setting for the per route, per address request limit.
 - The floating advisor button steps aside while people scroll down to read and returns when they scroll up (`src/hooks/useHideOnScrollDown.ts`).
@@ -95,7 +95,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- Natural voice order for English: the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
+- The README, CONTRIBUTING, and SECURITY files are rewritten in plain everyday English, with simple diagram labels and up to date test counts.
+- English answers now use the most natural voice first. The order is the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
 - Spoken audio is fetched only when someone taps or focuses Listen, never on page load, so no quota or mobile data is spent unless asked.
 - Rate limits now count per route and per address with a default of 240 requests a minute, so many people sharing one mobile network address are not blocked together; expired entries are cleared from memory.
 - Phones with 2 GB of memory get the still weather scene instead of the animation, saving battery on entry level Android phones.
@@ -149,10 +150,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - An SMS made from a reply that holds only in app notes is no longer empty.
 - Offline answers no longer depend on the Firebase client being configured; before, a missing client configuration showed "not ready" offline even though the saved forecast summary needs no Firebase.
 - SMS messages use only basic SMS characters (`24C`, Luganda `ŋ` written as `ng'`), so one forecast fits one paid SMS; advisor replies are limited to two SMS parts ending on a full sentence, without in app notes. The SMS link format now also fills in the message on iPhone.
-- Small screens: the `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
+- Small screens work better. The `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
 - The header place pill now reads its place name to screen readers.
 - Removed the footer emoji and third party coffee link; Google Analytics no longer falls back to a hard coded ID.
-- Luganda spelling: "Weereza" on the `/lite` sharing card.
+- The Luganda word "Weereza" on the `/lite` sharing card is now spelled correctly.
 - Mobile Voice Reader playback reliability on iOS and Android browsers (`src/lib/ai/advisor-voice.ts`, `src/components/settings/WeatherListenButton.tsx`, `src/components/settings/LiteListenButton.tsx`): primed the shared inline audio element unmuted inside the user tap gesture, removed src teardown between chunks, retained and chunked mobile browser speech utterances without idle cancel races, and prevented background header instances from cancelling active playback on capability hydration.
 - Home screen widgets on iOS and Android no longer show made up weather when a reading is missing. Stand in values such as wind "6 km/h", humidity "65%", UV "3 Mod", "AQI Good", sunrise "6:42 AM", sunset "6:51 PM", a fixed lake wave height, a fixed "12h 09m" daylight length, and "Bimodal Rainy Season" are replaced with `--` or "not available". Missing temperatures no longer show as "0°".
 - Android widgets other than Forecast kept the layout's sample values ("Kampala", "22°", "Tue 19° 28°") when no data was saved or the data could not be read. Every widget now sets every field on every update, and forecast rows with no data are hidden.
@@ -251,8 +252,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Hourly and 10 day forecasts, with a dense, balanced tile layout on every screen size.
 - Severe weather alerts sourced from Uganda's official CAP feed.
 - Air quality index and pollutant breakdown (PM2.5, PM10, ozone, and more).
-- Agriculture advisory: season outlook, soil moisture, crop guidance, and a weekly rain chance chart.
-- Fishing safety conditions for four lakes: Victoria, Kyoga, Albert, and Edward.
+- Farming advice with the season outlook, soil moisture, crop tips, and a weekly rain chance chart.
+- Fishing safety conditions for Lake Victoria, Lake Kyoga, Lake Albert, and Lake Edward.
 - National park weather for Uganda's 10 gazetted parks.
 - Mountain weather for 5 major summit points, with an accuracy note about high altitude readings.
 - Airport weather (METAR) for 6 reporting Ugandan airports, sourced from official aviation weather reports.
@@ -273,7 +274,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [0.1.0] - 2026-07-07
 
-- Initial project scaffold: Next.js App Router, TypeScript, Tailwind, weather provider integration, and the core district weather screen.
+- The first version of the project, built with Next.js, TypeScript, and Tailwind, with forecasts from a weather provider and the main district weather screen.
 
 [unreleased]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/MarkDanielsMCraft/Uganda-Weather-Hybrid/compare/v1.0.0...v1.1.0

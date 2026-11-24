@@ -1,29 +1,30 @@
-# Contributing to Uganda Weather
+# Helping with Uganda Weather
 
-Thank you for contributing.
+Thank you for helping.
 
-## Development workflow
+## How to work on a change
 
-1. Branch from `dev` using a clear branch name such as `feat/hybrid-advisor` or `fix/forecast-cache`.
-2. Write plain, well tested TypeScript and React code.
-3. Add unit or component tests for new logic and regression tests for bug fixes.
-4. Update `README.md`, `CHANGELOG.md`, or `openapi.yaml` if behaviour or API contracts change.
-5. Open a pull request targeting `dev` (promotions flow `dev` -> `staging` -> `main`).
+1. Make a new branch from `dev` with a clear name, such as `feat/hybrid-advisor` or `fix/forecast-cache`.
+2. Write simple TypeScript and React code that is easy to read.
+3. Add tests for new code, and a test that repeats any bug you fix.
+4. Try to break your change before you share it. Send odd input, change IDs in the address, go offline, and try a very small screen.
+5. Update `README.md`, `CHANGELOG.md`, or `openapi.yaml` if what the app does or what the API returns has changed.
+6. Open a pull request into `dev`. Changes then move from `dev` to `staging`, and from `staging` to `main`.
 
 ## Commit messages
 
-Write short, clear prose sentences describing what changed and why.
+Write one short, clear sentence that says what changed and why.
 
-## Pull request checklist
+## Before you open a pull request
 
-- [ ] `pnpm lint` passes with zero warnings
+- [ ] `pnpm lint` passes with no warnings
 - [ ] `pnpm typecheck` passes
 - [ ] `pnpm test` passes
 - [ ] `pnpm build` passes
 - [ ] `pnpm guards` passes
-- [ ] API changes reflected in `openapi.yaml`
-- [ ] No secrets, API keys, or local paths committed
+- [ ] Any API change is also written in `openapi.yaml`
+- [ ] No passwords, keys, or personal folder paths are in the change
 
 ## Questions
 
-Open an issue or discussion on this repository.
+Open an issue or a discussion on this repository.
