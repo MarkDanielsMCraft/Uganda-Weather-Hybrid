@@ -88,7 +88,7 @@ export function LiteDistrictPicker({
         onClick={() => setOpen((prev) => !prev)}
         className="flex min-h-[42px] w-full items-center justify-between gap-2 rounded-full border border-white/[0.16] bg-[rgba(18,20,34,0.78)] px-4 py-2 text-left text-[14px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-xl transition hover:border-white/25 hover:bg-[rgba(24,26,42,0.88)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
       >
-        <span className="truncate">{selectedDistrict?.name ?? selectedSlug}</span>
+        <span className="min-w-0 break-words text-left">{selectedDistrict?.name ?? selectedSlug}</span>
         <svg
           viewBox="0 0 12 12"
           fill="none"
@@ -144,7 +144,7 @@ export function LiteDistrictPicker({
                         : "text-[#f8fafc] hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <span className="truncate">{item.name}</span>
+                    <span className="min-w-0 break-words">{item.name}</span>
                     {active && (
                       <svg
                         viewBox="0 0 16 16"
