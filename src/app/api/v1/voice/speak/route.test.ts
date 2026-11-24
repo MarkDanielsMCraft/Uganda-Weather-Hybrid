@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const synthesizeSunbirdSpeech = vi.fn();
 const synthesizeEnglishNeuralSpeech = vi.fn();
-const flags = { sunbird: true, englishCloud: false, gemini: false };
+const flags = { sunbird: true, gemini: false };
 
 vi.mock("@/lib/voice/sunbird", () => ({
   isSunbirdConfigured: () => flags.sunbird,
-  isEnglishCloudVoiceEnabled: () => flags.englishCloud,
   synthesizeSunbirdSpeech: (...args: unknown[]) => synthesizeSunbirdSpeech(...args),
 }));
 
@@ -38,36 +37,21 @@ const AUDIO = { audio: new ArrayBuffer(4), contentType: "audio/mpeg" };
 describe("POST /api/v1/voice/speak", () => {
   beforeEach(() => {
     flags.sunbird = true;
-    flags.englishCloud = false;
     flags.gemini = false;
     quota.allowed = true;
     synthesizeSunbirdSpeech.mockReset().mockResolvedValue(AUDIO);
     synthesizeEnglishNeuralSpeech.mockReset().mockResolvedValue(AUDIO);
   });
 
-  it("does not send English to the Luganda voice service unless the owner turns it on", async () => {
+  it("never sends English to the slow Luganda voice service", async () => {
     const response = await POST(speakRequest("Rain likely in Gulu.", "en"));
 
     expect(response.status).toBe(503);
     expect(synthesizeSunbirdSpeech).not.toHaveBeenCalled();
   });
 
-  it("uses English through the Luganda voice service when the owner turns it on", async () => {
-    flags.englishCloud = true;
-
-    const response = await POST(speakRequest("Rain likely in Mbale.", "en"));
-
-    expect(response.status).toBe(200);
-    expect(synthesizeSunbirdSpeech).toHaveBeenCalledWith(
-      "Rain likely in Mbale.",
-      "en",
-      expect.anything(),
-    );
-  });
-
   it("prefers the Gemini voice for English when it is set up", async () => {
     flags.gemini = true;
-    flags.englishCloud = true;
 
     const response = await POST(speakRequest("Wind on Lake Victoria.", "en"));
 
