@@ -94,7 +94,7 @@ const PII_REDACTION_PATTERNS: readonly RegExp[] = [
   // Email addresses
   /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
   // Uganda National ID (NIN: CM/CF + 12 alphanumeric chars)
-  /\b(?:CM|CF)[A-Z0-9]{12}\b/g,
+  /\b(?:CM|CF)[A-Z0-9]{12}\b/gi,
   // Ugandan mobile numbers (+256 7XX XXX XXX or 07XX XXX XXX)
   /(?<!\d)(?:\+?256[\s.-]?|0)7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g,
   // International phone numbers (+CC XXX XXX XXXX)

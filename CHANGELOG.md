@@ -6,17 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-### Fixed
+### Security
 
-- Mobile Voice Reader playback reliability on iOS and Android browsers (`src/lib/ai/advisor-voice.ts`, `src/components/settings/WeatherListenButton.tsx`, `src/components/settings/LiteListenButton.tsx`): primed the shared inline audio element unmuted inside the user tap gesture, removed src teardown between chunks, retained and chunked mobile browser speech utterances without idle cancel races, and prevented background header instances from cancelling active playback on capability hydration.
+- Paid voice routes and data writing routes (`/api/v1/voice/speak`, `/voice/translate`, `/voice/transcribe`, `/feedback/luganda`, `/observability/advisor-error`, `/push/register`) refuse requests that the browser marks as coming from another website (`rejectCrossSiteRequest` in `src/lib/api/route-utils.ts`), so other sites cannot spend this app's voice and AI quota.
+- The speak route only sends English to the Luganda voice service when `VOICE_ENGLISH_CLOUD_ENABLED=true`, closing a path that let anyone use that paid key for English.
+- Cron and push dispatch secrets are compared in constant time (`src/lib/api/bearer-secret.ts`).
+- National ID redaction before cloud calls now also catches lowercase ID numbers.
+- Android widget data now arrives through the `WidgetData` Capacitor plugin, which Capacitor only accepts from the main page of the app's allowed sites. The old `WidgetBridge` JavaScript interface, which also accepted calls from embedded frames, is removed from the app. The website still calls it as a fallback for app builds already installed on phones.
+- Added a CodeQL workflow that scans the web app and the Android source on pushes, pull requests, and weekly.
+- Added automatic dependency updates (`.github/dependabot.yml`) for the web packages (daily), Android build tooling, and workflow actions (weekly), all aimed at `dev`.
 
 ### Added
 
+- Offline answers on every phone: when there is no internet and no on-device model, or Luganda is asked offline, the Weather Advisor answers with a safety summary built only from the saved forecast, clearly labelled `Saved forecast` / `Obudde obuterekeddwa` (`src/lib/ai/offline-briefing.ts`).
+- `WEATHER_PRIMARY_PROVIDER` setting (`weatherapi` by default, or `open-meteo`) to choose which forecast provider is asked first; the other becomes the backup, then Pirate Weather (`src/lib/weather/provider.ts`).
+- `API_RATE_LIMIT_PER_MINUTE` setting for the per route, per address request limit.
+- The floating advisor button steps aside while people scroll down to read and returns when they scroll up (`src/hooks/useHideOnScrollDown.ts`).
+- Browser tests for SMS sharing on phones and computers (`e2e/share-sms.spec.ts`) and unit tests for the offline summary, voice routing, rate limits, scene capability, and the speak route.
 - Accessibility display controls (`AccessibilityControls.tsx` in `src/components/settings/`) adding persistent `Large text` and `High contrast` toggles across the home settings tile, search page, and `/lite` without resizing cards or shifting brand colours.
 - Community safety advisories (`src/lib/weather/community-safety.ts`) derived from existing forecast data: daytime High UV sun protection (covering outdoor workers, children, and persons with albinism), Karamoja and cattle corridor pastoralist livestock heat and water watch, and a 72 hour mountain slope landslide watch across mountain and landslide hazard districts.
 - Plain text SMS and WhatsApp forecast sharing (`src/lib/places/sms-share.ts` and `src/components/settings/VillageShareBar.tsx`) on `/lite` and completed Advisor replies so smartphone and feature phone users can forward daily forecasts and safety verdicts to neighbours on 2G basic phones with zero paid messaging APIs.
 - Offline parish and village search cache plus a bundled directory of major Ugandan towns and trading centres (`src/lib/places/offline-place-cache.ts`) wired into both top bar and search page autocomplete.
-- Pipelined sentence chunked neural voice playback with eager background pre warming (`src/lib/voice/narrator.ts`, `src/lib/ai/advisor-voice.ts`, `src/lib/voice/sunbird.ts`) reducing spoken playback startup latency while preventing overlapping voices and enforcing standard Luganda orthography (`Empandiika y'Oluganda Entongole`).
+- Pipelined sentence chunked neural voice playback (`src/lib/voice/narrator.ts`, `src/lib/ai/advisor-voice.ts`, `src/lib/voice/sunbird.ts`) reducing spoken playback startup latency while preventing overlapping voices and enforcing standard Luganda orthography (`Empandiika y'Oluganda Entongole`).
 - Privacy Shield for the Hybrid Weather Advisor (`redactPiiForCloud` in `src/lib/ai/advisor-guard.ts` and verified canvas EXIF APP1 stripping in `src/lib/ai/advisor-image.ts`) that redacts accidental phone numbers, emails, and national IDs before cloud calls and strips GPS/camera metadata from photos on device.
 - Native client side Firebase AI Logic Neural TTS (`src/lib/ai/firebase-tts.ts` using `gemini-3.1-flash-tts-preview` and `ResponseModality.AUDIO`), Firebase AI Logic Server Prompt Templates (`src/lib/ai/template-advisor.ts` via `getTemplateGenerativeModel`), and native `Schema.object` structured output definitions (`ADVISOR_STRUCTURED_OUTPUT_SCHEMA` in `src/lib/ai/advisor-tools.ts`), all dynamically controlled through Firebase Remote Config (`remoteconfig.template.json`).
 - Hands free Voice Companion Mode (`voiceMode` in `src/stores/preferencesStore.ts`) and Universal Page and Sheet Narrator (`src/lib/voice/narrator.ts`) delivering natural spoken briefings in English and standard Luganda across the home screen, Lite mode (`src/components/settings/LiteListenButton.tsx`), all detail sheets (`src/components/sheet/DetailSheet.tsx`), and automatic spoken replies in the Weather Safety Advisor.
@@ -30,7 +41,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Custom glass 404 Not Found page (`src/app/not-found.tsx` and `src/components/layout/NotFoundView.tsx`) localized in both English and Luganda with live atmospheric weather backdrop, brand mark, direct home and search actions, and quick links to major Ugandan cities and districts.
 - Luganda beta notice banner and modern glass issue reporting form (`POST /api/v1/feedback/luganda`) allowing users in Luganda mode to report translation, grammar, or layout issues directly to the language review inbox without exposing internal email addresses in client code.
 - Comprehensive Luganda language support with reactive English to Luganda switching across desktop and mobile interfaces, dark mode glass switcher control, centralized typed translation dictionary, and authentic meteorological phrasing calibrated against standard Luganda orthography (Empandiika y Oluganda Entongole).
-
 - Dedicated Android notification channel (`weather_alerts`) for severe weather alerts with high importance, vibration, amber notification tint, and a monochrome status bar storm icon (`ic_stat_weather_alert`).
 - Android home screen widget suite expanded to six native widgets: Forecast, Details, 5 Day Forecast, Air Quality, Agriculture, and Sunrise and Sunset, with dedicated titles, concise subtitles, and dynamic layout previews (`previewLayout`) displaying real glass cards, metrics, and icons in the widget picker.
 - Continuous horizontal marquee ticker for severe weather alerts in the Android Forecast widget with amber badge and smooth scrolling text.
@@ -49,7 +59,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Transparent application icons across web and desktop touch marks ensuring the Uganda silhouette and weather emblem render without artificial dark background tiles in desktop docks and home screens.
 - Home screen widget suite matching modern glanceable layouts across small, medium, and large families with horizontal hourly forecasts, five day outlook range bars, and specialized Agriculture and Air Quality widgets.
 - Card free download action in the application footer with vector icons and solid brand green navigation buttons that automatically reappear if the application is uninstalled.
-
 - Wind compass dial with a fine degree bezel, cardinal letters, a marker pinned to the exact bearing, and a center readout of the degree and compass point. The wind detail sheet shows a large dial with numerals every 30 degrees.
 - The cookie banner no longer appears inside the native mobile apps.
 - The mobile header now respects the top safe area so it never sits under the system status bar.
@@ -81,19 +90,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Natural voice order for English: the Firebase AI Logic Gemini voice first, then the server voice, then the browser voice, which now prefers Chrome's more natural "Google" voices. The server speak route tries Gemini before Sunbird for English.
+- Spoken audio is fetched only when someone taps or focuses Listen, never on page load, so no quota or mobile data is spent unless asked.
+- Rate limits now count per route and per address with a default of 240 requests a minute, so many people sharing one mobile network address are not blocked together; expired entries are cleared from memory.
+- Phones with 2 GB of memory get the still weather scene instead of the animation, saving battery on entry level Android phones.
+- SMS sharing is offered only on touch devices; on computers the browser would stop to ask before opening Messages. WhatsApp and Copy stay everywhere.
+- The privacy page explains where advisor questions, photos, and voice recordings go (Google Gemini through Firebase, Sunbird AI, reCAPTCHA) and how long spoken audio is kept.
+- README statistics now link to their sources; the disability figure is corrected to the UBOS 2024 census value.
 - Android now compiles and targets SDK 36 (Android 16), which the store requires for new apps and updates, using Android Gradle Plugin 8.13.0. Android builds need a Java 21 JDK.
 - iOS `Info.plist` declares `ITSAppUsesNonExemptEncryption = NO` and requires `arm64` devices instead of the old `armv7` value.
 - iOS widget names and descriptions use plain wording ("Sunrise and Sunset", "Air Quality", "Current weather, the next few hours, and the next 5 days") and no longer claim features the widgets do not have.
 - New `Native apps` workflow builds the Android app with its unit tests and the iOS app with its widget on every push and pull request.
 - New `pnpm check:native-version` guard, part of `pnpm guards`, fails when the Xcode project version does not match `package.json` or the app and widget build numbers differ.
 - Added the mobile release runbook (`docs/24-mobile-release-runbook.md`) and Java 21 setup notes.
-
 - Unified the weather alert card with standard glass tiles, replacing custom advisory headers with standard Warning, Caution, or Alert titles and removing external API provider declarations.
 - Restructured Android Forecast and Daily Forecast home screen widgets into a balanced two column glass layout with current conditions on the left and a five day forecast with horizontal temperature range bars on the right, eliminating unused vertical space and adhering strictly to the dark glass surface system. Replaced solid amber widget alert badge with frosted dark glass and white text, and eliminated all yellow and gold gradients from range bars and atmospheric backgrounds.
 - Display official brand logo at the top of README and synchronize all developer documentation with the shipped architecture.
 - Removed the text wordmark from desktop top bar and mobile header across apps and website, keeping the clean weather emblem glyph linked to the home view.
 - Redesigned offline fallback screen with full country map background, high contrast weather emblem, and retry button matching the launch visual style.
-
 - Prevented the hourly forecast strip from duplicating the current hour right after Now when crossing an hour boundary or when provider timestamps lag behind wall clock time, aligned Now precipitation probability to the current hour rather than midnight or daily totals, guaranteed sunrise and sunset markers in the hourly strip from astronomy data, and replaced gusts and main driver phrasing with plain everyday English.
 - Added strong downward pull and overscroll dismissal directly inside open detail cards so pulling down firmly within the card body closes it without needing to tap outside or press the close button, fixed WeatherAPI 12 hour sunrise and sunset timestamp parsing so sunrise and sunset markers always appear in the hourly strip, fixed late evening hour graph slicing in the conditions sheet, replaced bimodal and unimodal labels with plain seasonal wording, and removed the pulsing map pin ring.
 - Simplified agriculture and district copy to use natural everyday words (gardens, region, planting time, dry weather, and clear sentence case), removed the redundant shoreline subtitle from lake views, and improved mobile subtitle contrast and phrasing across home tiles.
@@ -125,6 +139,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added test report output artifacts to lint ignore patterns.
 
 ### Fixed
+
+- SMS messages use only basic SMS characters (`24C`, Luganda `ŋ` written as `ng'`), so one forecast fits one paid SMS; advisor replies are limited to two SMS parts ending on a full sentence, without in app notes. The SMS link format now also fills in the message on iPhone.
+- Small screens: the `/lite` header wraps instead of clipping, the rain, wind, and humidity tiles and the next days list no longer cut words short, share buttons stack and meet the 44 px touch size, the compact home header keeps the place name readable, sunrise and sunset times are no longer cut, and long district names fit in the desktop chip row.
+- The header place pill now reads its place name to screen readers.
+- Removed the footer emoji and third party coffee link; Google Analytics no longer falls back to a hard coded ID.
+- Luganda spelling: "Weereza" on the `/lite` sharing card.
+- Mobile Voice Reader playback reliability on iOS and Android browsers (`src/lib/ai/advisor-voice.ts`, `src/components/settings/WeatherListenButton.tsx`, `src/components/settings/LiteListenButton.tsx`): primed the shared inline audio element unmuted inside the user tap gesture, removed src teardown between chunks, retained and chunked mobile browser speech utterances without idle cancel races, and prevented background header instances from cancelling active playback on capability hydration.
 - Home screen widgets on iOS and Android no longer show made up weather when a reading is missing. Stand in values such as wind "6 km/h", humidity "65%", UV "3 Mod", "AQI Good", sunrise "6:42 AM", sunset "6:51 PM", a fixed lake wave height, a fixed "12h 09m" daylight length, and "Bimodal Rainy Season" are replaced with `--` or "not available". Missing temperatures no longer show as "0°".
 - Android widgets other than Forecast kept the layout's sample values ("Kampala", "22°", "Tue 19° 28°") when no data was saved or the data could not be read. Every widget now sets every field on every update, and forecast rows with no data are hidden.
 - Android widgets printed the word "null" for missing text values, because Android's JSON reader returns "null" for JSON null. A shared `optionalString` helper now treats null, missing, and blank values as missing.
@@ -161,7 +182,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Prevented push alert settings from reporting success when device registration or server token removal fails, and bounded native registration waits so users can retry.
 - Kept native weather widgets in an unavailable state when source values are missing or invalid instead of displaying guessed weather, and invalidated cached values from the previous widget schema.
 - Retried APNs push delivery through the sandbox endpoint when a development device token is rejected by the production endpoint.
-
 - Restored mobile top bar header with district pill button and refresh trigger, removing empty chip skeletons on mobile screens.
 - Removed screen blending mode on radar overlays so real precipitation echoes render clearly over OpenStreetMap base tiles.
 - Added live precipitation status to the expanded radar view and extended regional zoom range to level 6.
@@ -179,12 +199,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added automated RSA service account token minting and in memory caching for FCM HTTP v1 push alert delivery.
 - Replaced developer error copy in home screen with user friendly network guidance.
 - Added modern FCM HTTP v1 dispatch support with safe exception handling for push notification delivery.
-
-### Security
-
-- Android widget data now arrives through the `WidgetData` Capacitor plugin, which Capacitor only accepts from the main page of the app's allowed sites. The old `WidgetBridge` JavaScript interface, which also accepted calls from embedded frames, is removed from the app. The website still calls it as a fallback for app builds already installed on phones.
-- Added a CodeQL workflow that scans the web app and the Android source on pushes, pull requests, and weekly.
-- Added automatic dependency updates (`.github/dependabot.yml`) for the web packages (daily), Android build tooling, and workflow actions (weekly), all aimed at `dev`.
 
 ## [1.1.0] - 2026-09-05
 

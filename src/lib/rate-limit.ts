@@ -4,6 +4,16 @@ interface RateLimitBucket {
 }
 
 const buckets = new Map<string, RateLimitBucket>();
+/** Above this many tracked keys, expired buckets are swept out so memory does
+    not grow with every new visitor address for the life of the server. */
+const SWEEP_THRESHOLD = 5_000;
+
+function sweepExpiredBuckets(now: number): void {
+  if (buckets.size < SWEEP_THRESHOLD) return;
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -18,6 +28,7 @@ export function checkRateLimit(
   windowMs = 60_000,
 ): RateLimitResult {
   const now = Date.now();
+  sweepExpiredBuckets(now);
   const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {
@@ -47,4 +58,8 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
     "X-RateLimit-Remaining": String(result.remaining),
     "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
   };
+}
+
+export function trackedRateLimitKeysForTests(): number {
+  return buckets.size;
 }

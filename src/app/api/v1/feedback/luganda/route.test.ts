@@ -36,7 +36,7 @@ describe("POST /api/v1/feedback/luganda", () => {
     const request = new Request("http://localhost/api/v1/feedback/luganda", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": "196.43.100.12",
       },
       body: JSON.stringify({
@@ -79,7 +79,7 @@ describe("POST /api/v1/feedback/luganda", () => {
     const request = new Request("http://localhost/api/v1/feedback/luganda", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": "196.43.100.13",
       },
       body: JSON.stringify({
@@ -102,7 +102,7 @@ describe("POST /api/v1/feedback/luganda", () => {
     const request = new Request("http://localhost/api/v1/feedback/luganda", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": "196.43.100.14",
       },
       body: JSON.stringify({
@@ -121,7 +121,7 @@ describe("POST /api/v1/feedback/luganda", () => {
     const request = new Request("http://localhost/api/v1/feedback/luganda", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", "sec-fetch-site": "same-origin",
         "x-forwarded-for": "196.43.100.15",
       },
       body: JSON.stringify({
@@ -145,7 +145,7 @@ describe("POST /api/v1/feedback/luganda", () => {
         new Request("http://localhost/api/v1/feedback/luganda", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json", "sec-fetch-site": "same-origin",
             "x-forwarded-for": "196.43.100.99",
           },
           body: JSON.stringify({
@@ -161,7 +161,7 @@ describe("POST /api/v1/feedback/luganda", () => {
       new Request("http://localhost/api/v1/feedback/luganda", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", "sec-fetch-site": "same-origin",
           "x-forwarded-for": "196.43.100.99",
         },
         body: JSON.stringify({
@@ -181,7 +181,7 @@ describe("POST /api/v1/feedback/luganda", () => {
       new Request("http://localhost/api/v1/feedback/luganda", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", "sec-fetch-site": "same-origin",
           "x-forwarded-for": "196.43.100.55",
         },
         body: JSON.stringify({
@@ -204,7 +204,7 @@ describe("POST /api/v1/feedback/luganda", () => {
       new Request("http://localhost/api/v1/feedback/luganda", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", "sec-fetch-site": "same-origin",
           "x-forwarded-for": "196.43.100.55",
         },
         body: JSON.stringify({

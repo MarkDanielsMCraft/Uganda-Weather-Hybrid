@@ -111,15 +111,6 @@ export function AppFooter() {
           className="text-white/75 underline-offset-2 hover:text-white hover:underline"
         >
           MCraft
-        </a>{" "}
-        &middot;{" "}
-        <a
-          href="https://buymeacoffee.com/markdanielsmcraft"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-white/75 underline-offset-2 hover:text-white hover:underline"
-        >
-          {dict.legalPages.buyMeACoffee}
         </a>
       </p>
     </footer>

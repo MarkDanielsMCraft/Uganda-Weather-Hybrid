@@ -230,31 +230,6 @@ function WeatherListenButtonInner({
     voiceReady,
   ]);
 
-  // Eagerly pre-warm Chunk 1 in the background as soon as the screen's weather
-  // narration is ready so tapping Listen begins speaking immediately (< 100ms).
-  useEffect(() => {
-    if (!voiceReady || !hasNarrationSource || !payload.text || autoNarrateOnSheetChange) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      prefetchVoiceClip({
-        text: payload.text,
-        language: uiLanguage,
-        sourceLanguage: payload.sourceLanguage,
-        capabilities: serverCapabilities,
-      });
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [
-    autoNarrateOnSheetChange,
-    hasNarrationSource,
-    payload.sourceLanguage,
-    payload.text,
-    serverCapabilities,
-    uiLanguage,
-    voiceReady,
-  ]);
-
   if (!voiceReady || !hasNarrationSource) return null;
 
   const handlePrefetch = () => {
@@ -283,6 +258,7 @@ function WeatherListenButtonInner({
       onClick={handleToggle}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
+      onPointerDown={handlePrefetch}
       data-testid={testId}
       aria-pressed={isSpeaking}
       aria-label={

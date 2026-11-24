@@ -113,7 +113,7 @@ export function CityChipsTrack() {
         >
           <WeatherIcon theme={effectiveSummary.theme} icon={effectiveSummary.icon} size={20} className="shrink-0" animated={false} />
           <span className="flex flex-col leading-tight">
-            <span className="max-w-[92px] truncate text-[13px] font-medium text-white" style={{ textShadow: chipTextShadow }}>
+            <span className="max-w-[132px] truncate text-[13px] font-medium text-white" style={{ textShadow: chipTextShadow }}>
               {district.name}
             </span>
             <span className="text-[11px] text-white/70" style={{ textShadow: chipTextShadow }}>

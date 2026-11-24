@@ -1,3 +1,4 @@
+import { bearerTokenMatches } from "@/lib/api/bearer-secret";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
 import { cronPrefetchQuerySchema } from "@/lib/validation/schemas";
 import { prefetchDistrictAirQuality } from "@/lib/air-quality/prefetch";
@@ -13,7 +14,7 @@ function authorizeCron(request: Request) {
 
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return false;
-  return header.slice("Bearer ".length) === secret;
+  return bearerTokenMatches(header.slice("Bearer ".length), secret);
 }
 
 export async function GET(request: Request) {

@@ -361,7 +361,6 @@ export interface TranslationDictionary {
     attributionFooterPost: string;
     sourceRoles: Record<string, string>;
     madeWithPrefix: string;
-    buyMeACoffee: string;
   };
   districtRef: {
     aboutTitle: string;
@@ -634,6 +633,7 @@ export interface TranslationDictionary {
       tonightRisk: string;
     };
     sourceOnDevice: string;
+    sourceSavedForecast: string;
     sourceCloud: string;
     modeOnline: string;
     modeOffline: string;
@@ -666,6 +666,7 @@ export interface TranslationDictionary {
     voiceErrorEmpty: string;
     voiceErrorGeneral: string;
     listenReply: string;
+    shareReplySms: string;
     stopListenReply: string;
     photoButtonAria: string;
     photoTakeLive: string;

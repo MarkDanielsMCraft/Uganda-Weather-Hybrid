@@ -1,5 +1,5 @@
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
-import { mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { checkRateLimit, clientIpFromRequest, rateLimitHeaders } from "@/lib/rate-limit";
 import { isSunbirdConfigured, transcribeLugandaAudio } from "@/lib/voice/sunbird";
 
@@ -16,6 +16,9 @@ const MAX_AUDIO_BYTES = readPositiveInt(process.env.VOICE_MAX_AUDIO_BYTES, 4 * 1
 const VOICE_TIMEOUT_MS = readPositiveInt(process.env.VOICE_TIMEOUT_MS, 45_000, 58_000);
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "voice");
+  if (crossSite) return crossSite;
+
   const ip = clientIpFromRequest(request);
   const limitResult = checkRateLimit(
     `voice:transcribe:${ip}`,

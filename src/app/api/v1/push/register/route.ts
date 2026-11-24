@@ -1,10 +1,13 @@
 import { getDistrictBySlug } from "@/lib/districts";
 import { createMeta, errorResponse, jsonResponse } from "@/lib/cache";
-import { enforceRateLimit, mergeRateLimitHeaders } from "@/lib/api/route-utils";
+import { enforceRateLimit, mergeRateLimitHeaders, rejectCrossSiteRequest } from "@/lib/api/route-utils";
 import { removePushToken, savePushToken } from "@/lib/push/store";
 import { pushRegisterSchema, pushUnregisterSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "push");
+  if (crossSite) return crossSite;
+
   const rateLimit = enforceRateLimit(request);
   if (rateLimit instanceof Response) return rateLimit;
 
@@ -55,6 +58,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const crossSite = rejectCrossSiteRequest(request, "push");
+  if (crossSite) return crossSite;
+
   const rateLimit = enforceRateLimit(request);
   if (rateLimit instanceof Response) return rateLimit;
 

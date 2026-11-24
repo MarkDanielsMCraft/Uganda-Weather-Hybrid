@@ -176,27 +176,27 @@ describe("voice providers and API routes", () => {
 
     const badReq = new Request("http://localhost:3000/api/v1/voice/speak", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.0.0.1" },
+      headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin", "x-forwarded-for": "10.0.0.1" },
       body: JSON.stringify({ text: "", language: "lg" }),
     });
     expect((await postVoiceSpeak(badReq)).status).toBe(400);
 
     const unconfiguredSpeak = new Request("http://localhost:3000/api/v1/voice/speak", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.0.0.2" },
+      headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin", "x-forwarded-for": "10.0.0.2" },
       body: JSON.stringify({ text: "Enkuba enetonnya", language: "lg" }),
     });
     expect((await postVoiceSpeak(unconfiguredSpeak)).status).toBe(503);
 
     const unconfiguredTranscribe = new Request("http://localhost:3000/api/v1/voice/transcribe", {
       method: "POST",
-      headers: { "x-forwarded-for": "10.0.0.3" },
+      headers: { "sec-fetch-site": "same-origin", "x-forwarded-for": "10.0.0.3" },
     });
     expect((await postVoiceTranscribe(unconfiguredTranscribe)).status).toBe(503);
 
     const unconfiguredTranslate = new Request("http://localhost:3000/api/v1/voice/translate", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.0.0.4" },
+      headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin", "x-forwarded-for": "10.0.0.4" },
       body: JSON.stringify({ text: "Rain expected tonight", targetLanguage: "lg" }),
     });
     expect((await postVoiceTranslate(unconfiguredTranslate)).status).toBe(503);
