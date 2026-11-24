@@ -96,7 +96,7 @@ describe("buildSavedForecastBriefing", () => {
       weather,
       audience: "farmer",
       language: "lg",
-      answeringCustomQuestion: true,
+      notice: "offline",
     });
 
     expect(result.verdict.labelLg).toBe("Linda / Obulabe bwa maanyi");

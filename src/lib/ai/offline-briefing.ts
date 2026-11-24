@@ -1,6 +1,11 @@
 import type { AdvisorAudience } from "@/lib/ai/advisor-prompt";
 import { verdictFromRainAndWind, type SafetyVerdict, type SafetyVerdictLevel } from "@/lib/ai/advisor-tools";
-import { OFFLINE_NOTICE_EN, OFFLINE_NOTICE_LG } from "@/lib/ai/saved-forecast-notes";
+import {
+  AI_UNAVAILABLE_NOTICE_EN,
+  AI_UNAVAILABLE_NOTICE_LG,
+  OFFLINE_NOTICE_EN,
+  OFFLINE_NOTICE_LG,
+} from "@/lib/ai/saved-forecast-notes";
 import { hoursAheadSummary } from "@/lib/design/context";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { formatClockLabelForLanguage, formatUgandaClock } from "@/lib/time/uganda";
@@ -13,6 +18,16 @@ const LOOKAHEAD_HOURS = 12;
 /** The verdict covers the next few hours, not the whole day, because a
     farmer or fisher decides what to do now, not at midnight. */
 const VERDICT_WINDOW_HOURS = 6;
+
+/** Why the summary is shown instead of an AI answer. "none" adds no notice
+    (a quick question offline), "offline" explains there is no internet, and
+    "ai_unavailable" explains the cloud model could not answer just now. */
+export type SavedForecastNotice = "none" | "offline" | "ai_unavailable";
+
+const NOTICE_TEXT: Record<"en" | "lg", Record<Exclude<SavedForecastNotice, "none">, string>> = {
+  en: { offline: OFFLINE_NOTICE_EN, ai_unavailable: AI_UNAVAILABLE_NOTICE_EN },
+  lg: { offline: OFFLINE_NOTICE_LG, ai_unavailable: AI_UNAVAILABLE_NOTICE_LG },
+};
 
 export interface SavedForecastBriefing {
   text: string;
@@ -104,15 +119,15 @@ function buildEnglish(
   audience: AdvisorAudience,
   rain: UpcomingRain,
   verdict: SafetyVerdict,
-  answeringCustomQuestion: boolean,
+  notice: SavedForecastNotice,
 ): string {
   const wind = Math.round(weather.wind.speedKph);
   const gust = Math.round(weather.wind.gustKph);
   const updated = formatUpdatedAt(weather, "en");
   const lines: string[] = [];
 
-  if (answeringCustomQuestion) {
-    lines.push(OFFLINE_NOTICE_EN);
+  if (notice !== "none") {
+    lines.push(NOTICE_TEXT.en[notice]);
   }
   lines.push(hoursAheadSummary(weather));
   const peakWhen = !rain.peakLabel
@@ -142,13 +157,13 @@ function buildLuganda(
   audience: AdvisorAudience,
   rain: UpcomingRain,
   verdict: SafetyVerdict,
-  answeringCustomQuestion: boolean,
+  notice: SavedForecastNotice,
 ): string {
   const wind = Math.round(weather.wind.speedKph);
   const lines: string[] = [];
 
-  if (answeringCustomQuestion) {
-    lines.push(OFFLINE_NOTICE_LG);
+  if (notice !== "none") {
+    lines.push(NOTICE_TEXT.lg[notice]);
   }
   lines.push(hoursAheadSummaryLg(weather));
   const peakWhen = !rain.peakLabel
@@ -180,18 +195,18 @@ export function buildSavedForecastBriefing({
   weather,
   audience,
   language,
-  answeringCustomQuestion = false,
+  notice = "none",
 }: {
   weather: WeatherBundle;
   audience: AdvisorAudience;
   language: SupportedLocale;
-  answeringCustomQuestion?: boolean;
+  notice?: SavedForecastNotice;
 }): SavedForecastBriefing {
   const rain = readUpcomingRain(weather);
   const verdict = verdictFromRainAndWind(rain.verdictChance, weather.wind.speedKph);
   const text =
     language === "lg"
-      ? buildLuganda(weather, audience, rain, verdict, answeringCustomQuestion)
-      : buildEnglish(weather, audience, rain, verdict, answeringCustomQuestion);
+      ? buildLuganda(weather, audience, rain, verdict, notice)
+      : buildEnglish(weather, audience, rain, verdict, notice);
   return { text, verdict };
 }

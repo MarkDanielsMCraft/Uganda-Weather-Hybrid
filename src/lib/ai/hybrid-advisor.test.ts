@@ -30,6 +30,7 @@ vi.mock("@/lib/ai/firebase-client", () => ({
   getConfiguredCloudModel: () => "gemini-3.5-flash-lite",
   getFirebaseAiClient: () => mockGetFirebaseAiClient(),
   isFirebaseAiConfigured: () => mockIsFirebaseAiConfigured(),
+  isAppCheckActive: () => true,
 }));
 
 describe("hybrid-advisor", () => {
@@ -214,6 +215,67 @@ describe("hybrid-advisor", () => {
     if (outcome.ok) {
       expect(outcome.data.source).toBe("saved_forecast");
     }
+  });
+
+  it("answers from the forecast instead of an error when the cloud model fails online", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGenerateContent.mockRejectedValue(Object.assign(new Error("server error"), { code: "fetch-error" }));
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle(),
+      audience: "farmer",
+      language: "en",
+      customQuestion: "Can I dry beans today?",
+      isOnline: true,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.data.source).toBe("saved_forecast");
+      expect(outcome.data.text).toContain("The AI advisor could not answer just now");
+      expect(outcome.data.text).not.toContain("without internet");
+    }
+    expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("action failed action=generate"), expect.anything());
+    errorLog.mockRestore();
+  });
+
+  it("gives the Luganda forecast summary when the cloud model fails for a Luganda question", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGenerateContent.mockRejectedValue(new Error("server error"));
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle(),
+      audience: "general",
+      language: "lg",
+      customQuestion: "Enkuba enaatonnya leero?",
+      isOnline: true,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.data.source).toBe("saved_forecast");
+      expect(outcome.data.text).toContain("Omuwi w'amagezi tali mwetegefu kati.");
+    }
+    errorLog.mockRestore();
+  });
+
+  it("answers from the forecast when the cloud model returns an empty reply", async () => {
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockGenerateContent.mockResolvedValue({
+      response: { text: () => "", inferenceSource: InferenceSource.IN_CLOUD },
+    });
+
+    const outcome = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle(),
+      audience: "general",
+      language: "en",
+      isOnline: true,
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.data.source).toBe("saved_forecast");
+    expect(warnLog).toHaveBeenCalledWith(expect.stringContaining("EMPTY_REPLY_FALLBACK"));
+    warnLog.mockRestore();
   });
 
   it("streams chunks and emits thinking then writing phase callbacks", async () => {
