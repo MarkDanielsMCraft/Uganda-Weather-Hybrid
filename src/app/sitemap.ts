@@ -19,6 +19,7 @@ const STATIC_ROUTES = [
   "/terms",
   "/cookies",
   "/attribution",
+  "/lite",
 ];
 
 /** Fixed at build time rather than evaluated per request. `new Date()` here
