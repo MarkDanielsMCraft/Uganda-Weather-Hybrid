@@ -92,7 +92,9 @@ export function buildPlainTextAdvisorSms(districtName: string, replyText: string
     .split(/\n\s*\n/)
     .filter((paragraph) => paragraph.trim() && !isSavedForecastAppNote(paragraph))
     .join(" ");
-  const cleaned = shareable
+  // If a reply holds nothing but in app notes, share it as it is rather than
+  // sending an empty message.
+  const cleaned = (shareable.trim() ? shareable : replyText)
     .replace(/\s+/g, " ")
     .replace(/[*_`#]/g, "")
     .trim();

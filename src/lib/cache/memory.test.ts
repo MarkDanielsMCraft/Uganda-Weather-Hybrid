@@ -123,3 +123,34 @@ describe("jsonResponse / errorResponse", () => {
     });
   });
 });
+
+describe("memory cache ceiling", () => {
+  it("never holds more than 5000 entries, however many addresses are tried", async () => {
+    const { getCachedMemory, memoryCacheSizeForTests, clearMemoryCacheForTests } = await import(
+      "@/lib/cache/memory"
+    );
+    clearMemoryCacheForTests();
+    for (let i = 0; i < 5_200; i += 1) {
+      await getCachedMemory(`attack-key-${i}`, 600, async () => ({ i }));
+    }
+    expect(memoryCacheSizeForTests()).toBeLessThanOrEqual(5_000);
+    const newest = await getCachedMemory("attack-key-5199", 600, async () => ({ i: -1 }));
+    expect(newest.data).toEqual({ i: 5199 });
+    clearMemoryCacheForTests();
+  });
+});
+
+describe("memory cache keeps busy entries", () => {
+  it("keeps an entry people keep reading while a flood of new addresses comes in", async () => {
+    const { getCachedMemory, clearMemoryCacheForTests } = await import("@/lib/cache/memory");
+    clearMemoryCacheForTests();
+    await getCachedMemory("kampala", 600, async () => "kampala-weather");
+    for (let i = 0; i < 6_000; i += 1) {
+      if (i % 1_000 === 0) await getCachedMemory("kampala", 600, async () => "refetched");
+      await getCachedMemory(`flood-${i}`, 600, async () => i);
+    }
+    const kampala = await getCachedMemory("kampala", 600, async () => "refetched");
+    expect(kampala.data).toBe("kampala-weather");
+    clearMemoryCacheForTests();
+  });
+});

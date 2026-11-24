@@ -111,7 +111,7 @@ describe("APNs provider token", () => {
         districtSlug: "kampala",
         route: "/alerts",
       }),
-    ).resolves.toEqual({ sent: 1, failed: 0 });
+    ).resolves.toEqual({ sent: 1, failed: 0, goneTokens: [] });
     expect(connectMock.mock.calls.map(([url]) => url)).toEqual([
       "https://api.push.apple.com",
       "https://api.sandbox.push.apple.com",

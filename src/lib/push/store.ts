@@ -182,6 +182,20 @@ export async function removePushToken(token: string): Promise<{ removed: boolean
   }
 }
 
+/** Far more than the real number of phones this app will reach, but low
+    enough that a script sending made up tokens cannot grow the store, or the
+    storm alert job that reads it, without end. */
+export const MAX_STORED_PUSH_TOKENS = 100_000;
+
+export async function isPushStoreFull(token: string): Promise<boolean> {
+  const tokenHash = hashPushToken(token);
+  if (await readStoredToken(tokenHash)) return false;
+  const count = getRedisClient()
+    ? await redisScard(TOKEN_INDEX_KEY)
+    : memoryStore().tokens.size;
+  return count >= MAX_STORED_PUSH_TOKENS;
+}
+
 async function readStoredToken(tokenHash: string): Promise<StoredPushToken | null> {
   const fromMemory = memoryStore().tokens.get(tokenHash);
   if (fromMemory) return fromMemory;
@@ -245,16 +259,4 @@ export async function listDistrictSlugsWithPushTokens(): Promise<string[]> {
   }
 
   return [...slugs];
-}
-
-export async function countPushTokens(): Promise<number> {
-  if (getRedisClient()) {
-    try {
-      return await redisScard(TOKEN_INDEX_KEY);
-    } catch (error) {
-      console.error("Push token Redis count failed:", error);
-    }
-  }
-
-  return memoryStore().tokens.size;
 }

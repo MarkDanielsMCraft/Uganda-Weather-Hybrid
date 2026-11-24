@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { DistrictReference } from "@/components/district/DistrictReference";
 import { DistrictWeatherPage } from "@/components/district/DistrictWeatherPage";
 import { getAllDistricts, getDistrictBySlug } from "@/lib/districts";
-import { districtFaqStructuredData } from "@/lib/seo/district-content";
+import { districtFaqStructuredData, districtSearchDescriptionLg } from "@/lib/seo/district-content";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { districtGeoMeta, districtStructuredData } from "@/lib/seo/structured-data";
 
@@ -20,15 +20,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const title = `Embeera y'obudde e ${district.name}`;
-  const description = `Embeera y'obudde eya leero, essaawa ku ssaawa, n'obulabula e ${district.name} mu kitundu kya ${district.region} ekya Uganda.`;
+  const description = districtSearchDescriptionLg(district);
 
   return {
     ...buildPageMetadata({
       title,
       description,
       path: `/lg/district/${district.slug}`,
-      ogTitle: title,
-      ogSubtitle: `Ekitundu kya ${district.region}, Uganda`,
       locale: "lg",
       languagePaths: {
         en: `/district/${district.slug}`,

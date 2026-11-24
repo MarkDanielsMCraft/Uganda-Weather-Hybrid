@@ -13,6 +13,7 @@ import { StyleGuard } from "@/components/StyleGuard";
 import { GoogleAnalyticsLoader } from "@/components/analytics/GoogleAnalyticsLoader";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { OG_IMAGE_ALT, ogImageUrl } from "@/lib/seo/metadata";
 import "./globals.css";
 
 const CRITICAL_STYLES = {
@@ -24,7 +25,7 @@ const CRITICAL_STYLES = {
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://uganda-weather.com";
 const DEFAULT_DESCRIPTION =
   "Live, district level weather for all 152 districts of Uganda: hourly and 10 day forecasts, severe weather alerts, air quality, agriculture advisories, fishing safety for four lakes, national park and mountain weather, and airport conditions.";
-const defaultOgImage = `${appUrl.replace(/\/$/, "")}/api/og?title=${encodeURIComponent("Uganda Weather")}&subtitle=${encodeURIComponent("District level weather for all of Uganda")}`;
+const defaultOgImage = ogImageUrl(appUrl.replace(/\/$/, ""));
 
 /** Bump whenever the mark is redrawn. See the `icons` note below. */
 const ICON_VERSION = "9";
@@ -100,7 +101,7 @@ export const metadata: Metadata = {
     siteName: "Uganda Weather",
     locale: "en_UG",
     type: "website",
-    images: [{ url: defaultOgImage, width: 1200, height: 630, alt: "Uganda Weather" }],
+    images: [{ url: defaultOgImage, width: 1200, height: 630, alt: OG_IMAGE_ALT }],
   },
   twitter: {
     card: "summary_large_image",

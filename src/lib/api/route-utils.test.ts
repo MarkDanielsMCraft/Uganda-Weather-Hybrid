@@ -73,3 +73,58 @@ describe("enforceRateLimit", () => {
     expect(enforceRateLimit(apiGet("/api/v1/alerts", "10.9.0.2"))).toBeInstanceOf(Response);
   });
 });
+
+describe("rate limit attacks", () => {
+  it("blocks a client that rotates the district name to dodge the limit", async () => {
+    const { enforceRateLimit } = await import("@/lib/api/route-utils");
+    const { resetRateLimitsForTests, trackedRateLimitKeysForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    let blocked = 0;
+    for (let i = 0; i < 300; i += 1) {
+      const request = new Request(`https://x.test/api/v1/districts/fake-${i}`, {
+        headers: { "x-forwarded-for": "10.9.9.9" },
+      });
+      if (enforceRateLimit(request) instanceof Response) blocked += 1;
+    }
+    expect(blocked).toBe(60);
+    expect(trackedRateLimitKeysForTests()).toBe(1);
+  });
+
+  it("keeps district search in its own bucket", async () => {
+    const { enforceRateLimit } = await import("@/lib/api/route-utils");
+    const { resetRateLimitsForTests, trackedRateLimitKeysForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    enforceRateLimit(new Request("https://x.test/api/v1/districts/kampala", { headers: { "x-forwarded-for": "10.9.9.8" } }));
+    enforceRateLimit(new Request("https://x.test/api/v1/districts/search?q=a", { headers: { "x-forwarded-for": "10.9.9.8" } }));
+    expect(trackedRateLimitKeysForTests()).toBe(2);
+  });
+
+  it("ignores extra path parts so long made up paths share one bucket", async () => {
+    const { enforceRateLimit } = await import("@/lib/api/route-utils");
+    const { resetRateLimitsForTests, trackedRateLimitKeysForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    for (let i = 0; i < 50; i += 1) {
+      enforceRateLimit(new Request(`https://x.test/api/v1/weather/current/extra-${i}/more`, { headers: { "x-forwarded-for": "10.9.9.7" } }));
+    }
+    expect(trackedRateLimitKeysForTests()).toBe(1);
+  });
+});
+
+describe("place lookup routes", () => {
+  it("stop a single address after 60 searches a minute", async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    const { GET } = await import("@/app/api/v1/locations/search/route");
+    let firstRefused = 0;
+    for (let i = 1; i <= 61; i += 1) {
+      const response = await GET(
+        new Request(`https://hybrid.uganda-weather.com/api/v1/locations/search?q=x`, {
+          headers: { "x-forwarded-for": "203.0.113.77" },
+        }),
+      );
+      if (response.status === 429 && firstRefused === 0) firstRefused = i;
+    }
+    expect(firstRefused).toBe(61);
+    resetRateLimitsForTests();
+  });
+});

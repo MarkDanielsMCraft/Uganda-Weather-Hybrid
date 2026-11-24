@@ -19,33 +19,19 @@ const STATIC_ROUTES = [
   "/terms",
   "/cookies",
   "/attribution",
+  "/lite",
 ];
 
-/** Fixed at build time rather than evaluated per request. `new Date()` here
-    told every crawl that all 168 URLs had just changed, which is not true and
-    which search engines learn to distrust and then ignore. A build stamp is
-    the honest answer: these pages change when the site is redeployed, and the
-    live weather on them changes continuously, which is what `changeFrequency`
-    is for. */
-const BUILT_AT = new Date();
-
+/** Only page addresses are listed. Google ignores priority and changefreq,
+    and uses lastmod only when it is the true date the main content changed.
+    The forecast pages change every hour and the other pages have no tracked
+    change date, so leaving lastmod out is the honest choice. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = appBaseUrl();
-  const lastModified = BUILT_AT;
 
-  const staticEntries = STATIC_ROUTES.map((path) => ({
-    url: `${baseUrl}${path}`,
-    lastModified,
-    changeFrequency: path === "" ? ("hourly" as const) : ("daily" as const),
-    priority: path === "" ? 1 : 0.7,
-  }));
+  const staticEntries = STATIC_ROUTES.map((path) => ({ url: `${baseUrl}${path}` }));
 
-  const districtEntries = getAllDistricts().map((district) => ({
-    url: `${baseUrl}/district/${district.slug}`,
-    lastModified,
-    changeFrequency: "hourly" as const,
-    priority: district.slug === "kampala" ? 0.95 : 0.8,
-  }));
+  const districtEntries = getAllDistricts().map((district) => ({ url: `${baseUrl}/district/${district.slug}` }));
 
   const LUGANDA_SECTION_ROUTES = [
     "/lg/search",
@@ -61,24 +47,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const lugandaEntries: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/lg`,
-      lastModified,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
-    ...LUGANDA_SECTION_ROUTES.map((path) => ({
-      url: `${baseUrl}${path}`,
-      lastModified,
-      changeFrequency: "daily" as const,
-      priority: 0.65,
-    })),
-    ...getAllDistricts().map((district) => ({
-      url: `${baseUrl}/lg/district/${district.slug}`,
-      lastModified,
-      changeFrequency: "hourly" as const,
-      priority: district.slug === "kampala" ? 0.9 : 0.75,
-    })),
+    { url: `${baseUrl}/lg` },
+    ...LUGANDA_SECTION_ROUTES.map((path) => ({ url: `${baseUrl}${path}` })),
+    ...getAllDistricts().map((district) => ({ url: `${baseUrl}/lg/district/${district.slug}` })),
   ];
 
   return [...staticEntries, ...districtEntries, ...lugandaEntries];
