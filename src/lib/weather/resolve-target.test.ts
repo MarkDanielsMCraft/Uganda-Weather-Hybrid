@@ -23,7 +23,9 @@ describe("resolveWeatherTarget", () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.cacheKey).toContain("kyaziiza");
+      expect(result.isPlace).toBe(true);
+      expect(result.district.name).toBe("Kyaziiza");
+      expect(result.cacheKey).toContain("place-point:0.34:32.58");
     }
   });
 
@@ -59,11 +61,24 @@ describe("resolveWeatherTarget cache keys", () => {
     expect(a.ok && b.ok && a.cacheKey === b.cacheKey).toBe(true);
   });
 
-  it("keeps a request with a made up name out of the real visitors' entry", () => {
+  it("gives made up names at the same point one shared saved copy, so they cannot add paid calls", () => {
     const real = target(REAL);
-    const planted = target(REAL.replace("name=Kireka", "name=Wrong%20Place"));
-    expect(real.ok && planted.ok).toBe(true);
-    if (real.ok && planted.ok) expect(planted.cacheKey).not.toBe(real.cacheKey);
+    const renamed = target(REAL.replace("name=Kireka", "name=Wrong%20Place"));
+    expect(real.ok && renamed.ok).toBe(true);
+    if (real.ok && renamed.ok) expect(renamed.cacheKey).toBe(real.cacheKey);
+  });
+
+  it("shows each visitor only the name they asked for, never one from the saved copy", async () => {
+    const { withRequestedPlace } = await import("@/lib/weather/resolve-target");
+    const real = target(REAL);
+    const renamed = target(REAL.replace("name=Kireka", "name=Wrong%20Place"));
+    if (!real.ok || !renamed.ok) throw new Error("both should resolve");
+    const savedByOtherVisitor = { district: renamed.district, rain: 40 };
+    const shown = withRequestedPlace(savedByOtherVisitor, real);
+    expect(shown.district.name).toBe("Kireka");
+    expect(shown.rain).toBe(40);
+    const partial = withRequestedPlace({ district: { slug: "x", name: "Wrong Place", region: "central" } }, real);
+    expect(partial.district.name).toBe("Kireka");
   });
 
   it("keeps a request with a moved point out of the real visitors' entry", () => {
@@ -72,17 +87,26 @@ describe("resolveWeatherTarget cache keys", () => {
     if (real.ok && moved.ok) expect(moved.cacheKey).not.toBe(real.cacheKey);
   });
 
-  it("refuses a label with a phone number, as the attack pass sent it", () => {
-    const result = target(
+  it("replaces planted names and drops planted labels, as both attack passes sent them", () => {
+    const planted = [
       "place=pentest-key-1&name=POISONED%20NAME&lat=-3.9&lon=29.1&label=Fake%20label%20call%200772000000",
-    );
-    expect(result.ok).toBe(false);
+      "place=x8&name=Kampala%20FLOOD%20ALERT%20send%20mobile%20money%20to%20O77Two%20scam-help.com&lat=0.31&lon=32.58",
+      `place=x9&name=${encodeURIComponent("ｈｔｔｐｓ：／／ｓｃａｍ．ｃｏｍ Call O77I２３")}&lat=0.31&lon=32.58`,
+      "place=x10&name=www.scam.ug&lat=0.3&lon=32.5",
+      "place=x11&name=help%40scam.ug&lat=0.3&lon=32.5",
+      "place=x12&name=%3Cscript%3E&lat=0.3&lon=32.5",
+    ];
+    for (const query of planted) {
+      const result = target(query);
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      const shown = `${result.district.name} ${result.district.placeLabel ?? ""}`;
+      expect(shown).not.toMatch(/call|money|scam|www|@|<|07|ｈ/i);
+    }
   });
 
-  it("refuses names with links, emails, or markup", () => {
-    for (const name of ["www.scam.ug", "help%40scam.ug", "%3Cscript%3E", "call%20https%3A%2F%2Fx.ug"]) {
-      expect(target(`place=village-1&name=${name}&lat=0.3&lon=32.5`).ok).toBe(false);
-    }
+  it("refuses place keys the app never makes", () => {
+    expect(target("place=%3Cimg%20src%3Dx%3E&name=Kireka&lat=0.3&lon=32.5").ok).toBe(false);
   });
 
   it("still accepts real place names with apostrophes and brackets", () => {

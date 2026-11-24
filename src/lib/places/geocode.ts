@@ -28,8 +28,11 @@ async function nominatimSearch(query: string, limit = 5): Promise<NominatimHit[]
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", String(limit));
 
+  // Any failure (a refusal such as 429, an error, or a timeout) counts as
+  // busy, so the rough fallback it leads to is never saved.
+  let response: Response;
   try {
-    const response = await fetchWithTimeout(
+    response = await fetchWithTimeout(
       (signal) =>
         fetch(url, {
           headers: { "User-Agent": NOMINATIM_USER_AGENT },
@@ -38,18 +41,16 @@ async function nominatimSearch(query: string, limit = 5): Promise<NominatimHit[]
         }),
       NOMINATIM_TIMEOUT_MS,
     );
-
-    if (!response.ok) return [];
-    const payload = (await response.json()) as NominatimHit[];
-    return Array.isArray(payload) ? payload : [];
-  } catch (error) {
-    // Geocoding is an enrichment step (approximate lat/lon for a named
-    // locality), not the core search — a Nominatim outage or timeout
-    // should degrade to "no coordinates found" rather than take down the
-    // whole locality lookup.
-    console.error("Nominatim search failed:", error);
-    return [];
+  } catch {
+    console.warn("[places] action blocked action=map_search code=MAP_UNREACHABLE");
+    throw new MapServiceBusyError();
   }
+  if (!response.ok) {
+    console.warn(`[places] action blocked action=map_search code=MAP_STATUS_${response.status}`);
+    throw new MapServiceBusyError();
+  }
+  const payload = (await response.json().catch(() => null)) as NominatimHit[] | null;
+  return Array.isArray(payload) ? payload : [];
 }
 
 function pickPlaceResult(results: NominatimHit[]) {
@@ -87,7 +88,7 @@ export async function geocodeOfficialLocality(input: {
   } catch (error) {
     if (!(error instanceof MapServiceBusyError)) throw error;
     const { lat, lon } = coordsFromResult(undefined, input.districtSlug);
-    return { lat, lon, approximate: true };
+    return { lat, lon, approximate: true, busy: true as const };
   }
 }
 
@@ -229,14 +230,14 @@ async function reverseGeocodeUgandaCached(lat: number, lon: number) {
             }),
           NOMINATIM_TIMEOUT_MS,
         );
-      } catch (error) {
-        console.error("Nominatim reverse geocode failed:", error);
-        const parent = findNearestDistrict(lat, lon);
-        return { name: null as string | null, label: `Near ${parent.name}`, approximate: true };
+      } catch {
+        console.warn("[places] action blocked action=map_reverse code=MAP_UNREACHABLE");
+        throw new MapServiceBusyError();
       }
 
       if (!response.ok) {
-        return { name: null as string | null, label: null as string | null, approximate: true };
+        console.warn(`[places] action blocked action=map_reverse code=MAP_STATUS_${response.status}`);
+        throw new MapServiceBusyError();
       }
 
       const payload = (await response.json()) as NominatimReverse;

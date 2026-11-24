@@ -1,4 +1,17 @@
 import { z } from "zod";
+import {
+  SHARED_PLACE_FALLBACK_NAME,
+  safePlaceLabel,
+  safePlaceName,
+} from "@/lib/places/place-text";
+
+export {
+  isSafePlaceText,
+  normalizePlaceText,
+  safePlaceLabel,
+  safePlaceName,
+  SHARED_PLACE_FALLBACK_NAME,
+} from "@/lib/places/place-text";
 
 export const districtSlugSchema = z
   .string()
@@ -16,27 +29,29 @@ const coordNumber = (min: number, max: number) =>
     z.coerce.number().finite().min(min).max(max),
   );
 
-/** Real Ugandan place names and labels never carry phone numbers, links,
-    emails, or markup. Refusing them keeps planted scam text out of the
-    forecast screen and out of the AI advisor's instructions. */
-const PLACE_TEXT_BLOCKED = /https?:|www\.|@|[<>{}\[\]`\\]|[\u0000-\u001f\u007f]/i;
-const MAX_DIGITS_IN_PLACE_TEXT = 4;
+/** A name or label that fails the checks is replaced, not refused, so a real
+    village whose name happens to trip a rule still gets its forecast, and
+    planted text is never shown, saved, or shared. */
+const placeNameSchema = z
+  .string()
+  .max(240)
+  .transform((value) => safePlaceName(value) ?? SHARED_PLACE_FALLBACK_NAME);
 
-export function isSafePlaceText(value: string): boolean {
-  if (PLACE_TEXT_BLOCKED.test(value)) return false;
-  const digits = value.match(/\p{Nd}/gu)?.length ?? 0;
-  return digits <= MAX_DIGITS_IN_PLACE_TEXT;
-}
+const placeLabelSchema = z
+  .string()
+  .max(320)
+  .transform((value) => safePlaceLabel(value));
 
-const placeTextSchema = (min: number, max: number) =>
-  z.string().min(min).max(max).refine(isSafePlaceText, "Place text is not allowed");
+/** Place keys are made by the app (for example village-101 or
+    gps-0_313_32_581), so anything else is refused. */
+const placeKeySchema = z.string().regex(/^[A-Za-z0-9:_-]{2,120}$/);
 
 export const placeWeatherQuerySchema = z.object({
-  place: z.string().min(2).max(120),
-  name: placeTextSchema(2, 120),
+  place: placeKeySchema,
+  name: placeNameSchema,
   lat: coordNumber(-4, 5),
   lon: coordNumber(29, 36),
-  label: placeTextSchema(0, 160).optional(),
+  label: placeLabelSchema.optional(),
   parent: districtSlugSchema.optional(),
 });
 

@@ -1,7 +1,7 @@
 import { getAllDistricts, getDistrictBySlug } from "@/lib/districts";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { AIRPORTS, MOUNTAIN_PEAKS, NATIONAL_PARKS } from "@/lib/places/points-of-interest";
-import { isSafePlaceText } from "@/lib/validation/schemas";
+import { isSafePlaceText, normalizePlaceText } from "@/lib/places/place-text";
 import type { WeatherBundle } from "@/types/weather";
 
 export interface InstantReply {
@@ -96,7 +96,7 @@ const MAX_PROMPT_PLACE_TEXT = 80;
     and punctuation real place names use. */
 export function cleanPromptPlaceText(raw: string | undefined): string | undefined {
   if (typeof raw !== "string" || !isSafePlaceText(raw)) return undefined;
-  const cleaned = raw
+  const cleaned = normalizePlaceText(raw)
     .replace(/[^\p{L}\p{M}\p{Nd}\s'’.,()-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim()

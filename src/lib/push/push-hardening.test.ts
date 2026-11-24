@@ -127,3 +127,22 @@ describe("push sign up route", () => {
     }
   });
 });
+
+describe("push dispatch route", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses a wrong secret before looking at the body, even a broken one", async () => {
+    vi.stubEnv("PUSH_DISPATCH_SECRET", "real-dispatch-secret-value-0001");
+    const { POST } = await import("@/app/api/v1/push/dispatch/route");
+    const response = await POST(
+      new Request("https://hybrid.uganda-weather.com/api/v1/push/dispatch", {
+        method: "POST",
+        headers: { authorization: "Bearer wrong", "content-type": "application/json" },
+        body: "{not json",
+      }),
+    );
+    expect(response.status).toBe(401);
+  });
+});

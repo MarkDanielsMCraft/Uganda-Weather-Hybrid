@@ -139,3 +139,18 @@ describe("memory cache ceiling", () => {
     clearMemoryCacheForTests();
   });
 });
+
+describe("memory cache keeps busy entries", () => {
+  it("keeps an entry people keep reading while a flood of new addresses comes in", async () => {
+    const { getCachedMemory, clearMemoryCacheForTests } = await import("@/lib/cache/memory");
+    clearMemoryCacheForTests();
+    await getCachedMemory("kampala", 600, async () => "kampala-weather");
+    for (let i = 0; i < 6_000; i += 1) {
+      if (i % 1_000 === 0) await getCachedMemory("kampala", 600, async () => "refetched");
+      await getCachedMemory(`flood-${i}`, 600, async () => i);
+    }
+    const kampala = await getCachedMemory("kampala", 600, async () => "refetched");
+    expect(kampala.data).toBe("kampala-weather");
+    clearMemoryCacheForTests();
+  });
+});

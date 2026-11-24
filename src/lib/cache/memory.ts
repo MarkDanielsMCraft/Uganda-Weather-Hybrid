@@ -31,7 +31,8 @@ function isDegradedBundle(value: unknown): boolean {
 
 /** Every distinct address can create an entry, so without a ceiling a script
     could fill server memory. When full, expired entries go first, then the
-    oldest ones (a Map keeps the order entries were added). */
+    ones used least recently (a Map keeps order, and a hit moves an entry to
+    the back). */
 const MAX_MEMORY_CACHE_ENTRIES = 5_000;
 
 const store = new Map<string, CacheEntry<unknown>>();
@@ -67,6 +68,10 @@ export async function getCachedMemory<T>(
   const entry = store.get(key) as CacheEntry<T> | undefined;
 
   if (entry && entry.expiresAt > now) {
+    // Moving a used entry to the back keeps busy places such as Kampala
+    // saved while a flood of one off addresses pushes out only each other.
+    store.delete(key);
+    store.set(key, entry);
     return { data: entry.value, stale: false };
   }
 

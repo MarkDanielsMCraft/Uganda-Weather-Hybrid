@@ -8,7 +8,7 @@ describe("safeAlertRoute", () => {
   });
 
   it("sends anything that could leave the app to the alerts page", () => {
-    for (const bad of ["//evil.com", "https://evil.com", "/\\evil.com", "javascript:alert(1)", "/x:y", "/<script>", 42, null]) {
+    for (const bad of ["//evil.com", "https://evil.com", "/\\evil.com", "javascript:alert(1)", "/x:y", "/<script>", "/.//evil.com", "/../../evil", "/alerts/./x", 42, null]) {
       expect(safeAlertRoute(bad)).toBe("/alerts");
     }
   });

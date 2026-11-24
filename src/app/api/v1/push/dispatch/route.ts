@@ -16,6 +16,12 @@ function authorizeDispatch(request: Request, dryRun = false) {
 }
 
 export async function POST(request: Request) {
+  // With a secret set, check it before reading the body, so callers without
+  // it learn nothing about what the route expects.
+  if (process.env.PUSH_DISPATCH_SECRET && !authorizeDispatch(request, false)) {
+    return errorResponse("UNAUTHORIZED", "Invalid dispatch credentials", 401);
+  }
+
   let body: unknown;
   try {
     body = await request.json();

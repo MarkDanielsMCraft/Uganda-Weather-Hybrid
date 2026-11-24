@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Security
 
+- A shared link can no longer plant scam text in someone's saved place, their SMS shares, or the AI advisor. Place names from links and from saved settings are folded to plain characters and checked for links, web addresses, phone numbers, calls to act, and length, and anything that fails shows as "Shared place". Saved places are checked again when the app loads.
+- Made up place names can no longer skip the weather cache to spend paid weather calls. Weather for a place is saved by its point (rounded to about 1 km) and the requested name is added back afterwards. The memory cache now drops the least used entries first.
+- Map service refusals, errors, and timeouts are no longer saved as rough answers, and village lists with rough points made while the map service was busy are not saved.
+- The push dispatch route checks its secret before reading the request, and alert routes with `.` or `..` parts open the alerts page.
 - A storm alert can only open pages inside the app. Routes such as `//other.site` now open the alerts page instead.
 - The Luganda feedback form takes at most 200 reports a day across the whole app, and server memory keeps only the newest 500, so a flood cannot fill the inbox or the server.
 - The HTTPS only header now also covers subdomains.
@@ -155,6 +159,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- The Luganda feedback form no longer says thank you when a report could not be emailed or saved. It shows its "could not send" message instead. One address can send 5 reports a day.
 - The privacy page now says that the Luganda feedback form can take an optional email address, how reports are sent and kept, and that the Android and iOS apps send a phone alert token and the chosen district when storm alerts are allowed. The terms no longer say alerts are switched off. Both pages are updated in English and Luganda.
 - Broken numbers from a weather provider (missing, NaN, negative, or impossible values) no longer show up as "NaN" or "1000000000%" in the offline summary; the summary says plainly when no rain chance is known.
 - An SMS made from a reply that holds only in app notes is no longer empty.

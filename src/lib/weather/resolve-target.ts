@@ -1,12 +1,10 @@
-import { createHash } from "node:crypto";
 import { getDistrictBySlug } from "@/lib/districts";
 import { createPlaceLocation, districtFromPlace } from "@/lib/places/district-from-place";
-import { placeWeatherCacheKey } from "@/lib/places/types";
 import { districtQuerySchema, placeWeatherQuerySchema } from "@/lib/validation/schemas";
 import type { District } from "@/types/weather";
 
 export type ResolvedWeatherTarget =
-  | { ok: true; district: District; cacheKey: string }
+  | { ok: true; district: District; cacheKey: string; isPlace: boolean }
   | { ok: false; code: "BAD_REQUEST" | "NOT_FOUND"; message: string };
 
 export const BUNDLE_CACHE_VERSION = "v6";
@@ -15,25 +13,23 @@ export function weatherBundleCacheKey(slugOrPlaceKey: string): string {
   return `ug:weather:${slugOrPlaceKey}:bundle:${BUNDLE_CACHE_VERSION}`;
 }
 
-/** The saved forecast for a place holds its name, label, and point, all sent
-    in the address. Putting every one of them in the key means a request with
-    made up values only ever fills its own entry, never the one real visitors
-    read, so nobody can plant text or a wrong location for other people. */
-function placeFingerprint(place: {
-  name: string;
-  label?: string;
-  lat: number;
-  lon: number;
-  parentDistrictSlug?: string;
-}): string {
-  const canonical = JSON.stringify([
-    place.name,
-    place.label ?? "",
-    place.lat.toFixed(4),
-    place.lon.toFixed(4),
-    place.parentDistrictSlug ?? "",
-  ]);
-  return createHash("sha256").update(canonical).digest("hex").slice(0, 16);
+/** Weather for a place is saved by its point, rounded to about 1 km, and
+    never by its name or label. Made up names therefore cannot create new
+    saved copies (each one a paid weather call), and they cannot change what
+    other visitors see. The name asked for is added back after the cache by
+    withRequestedPlace. */
+function placePointKey(lat: number, lon: number): string {
+  return `place-point:${lat.toFixed(2)}:${lon.toFixed(2)}`;
+}
+
+export function withRequestedPlace<T>(data: T, target: { isPlace: boolean; district: District }): T {
+  if (!target.isPlace || !data || typeof data !== "object" || !("district" in data)) return data;
+  const cached = (data as { district?: Record<string, unknown> }).district;
+  if (!cached || typeof cached !== "object") return data;
+  const district = "coordinates" in cached
+    ? target.district
+    : { ...cached, slug: target.district.slug, name: target.district.name };
+  return { ...data, district };
 }
 
 export function resolveWeatherTarget(searchParams: URLSearchParams): ResolvedWeatherTarget {
@@ -59,7 +55,8 @@ export function resolveWeatherTarget(searchParams: URLSearchParams): ResolvedWea
     return {
       ok: true,
       district: districtFromPlace(place),
-      cacheKey: weatherBundleCacheKey(`${placeWeatherCacheKey(place)}:${placeFingerprint(place)}`),
+      cacheKey: weatherBundleCacheKey(placePointKey(place.lat, place.lon)),
+      isPlace: true,
     };
   }
 
@@ -88,5 +85,6 @@ export function resolveWeatherTarget(searchParams: URLSearchParams): ResolvedWea
     ok: true,
     district,
     cacheKey: weatherBundleCacheKey(district.slug),
+    isPlace: false,
   };
 }

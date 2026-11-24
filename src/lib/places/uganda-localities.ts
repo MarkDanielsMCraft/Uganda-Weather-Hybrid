@@ -3,6 +3,7 @@ import { findNearestDistrict, getDistrictBySlug } from "@/lib/districts";
 import type { Region } from "@/types/weather";
 import { districtSlugFromOfficialName } from "@/lib/places/district-match";
 import { geocodeOfficialLocality } from "@/lib/places/geocode";
+import { MapServiceBusyError } from "@/lib/places/nominatim-pacer";
 import { buildOfficialPlaceKey, type PlaceSearchHit } from "@/lib/places/types";
 import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
 
@@ -188,6 +189,7 @@ async function localityToPlaceHit(
     region,
     placeType: type,
     approximate: geocoded.approximate,
+    ...("busy" in geocoded && geocoded.busy ? { madeWhileMapBusy: true } : {}),
     matchScore: localityScore(name, query) + (type === "village" ? 2 : 0),
   };
 }
@@ -248,11 +250,25 @@ export async function searchOfficialLocalities(query: string, limit = 8) {
   const q = query.trim();
   if (q.length < 2) return [];
 
-  const { data } = await getCached(
-    `ug:localities:v4:${q.toLowerCase()}:${limit}`,
-    3600,
-    () => searchOfficialLocalitiesUncached(q, limit),
-  );
-
-  return data;
+  // A list with a rough point made while the map service was busy is used
+  // once and not saved, so the next search tries again for the real point.
+  let unsaved: Awaited<ReturnType<typeof searchOfficialLocalitiesUncached>> | null = null;
+  try {
+    const { data } = await getCached(
+      `ug:localities:v4:${q.toLowerCase()}:${limit}`,
+      3600,
+      async () => {
+        const hits = await searchOfficialLocalitiesUncached(q, limit);
+        if (hits.some((hit) => "madeWhileMapBusy" in hit)) {
+          unsaved = hits;
+          throw new MapServiceBusyError();
+        }
+        return hits;
+      },
+    );
+    return data;
+  } catch (error) {
+    if (unsaved && error instanceof MapServiceBusyError) return unsaved;
+    throw error;
+  }
 }

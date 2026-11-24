@@ -2,7 +2,7 @@ import { buildAgricultureAdvisory } from "@/lib/agriculture/advisory";
 import { getCached, createMeta, jsonResponse, errorResponse } from "@/lib/cache";
 import { enforceRateLimit, mergeRateLimitHeaders } from "@/lib/api/route-utils";
 import { getWeatherBundleForDistrict } from "@/lib/weather/provider";
-import { resolveWeatherTarget } from "@/lib/weather/resolve-target";
+import { resolveWeatherTarget, withRequestedPlace } from "@/lib/weather/resolve-target";
 
 const WEATHER_TTL_SECONDS = Number(process.env.CACHE_TTL_CURRENT ?? 600);
 const ADVISORY_TTL_SECONDS = 600;
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     const meta = createMeta(stale);
 
     return jsonResponse(
-      data,
+      withRequestedPlace(data, target),
       meta,
       mergeRateLimitHeaders({ headers: { "X-Cache": stale ? "STALE" : "HIT" } }, rateLimit.headers),
     );

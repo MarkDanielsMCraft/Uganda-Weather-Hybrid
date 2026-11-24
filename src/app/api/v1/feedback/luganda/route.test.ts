@@ -21,10 +21,26 @@ function collectSourceFiles(dir: string): string[] {
   return results;
 }
 
+
+/** Production sends each report by email. Tests give the route a working
+    email setup so "accepted" means the report really went somewhere. */
+function stubWorkingEmail() {
+  vi.stubEnv("RESEND_API_KEY", "re_test_secret_key");
+  vi.stubEnv("RESEND_FROM_EMAIL", "Uganda Weather <noreply@example.com>");
+  vi.stubEnv("LUGANDA_FEEDBACK_TO_EMAIL", "feedback-inbox@example.com");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify({ id: "email-1", success: true }), { status: 200 })),
+  );
+}
+
 describe("POST /api/v1/feedback/luganda", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
     resetLugandaFeedbackStoreForTests();
     vi.restoreAllMocks();
+    stubWorkingEmail();
   });
 
   afterEach(() => {
@@ -139,8 +155,8 @@ describe("POST /api/v1/feedback/luganda", () => {
     expect(stored).toHaveLength(0);
   });
 
-  it("rate limits excessive submissions from the same IP", async () => {
-    for (let i = 0; i < 10; i += 1) {
+  it("takes 5 reports a day from one address and refuses the 6th", async () => {
+    for (let i = 0; i < 5; i += 1) {
       const okRes = await POST(
         new Request("http://localhost/api/v1/feedback/luganda", {
           method: "POST",
@@ -166,7 +182,7 @@ describe("POST /api/v1/feedback/luganda", () => {
         },
         body: JSON.stringify({
           category: "layout",
-          details: "Eleventh submission should be rate limited",
+          details: "Sixth submission should be refused today",
         }),
       }),
     );
@@ -215,11 +231,10 @@ describe("POST /api/v1/feedback/luganda", () => {
       }),
     );
     expect(validTokenRes.status).toBe(201);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [verifyUrl] = fetchSpy.mock.calls[0] as [string];
-    expect(verifyUrl).toBe(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    );
+    // The human check runs first, then the report is emailed.
+    const calledUrls = fetchSpy.mock.calls.map(([url]) => String(url));
+    expect(calledUrls[0]).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+    expect(calledUrls).toContain("https://api.resend.com/emails");
   });
 
   it("keeps internal email addresses strictly out of all source code (server and client)", () => {
@@ -242,12 +257,15 @@ describe("feedback flood limits", () => {
     resetLugandaFeedbackStoreForTests();
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(console, "info").mockImplementation(() => undefined);
+    stubWorkingEmail();
   });
 
   afterEach(async () => {
     const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
     resetRateLimitsForTests();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   function report(i: number) {
@@ -276,5 +294,31 @@ describe("feedback flood limits", () => {
       await submitLugandaFeedback({ category: "grammar", details: `Stored report ${i} text.` });
     }
     expect((await listStoredLugandaFeedbackForTests()).length).toBe(MAX_MEMORY_FEEDBACK_REPORTS);
+  });
+});
+
+describe("feedback with nowhere to go", () => {
+  beforeEach(async () => {
+    const { resetRateLimitsForTests } = await import("@/lib/rate-limit");
+    resetRateLimitsForTests();
+    resetLugandaFeedbackStoreForTests();
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubEnv("RESEND_API_KEY", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("does not say thank you when the report can be neither emailed nor saved", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/v1/feedback/luganda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin", "x-forwarded-for": "10.9.9.9" },
+        body: JSON.stringify({ category: "grammar", details: "A report with no inbox set up." }),
+      }),
+    );
+    expect(response.status).toBe(503);
   });
 });
