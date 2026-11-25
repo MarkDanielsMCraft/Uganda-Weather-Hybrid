@@ -680,9 +680,13 @@ export function startVoiceInput({
   onEnd,
   onStatusChange,
   onAudioLevel,
+  allowRecordedFallback = true,
 }: {
   language: SupportedLocale;
   capabilities?: VoiceServerCapabilities;
+  /** False for a listener that runs while a reply plays: recording would
+      capture the reply itself and pay to transcribe the app's own voice. */
+  allowRecordedFallback?: boolean;
   onTranscript: (text: string) => void;
   onFinal: (text: string) => void;
   onError?: (code: string) => void;
@@ -709,7 +713,7 @@ export function startVoiceInput({
   // MediaRecorder + Firebase AI Logic multimodal audio if SpeechRecognition
   // is unavailable or hits a network/service error.
   const canFallbackToRecordedAi =
-    isOnline && isMediaRecorderSupported() && isFirebaseAiConfigured();
+    allowRecordedFallback && isOnline && isMediaRecorderSupported() && isFirebaseAiConfigured();
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) {
     if (canFallbackToRecordedAi) {

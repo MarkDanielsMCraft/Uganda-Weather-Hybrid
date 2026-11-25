@@ -61,6 +61,11 @@ const BRAND_GLASS_GREEN =
 
 const LISTENER_RESTART_DELAY_MS = 300;
 const MAX_LISTENER_RESTARTS_PER_REPLY = 10;
+const QUICK_LISTENER_END_MS = 1000;
+
+function tokenizeSpokenWords(text: string): string[] {
+  return text.toLowerCase().split(/[^\p{L}\p{N}']+/u).filter(Boolean);
+}
 
 export function HybridWeatherAdvisor({
   weather,
@@ -110,6 +115,10 @@ export function HybridWeatherAdvisor({
   /** Restarts of the listener during one reply. A broken or busy microphone
       can end the listener instantly, so restarts are spaced out and capped. */
   const listenerRestartsRef = useRef(0);
+  /** A real question heard while the reply played. It is asked as soon as
+      the reply ends, so nothing the person says is lost. */
+  const pendingQuestionRef = useRef<string | null>(null);
+  const runBriefingRef = useRef<((prompt: string) => Promise<void>) | null>(null);
   /** Empty listens in a row during a hands free conversation. One retry is
       allowed, so a short word cut off by the listener restarting is asked
       for again instead of ending the conversation without a sign. */
@@ -710,6 +719,7 @@ export function HybridWeatherAdvisor({
             setSpeakingMessageId(assistantId);
             replyPlayingRef.current = shouldContinueHandsFree;
             listenerRestartsRef.current = 0;
+            pendingQuestionRef.current = null;
             const started = speakAdvisorReply({
               text: spokenTurnText,
               language: uiLanguage,
@@ -717,6 +727,15 @@ export function HybridWeatherAdvisor({
               onEnd: () => {
                 replyPlayingRef.current = false;
                 setSpeakingMessageId((current) => (current === assistantId ? null : current));
+                const heldQuestion = pendingQuestionRef.current;
+                pendingQuestionRef.current = null;
+                if (heldQuestion && handsFreeSessionRef.current) {
+                  voiceHandleRef.current?.abort();
+                  voiceHandleRef.current = null;
+                  autoSpeakNextRef.current = true;
+                  void runBriefingRef.current?.(heldQuestion);
+                  return;
+                }
                 // The listener that ran during the reply simply keeps going.
                 if (voiceHandleRef.current) return;
                 if (shouldContinueHandsFree && handsFreeSessionRef.current) {
@@ -769,8 +788,18 @@ export function HybridWeatherAdvisor({
   };
 
   const handleStop = () => {
+    if (handsFreeTimerRef.current !== null) {
+      window.clearTimeout(handsFreeTimerRef.current);
+      handsFreeTimerRef.current = null;
+    }
     handsFreeSessionRef.current = false;
     autoSpeakNextRef.current = false;
+    replyPlayingRef.current = false;
+    pendingQuestionRef.current = null;
+    // Stop also turns off the microphone that listened during the reply.
+    voiceHandleRef.current?.abort();
+    voiceHandleRef.current = null;
+    setVoiceInputState("idle");
     setVoiceMode(false);
     stopVoiceOutput();
     setSpeakingMessageId(null);
@@ -825,6 +854,8 @@ export function HybridWeatherAdvisor({
     // only a choice ("one", "two", "2") or "stop" may cut in, so the app's own
     // voice coming back through the microphone can never start a question.
     let personSpoke = !duringReply;
+    let heardAnything = false;
+    const startedAt = Date.now();
     const activeChoices = () =>
       latestFollowUpsRef.current.length > 0
         ? latestFollowUpsRef.current
@@ -858,6 +889,7 @@ export function HybridWeatherAdvisor({
     voiceHandleRef.current = startVoiceInput({
       language: uiLanguage,
       capabilities: voiceServerCapabilities,
+      allowRecordedFallback: !duringReply,
       onStatusChange: (nextState) => {
         setVoiceInputState(nextState);
       },
@@ -865,6 +897,7 @@ export function HybridWeatherAdvisor({
         setVoiceLevel(level);
       },
       onTranscript: (text) => {
+        if (text.trim()) heardAnything = true;
         if (ignoreWhileReplying(text)) return;
         takeTurn();
         setQuestion(text.slice(0, 240));
@@ -872,7 +905,20 @@ export function HybridWeatherAdvisor({
       onFinal: (text) => {
         const cleaned = text.trim().slice(0, 240);
         setQuestion("");
-        if (ignoreWhileReplying(cleaned)) return;
+        if (cleaned) heardAnything = true;
+        if (ignoreWhileReplying(cleaned)) {
+          // A real question said over the reply (not echo, at least 4 words)
+          // is kept and asked as soon as the reply ends.
+          if (
+            duringReply &&
+            replyPlayingRef.current &&
+            tokenizeSpokenWords(cleaned).length >= 4 &&
+            !isEchoOfSpokenReply(cleaned, duringReply)
+          ) {
+            pendingQuestionRef.current = cleaned;
+          }
+          return;
+        }
         takeTurn();
         if (cleaned) emptyListenRetriesRef.current = 0;
         if (!cleaned) {
@@ -941,13 +987,17 @@ export function HybridWeatherAdvisor({
         voiceHandleRef.current = null;
         setVoiceInputState("idle");
         if (!duringReply || personSpoke || !handsFreeSessionRef.current) return;
+        // Only a listener that ends at once with nothing heard points to a
+        // broken microphone. Normal silence timeouts in a long reply do not count.
+        const endedAtOnce = !heardAnything && Date.now() - startedAt < QUICK_LISTENER_END_MS;
+        listenerRestartsRef.current = endedAtOnce ? listenerRestartsRef.current : 0;
         if (listenerRestartsRef.current >= MAX_LISTENER_RESTARTS_PER_REPLY) {
           // The microphone keeps ending at once. Stop instead of looping.
           handsFreeSessionRef.current = false;
           setError({ code: "failed", message: copy.voiceErrorGeneral });
           return;
         }
-        listenerRestartsRef.current += 1;
+        if (endedAtOnce) listenerRestartsRef.current += 1;
         if (handsFreeTimerRef.current !== null) window.clearTimeout(handsFreeTimerRef.current);
         handsFreeTimerRef.current = window.setTimeout(() => {
           handsFreeTimerRef.current = null;
@@ -968,6 +1018,10 @@ export function HybridWeatherAdvisor({
     voiceServerCapabilities,
     weather,
   ]);
+
+  useEffect(() => {
+    runBriefingRef.current = (prompt: string) => runBriefing(prompt, audience);
+  }, [runBriefing, audience]);
 
   useEffect(() => {
     startVoiceSessionRef.current = startVoiceListeningSession;
@@ -997,8 +1051,17 @@ export function HybridWeatherAdvisor({
       return;
     }
     if (speakingMessageId !== null) {
+      if (handsFreeTimerRef.current !== null) {
+        window.clearTimeout(handsFreeTimerRef.current);
+        handsFreeTimerRef.current = null;
+      }
       handsFreeSessionRef.current = false;
       autoSpeakNextRef.current = false;
+      replyPlayingRef.current = false;
+      pendingQuestionRef.current = null;
+      // Stop also turns off the microphone that listened during the reply.
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
       setVoiceMode(false);
       stopVoiceOutput();
       setSpeakingMessageId(null);
@@ -1019,6 +1082,7 @@ export function HybridWeatherAdvisor({
       handsFreeSessionRef.current = false;
       autoSpeakNextRef.current = false;
       replyPlayingRef.current = false;
+      pendingQuestionRef.current = null;
       // Stop also turns off the microphone that listened during the reply.
       voiceHandleRef.current?.abort();
       voiceHandleRef.current = null;

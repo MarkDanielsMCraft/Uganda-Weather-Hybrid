@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
           synth.speaking = false;
           current = null;
           utterance.onend?.(new Event("end") as SpeechSynthesisEvent);
-        }, 3000);
+        }, (window as unknown as { __sentenceMs?: number }).__sentenceMs ?? 3000);
       },
       cancel() {
         cancelled += 1;
@@ -115,6 +115,13 @@ test.beforeEach(async ({ page }) => {
       (live as unknown as FakeRecognition).finish();
       return true;
     };
+    w.__fail = (code: string) => {
+      const live = [...listeners].reverse().find((l) => !l.ended) as unknown as FakeRecognition | undefined;
+      if (!live) return false;
+      live.onerror?.({ error: code });
+      live.finish();
+      return true;
+    };
     w.__voiceLog = () => ({ spoken, cancelled, starts, micOpens, listening: listeners.some((l) => !l.ended) });
   });
 });
@@ -156,6 +163,7 @@ test("hands free voice hears 'two' said over the reply and ignores its own voice
 
 type VoiceWindow = {
   __say: (text: string) => boolean;
+  __fail: (code: string) => boolean;
   __voiceLog: () => { spoken: string[]; cancelled: number; starts: number; micOpens: number; listening: boolean };
   __instantEnd?: boolean;
 };
@@ -220,5 +228,55 @@ test("a microphone that keeps ending at once is restarted only a few times", asy
   await page.waitForTimeout(4000);
   const starts = await page.evaluate(() => (window as never as VoiceWindow).__voiceLog().starts);
   expect(starts - startsBefore).toBeLessThanOrEqual(12);
+});
+
+const voiceLog = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => (window as never as VoiceWindow).__voiceLog());
+const say = (page: import("@playwright/test").Page, text: string) =>
+  page.evaluate((spoken) => (window as never as VoiceWindow).__say(spoken), text);
+
+test("every Stop control also turns the microphone off", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const stop = page.getByRole("button", { name: "Stop", exact: true });
+  const stopAudio = page.getByRole("button", { name: "Stop audio" });
+  if (await stop.isVisible().catch(() => false)) await stop.click();
+  else await stopAudio.last().click();
+  await page.waitForTimeout(1500);
+  expect((await voiceLog(page)).listening).toBe(false);
+});
+
+test("many quiet timeouts during a long reply do not end the conversation", async ({ page }) => {
+  // Each sentence of the reply lasts a minute, so the whole test runs inside it.
+  await page.addInitScript(() => {
+    (window as unknown as { __sentenceMs?: number }).__sentenceMs = 60_000;
+  });
+  await startVoiceAnswer(page);
+  for (let i = 0; i < 12; i += 1) {
+    await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+    await page.waitForTimeout(1100);
+    await page.evaluate(() => (window as never as VoiceWindow).__fail("no-speech"));
+  }
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+  await expect(page.getByText(/could not hear that clearly/i)).toHaveCount(0);
+  // The conversation is still alive: a choice still cuts in.
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  await say(page, "2");
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
+});
+
+test("a question asked over the reply is kept and asked when the reply ends", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 40_000 });
+  await expect(page.getByTestId("advisor-user-message").last()).toContainText("Lake Victoria");
+});
+
+test("a network error while the reply plays never records the reply", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const before = (await voiceLog(page)).micOpens;
+  await page.evaluate(() => (window as never as VoiceWindow).__fail("network"));
+  await page.waitForTimeout(1500);
+  expect((await voiceLog(page)).micOpens).toBe(before);
 });
 
