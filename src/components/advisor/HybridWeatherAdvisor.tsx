@@ -72,13 +72,19 @@ function tokenizeSpokenWords(text: string): string[] {
 export function HybridWeatherAdvisor({
   weather,
   districtName,
+  districtSlug,
 }: {
   weather: WeatherBundle | null;
   districtName?: string;
+  districtSlug?: string;
 }) {
   const { dict, uiLanguage } = useTranslation();
   const copy = dict.hybridAdvisor;
   const questionInputId = useId();
+  const activePlaceKey = usePreferencesStore((state) => state.activePlace?.key ?? "");
+  const activePlaceCoords = usePreferencesStore((state) =>
+    state.activePlace ? `${state.activePlace.key}@${state.activePlace.lat},${state.activePlace.lon}` : "",
+  );
   const voiceMode = usePreferencesStore((state) => state.voiceMode);
   const setVoiceMode = usePreferencesStore((state) => state.setVoiceMode);
   const { installGuideOpen } = useInstallPrompt();
@@ -167,9 +173,14 @@ export function HybridWeatherAdvisor({
   const feedEndRef = useRef<HTMLDivElement | null>(null);
   const cloudConfigured = isFirebaseAiConfigured();
   const activeDistrictName = weather?.district.name ?? districtName ?? "Kampala";
-  const activeDistrictSlug = weather?.district.slug ?? "";
+  const activeDistrictSlug = districtSlug ?? weather?.district.slug ?? "";
+  const activeCacheKey =
+    (districtSlug ? activePlaceKey : "") || weather?.district.slug || activeDistrictSlug;
+  const activeLocationIdentity = activeDistrictSlug
+    ? `${activeDistrictSlug}:${districtSlug ? activePlaceCoords : ""}`
+    : "";
   const prevLanguageRef = useRef(uiLanguage);
-  const prevDistrictSlugRef = useRef(activeDistrictSlug);
+  const prevLocationIdentityRef = useRef(activeLocationIdentity);
   isOpenRef.current = isOpen;
   messagesRef.current = messages;
 
@@ -524,13 +535,13 @@ export function HybridWeatherAdvisor({
   }, [isOpen, liveCameraOpen, photoMenuOpen, stopLiveCamera]);
 
   useEffect(() => {
-    if (!activeDistrictSlug) return;
-    if (!prevDistrictSlugRef.current) {
-      prevDistrictSlugRef.current = activeDistrictSlug;
+    if (!activeLocationIdentity) return;
+    if (!prevLocationIdentityRef.current) {
+      prevLocationIdentityRef.current = activeLocationIdentity;
       return;
     }
-    if (prevDistrictSlugRef.current === activeDistrictSlug) return;
-    prevDistrictSlugRef.current = activeDistrictSlug;
+    if (prevLocationIdentityRef.current === activeLocationIdentity) return;
+    prevLocationIdentityRef.current = activeLocationIdentity;
     isBusyRef.current = false;
     abortRef.current?.abort();
     abortRef.current = null;
@@ -544,7 +555,7 @@ export function HybridWeatherAdvisor({
     setPhotoMenuOpen(false);
     setAttachedImage(null);
     stopLiveCamera();
-  }, [activeDistrictSlug, endVoiceConversation, stopLiveCamera]);
+  }, [activeLocationIdentity, endVoiceConversation, stopLiveCamera]);
 
   useEffect(() => {
     return () => {
@@ -1234,7 +1245,7 @@ export function HybridWeatherAdvisor({
         : copy.stepDrafting;
 
   const hasCachedForecast = Boolean(
-    activeDistrictSlug && loadWeatherCache(activeDistrictSlug)?.data,
+    activeCacheKey && loadWeatherCache(activeCacheKey)?.data,
   );
 
   useEffect(() => {

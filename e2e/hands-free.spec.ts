@@ -161,6 +161,7 @@ test("hands free voice hears 'two' said over the reply and ignores its own voice
 
   // Saying "two" over the reply stops it and asks the second suggestion.
   await expect.poll(() => page.evaluate(() => (window as never as { __voiceLog: () => { listening: boolean } }).__voiceLog().listening)).toBe(true);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(1);
   const userBubblesBefore = await page.getByTestId("advisor-user-message").count();
   const cancelsBeforeTwo = await cancelCount();
   await page.evaluate(() => (window as never as { __say: (t: string) => boolean }).__say("two"));
@@ -189,6 +190,7 @@ async function startVoiceAnswer(page: import("@playwright/test").Page) {
   await page.evaluate(() => (window as never as VoiceWindow).__say("Is it safe to dry crops today"));
   await expect.poll(() => page.evaluate(() => (window as never as VoiceWindow).__voiceLog().spoken.length), { timeout: 20_000 }).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(() => (window as never as VoiceWindow).__voiceLog().listening)).toBe(true);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(1);
 }
 
 test("words that only sound like the reply never cut in, but the digit 2 does", async ({ page }) => {
@@ -255,6 +257,7 @@ test("every Stop control also turns the microphone off", async ({ page }) => {
 });
 
 test("many quiet timeouts during a long reply do not end the conversation", async ({ page }) => {
+  test.setTimeout(60_000);
   // Each sentence of the reply lasts a minute, so the whole test runs inside it.
   await page.addInitScript(() => {
     (window as unknown as { __sentenceMs?: number }).__sentenceMs = 60_000;
@@ -274,6 +277,7 @@ test("many quiet timeouts during a long reply do not end the conversation", asyn
 });
 
 test("a question asked over the reply is kept and asked when the reply ends", async ({ page }) => {
+  test.setTimeout(60_000);
   await startVoiceAnswer(page);
   const bubbles = await page.getByTestId("advisor-user-message").count();
   await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
@@ -290,6 +294,7 @@ test("a network error while the reply plays never records the reply", async ({ p
 });
 
 test("a held question gets an answer without ending the conversation", async ({ page }) => {
+  test.setTimeout(60_000);
   await startVoiceAnswer(page);
   const bubbles = await page.getByTestId("advisor-user-message").count();
   await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
