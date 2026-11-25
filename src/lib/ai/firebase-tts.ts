@@ -6,6 +6,50 @@ const TTS_COOLDOWN_MS = 5 * 60_000;
 const DEFAULT_SAMPLE_RATE = 24_000;
 
 let ttsCooldownUntil = 0;
+const QUOTA_PAUSE_STORAGE_KEY = "uw:gemini-voice-paused-until";
+const MAX_QUOTA_PAUSE_MS = 24 * 60 * 60 * 1000;
+const MIN_DAILY_PAUSE_MS = 15 * 60 * 1000;
+
+/** How long Google asks us to wait when a daily quota is used up, read from
+    "retry in 10h32m52s" or "retryDelay": "37972s". Null when not a daily
+    quota error. */
+export function dailyQuotaPauseMs(error: unknown): number | null {
+  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+  if (!/per day|PerDay/i.test(text) || !/\b429\b|RESOURCE_EXHAUSTED|quota/i.test(text)) return null;
+  const clock = /retry in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i.exec(text);
+  let ms = 0;
+  if (clock && (clock[1] || clock[2] || clock[3])) {
+    ms = (Number(clock[1] ?? 0) * 3600 + Number(clock[2] ?? 0) * 60 + Number(clock[3] ?? 0)) * 1000;
+  } else {
+    const delay = /retryDelay"?\s*:\s*"?(\d+)s/i.exec(text);
+    ms = delay ? Number(delay[1]) * 1000 : 60 * 60 * 1000;
+  }
+  if (!Number.isFinite(ms)) ms = 60 * 60 * 1000;
+  // Google can name a short retry even when the day is used up, so a daily
+  // limit always waits at least 15 minutes.
+  return Math.min(Math.max(ms, MIN_DAILY_PAUSE_MS), MAX_QUOTA_PAUSE_MS);
+}
+
+function readStoredPause(): number {
+  try {
+    const value = Number(window.localStorage.getItem(QUOTA_PAUSE_STORAGE_KEY));
+    return Number.isFinite(value) && value <= Date.now() + MAX_QUOTA_PAUSE_MS ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** The daily limit is shared by every visitor of the project, so once Google
+    says it is used up, this browser remembers the pause across page reloads instead of spending a
+    request every few minutes to learn the same thing. */
+function pauseForDailyQuota(ms: number) {
+  ttsCooldownUntil = Date.now() + ms;
+  try {
+    window.localStorage.setItem(QUOTA_PAUSE_STORAGE_KEY, String(ttsCooldownUntil));
+  } catch {
+    // Private mode or full storage: the in memory pause still applies.
+  }
+}
 
 interface SpeechGenerationConfig extends GenerationConfig {
   speechConfig?: {
@@ -96,7 +140,7 @@ function isRateLimitError(error: unknown): boolean {
 
 export function isFirebaseNeuralTtsAvailable(): boolean {
   if (typeof window === "undefined") return false;
-  if (Date.now() < ttsCooldownUntil) return false;
+  if (Date.now() < Math.max(ttsCooldownUntil, readStoredPause())) return false;
   if (!isFirebaseAiConfigured()) return false;
   const rc = getAdvisorRemoteConfig();
   return rc.enabled && rc.ttsEnabled && Boolean(rc.ttsModel);
@@ -207,7 +251,13 @@ export async function synthesizeSpeechWithFirebaseAi({
     }
     // Only engage cooldown on user-triggered failures (never let a transient
     // 400ms startup prefetch blip lock out Firebase Neural TTS for 5 minutes).
-    if (!isPrefetch) {
+    // A used up daily quota is final, so even a background prefetch starts the
+    // pause. Other prefetch errors are ignored so a startup blip cannot lock
+    // the voice out.
+    const dailyPause = dailyQuotaPauseMs(error);
+    if (dailyPause !== null) {
+      pauseForDailyQuota(dailyPause);
+    } else if (!isPrefetch) {
       ttsCooldownUntil = Date.now() + (isRateLimitError(error) ? RATE_LIMIT_COOLDOWN_MS : TTS_COOLDOWN_MS);
     }
     console.warn("[voice] firebase neural tts unavailable, trying the next voice");
@@ -217,4 +267,9 @@ export async function synthesizeSpeechWithFirebaseAi({
 
 export function resetFirebaseTtsForTests(): void {
   ttsCooldownUntil = 0;
+  try {
+    window.localStorage.removeItem(QUOTA_PAUSE_STORAGE_KEY);
+  } catch {
+    // Ignore storage errors in tests.
+  }
 }
