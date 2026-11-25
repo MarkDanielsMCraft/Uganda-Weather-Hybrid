@@ -172,9 +172,12 @@ describe("firebase-tts daily quota pause", () => {
   it("reads Google's retry time from a daily quota error", async () => {
     const { dailyQuotaPauseMs } = await import("@/lib/ai/firebase-tts");
     expect(dailyQuotaPauseMs(new Error(googleDailyQuota))).toBe((10 * 3600 + 32 * 60 + 52.8) * 1000);
-    expect(dailyQuotaPauseMs(new Error('per day limit "retryDelay": "37972s"'))).toBe(37_972_000);
+    expect(dailyQuotaPauseMs(new Error('[429] RESOURCE_EXHAUSTED per day limit "retryDelay": "37972s"'))).toBe(37_972_000);
     expect(dailyQuotaPauseMs(new Error("[429] per minute limit"))).toBeNull();
-    expect(dailyQuotaPauseMs(new Error("per day, retry in 99h"))).toBe(24 * 60 * 60 * 1000);
+    expect(dailyQuotaPauseMs(new Error("[429] per day, retry in 99h"))).toBe(24 * 60 * 60 * 1000);
+    expect(dailyQuotaPauseMs(new Error("[429] PerDay quota, retry in 37.9s"))).toBe(15 * 60 * 1000);
+    expect(dailyQuotaPauseMs(new Error("[429] per day quota, retry in .s"))).toBe(60 * 60 * 1000);
+    expect(dailyQuotaPauseMs(new Error("network failed while checking per day stats"))).toBeNull();
   });
 
   it("does not retry, pauses for Google's time, and remembers it after a reload", async () => {

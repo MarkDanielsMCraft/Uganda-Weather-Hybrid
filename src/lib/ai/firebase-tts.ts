@@ -8,13 +8,14 @@ const DEFAULT_SAMPLE_RATE = 24_000;
 let ttsCooldownUntil = 0;
 const QUOTA_PAUSE_STORAGE_KEY = "uw:gemini-voice-paused-until";
 const MAX_QUOTA_PAUSE_MS = 24 * 60 * 60 * 1000;
+const MIN_DAILY_PAUSE_MS = 15 * 60 * 1000;
 
 /** How long Google asks us to wait when a daily quota is used up, read from
     "retry in 10h32m52s" or "retryDelay": "37972s". Null when not a daily
     quota error. */
 export function dailyQuotaPauseMs(error: unknown): number | null {
   const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
-  if (!/per day|PerDay/i.test(text)) return null;
+  if (!/per day|PerDay/i.test(text) || !/\b429\b|RESOURCE_EXHAUSTED|quota/i.test(text)) return null;
   const clock = /retry in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i.exec(text);
   let ms = 0;
   if (clock && (clock[1] || clock[2] || clock[3])) {
@@ -23,7 +24,10 @@ export function dailyQuotaPauseMs(error: unknown): number | null {
     const delay = /retryDelay"?\s*:\s*"?(\d+)s/i.exec(text);
     ms = delay ? Number(delay[1]) * 1000 : 60 * 60 * 1000;
   }
-  return Math.min(Math.max(ms, 60_000), MAX_QUOTA_PAUSE_MS);
+  if (!Number.isFinite(ms)) ms = 60 * 60 * 1000;
+  // Google can name a short retry even when the day is used up, so a daily
+  // limit always waits at least 15 minutes.
+  return Math.min(Math.max(ms, MIN_DAILY_PAUSE_MS), MAX_QUOTA_PAUSE_MS);
 }
 
 function readStoredPause(): number {
@@ -35,8 +39,8 @@ function readStoredPause(): number {
   }
 }
 
-/** The daily limit is shared by every visitor, so once Google says it is used
-    up, the pause is remembered across page reloads instead of spending a
+/** The daily limit is shared by every visitor of the project, so once Google
+    says it is used up, this browser remembers the pause across page reloads instead of spending a
     request every few minutes to learn the same thing. */
 function pauseForDailyQuota(ms: number) {
   ttsCooldownUntil = Date.now() + ms;
