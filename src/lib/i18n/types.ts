@@ -665,6 +665,7 @@ export interface TranslationDictionary {
     voiceErrorMicDenied: string;
     voiceErrorEmpty: string;
     voiceSayAgain: string;
+    voiceEnded: string;
     voiceErrorGeneral: string;
     listenReply: string;
     shareReplySms: string;

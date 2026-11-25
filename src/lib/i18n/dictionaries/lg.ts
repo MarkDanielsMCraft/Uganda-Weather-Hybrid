@@ -967,6 +967,7 @@ export const lg: TranslationDictionary = {
     voiceErrorMicDenied: "Kkiriza akazindaalo osobole okwogera ekibuuzo kyo.",
     voiceErrorEmpty: "Tewali ddoboozi liwuliddwa. Nyiga ku kazindaalo oddemu okwogera.",
     voiceSayAgain: "Tewali ddoboozi liwuliddwa. Ddamu okwogera.",
+    voiceEnded: "Kale, okwogera kukomedde awo.",
     voiceErrorGeneral: "Tetuwulidde bulungi. Ddamu ogezeeko oba wandiika ekibuuzo kyo.",
     listenReply: "Wuliriza",
     shareReplySms: "Weereza okuddibwamu kuno nga SMS",

@@ -115,6 +115,14 @@ test.beforeEach(async ({ page }) => {
       (live as unknown as FakeRecognition).finish();
       return true;
     };
+    w.__sayInterim = (interim: string, full: string) => {
+      const live = [...listeners].reverse().find((l) => !l.ended);
+      if (!live) return false;
+      live.onresult?.({ results: [{ isFinal: false, 0: { transcript: interim } }] });
+      live.onresult?.({ results: [{ isFinal: true, 0: { transcript: full } }] });
+      (live as unknown as FakeRecognition).finish();
+      return true;
+    };
     w.__fail = (code: string) => {
       const live = [...listeners].reverse().find((l) => !l.ended) as unknown as FakeRecognition | undefined;
       if (!live) return false;
@@ -163,6 +171,7 @@ test("hands free voice hears 'two' said over the reply and ignores its own voice
 
 type VoiceWindow = {
   __say: (text: string) => boolean;
+  __sayInterim: (interim: string, full: string) => boolean;
   __fail: (code: string) => boolean;
   __voiceLog: () => { spoken: string[]; cancelled: number; starts: number; micOpens: number; listening: boolean };
   __instantEnd?: boolean;
@@ -308,5 +317,33 @@ test("a network error during the reply waits quietly instead of showing an error
   await page.waitForTimeout(2500);
   expect((await voiceLog(page)).starts - startsBefore).toBeLessThanOrEqual(1);
   await expect(page.getByText(/could not hear that clearly|allow microphone/i)).toHaveCount(0);
+});
+
+test("echo of spoken follow up choices or interim 'To' never cuts in, and Stop listening stops speaker and mic", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  const cancelsBefore = (await voiceLog(page)).cancelled;
+  const fullSpoken = (await voiceLog(page)).spoken.join(" ");
+
+  // A reply sentence starting with "To ..." sends an interim "To" first; it must not cut in.
+  await page.evaluate(
+    (echo) => (window as never as VoiceWindow).__sayInterim("To", `To ${echo}`),
+    fullSpoken,
+  );
+  await page.waitForTimeout(500);
+  expect((await voiceLog(page)).cancelled).toBe(cancelsBefore);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles);
+
+  // Echoing the spoken follow up prompt back into the mic must never trigger choice one.
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+  await say(page, "Next, you can say one for: Safe to farm or dry crops today, or say stop to end");
+  await page.waitForTimeout(500);
+  expect((await voiceLog(page)).cancelled).toBe(cancelsBefore);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles);
+
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+  await page.getByRole("button", { name: "Stop listening" }).click();
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(false);
+  expect((await voiceLog(page)).cancelled).toBeGreaterThan(cancelsBefore);
 });
 
