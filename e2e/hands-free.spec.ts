@@ -280,3 +280,33 @@ test("a network error while the reply plays never records the reply", async ({ p
   expect((await voiceLog(page)).micOpens).toBe(before);
 });
 
+test("a held question gets an answer without ending the conversation", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 40_000 });
+  await page.waitForTimeout(4000);
+  await expect(page.getByText(/could not hear that clearly/i)).toHaveCount(0);
+});
+
+test("a choice said after a held question wins, and the held question is dropped", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+  await say(page, "2");
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
+  await expect(page.getByTestId("advisor-user-message").last()).not.toContainText("Lake Victoria");
+  await page.waitForTimeout(8000);
+  await expect(page.getByTestId("advisor-user-message").filter({ hasText: "Lake Victoria" })).toHaveCount(0);
+});
+
+test("a network error during the reply waits quietly instead of showing an error", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const startsBefore = (await voiceLog(page)).starts;
+  await page.evaluate(() => (window as never as VoiceWindow).__fail("network"));
+  await page.waitForTimeout(2500);
+  expect((await voiceLog(page)).starts - startsBefore).toBeLessThanOrEqual(1);
+  await expect(page.getByText(/could not hear that clearly|allow microphone/i)).toHaveCount(0);
+});
+

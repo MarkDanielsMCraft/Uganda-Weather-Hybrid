@@ -119,6 +119,9 @@ export function HybridWeatherAdvisor({
       the reply ends, so nothing the person says is lost. */
   const pendingQuestionRef = useRef<string | null>(null);
   const runBriefingRef = useRef<((prompt: string) => Promise<void>) | null>(null);
+  /** Number of the newest listener. Callbacks from an older, replaced
+      listener are ignored, so they can never restart the microphone. */
+  const listenerSeqRef = useRef(0);
   /** Empty listens in a row during a hands free conversation. One retry is
       allowed, so a short word cut off by the listener restarting is asked
       for again instead of ending the conversation without a sign. */
@@ -855,7 +858,12 @@ export function HybridWeatherAdvisor({
     // voice coming back through the microphone can never start a question.
     let personSpoke = !duringReply;
     let heardAnything = false;
+    // Set when the speech service is unreachable during the reply: stop
+    // quietly and listen normally once the reply ends.
+    let pausedUntilReplyEnds = false;
     const startedAt = Date.now();
+    const seq = ++listenerSeqRef.current;
+    const isCurrent = () => seq === listenerSeqRef.current;
     const activeChoices = () =>
       latestFollowUpsRef.current.length > 0
         ? latestFollowUpsRef.current
@@ -871,6 +879,8 @@ export function HybridWeatherAdvisor({
     const takeTurn = () => {
       if (personSpoke) return;
       personSpoke = true;
+      // The person has answered now, so an earlier held question is dropped.
+      pendingQuestionRef.current = null;
       if (replyPlayingRef.current) {
         replyPlayingRef.current = false;
         stopVoiceOutput();
@@ -884,7 +894,11 @@ export function HybridWeatherAdvisor({
     }
     setError(null);
     setVoiceInputState("recording");
-    // Never leave an older listener running behind a new one.
+    // Never leave an older listener, or its pending restart, behind a new one.
+    if (handsFreeTimerRef.current !== null) {
+      window.clearTimeout(handsFreeTimerRef.current);
+      handsFreeTimerRef.current = null;
+    }
     voiceHandleRef.current?.abort();
     voiceHandleRef.current = startVoiceInput({
       language: uiLanguage,
@@ -897,12 +911,14 @@ export function HybridWeatherAdvisor({
         setVoiceLevel(level);
       },
       onTranscript: (text) => {
+        if (!isCurrent()) return;
         if (text.trim()) heardAnything = true;
         if (ignoreWhileReplying(text)) return;
         takeTurn();
         setQuestion(text.slice(0, 240));
       },
       onFinal: (text) => {
+        if (!isCurrent()) return;
         const cleaned = text.trim().slice(0, 240);
         setQuestion("");
         if (cleaned) heardAnything = true;
@@ -947,7 +963,12 @@ export function HybridWeatherAdvisor({
         void runBriefing(command.prompt, audience);
       },
       onError: (code) => {
+        if (!isCurrent()) return;
         setVoiceInputState("idle");
+        if (duringReply && !personSpoke && code === "network") {
+          pausedUntilReplyEnds = true;
+          return;
+        }
         const micUnusable =
           code === "mic_denied" || code === "audio-capture" || code === "start_failed" || code === "not-allowed";
         // Silence or a timeout while the reply plays is normal. The listener
@@ -984,9 +1005,12 @@ export function HybridWeatherAdvisor({
         setError({ code: "failed", message: msg });
       },
       onEnd: () => {
+        if (!isCurrent()) return;
         voiceHandleRef.current = null;
         setVoiceInputState("idle");
         if (!duringReply || personSpoke || !handsFreeSessionRef.current) return;
+        // The reply's own end starts normal listening once it finishes.
+        if (pausedUntilReplyEnds && replyPlayingRef.current) return;
         // Only a listener that ends at once with nothing heard points to a
         // broken microphone. Normal silence timeouts in a long reply do not count.
         const endedAtOnce = !heardAnything && Date.now() - startedAt < QUICK_LISTENER_END_MS;
