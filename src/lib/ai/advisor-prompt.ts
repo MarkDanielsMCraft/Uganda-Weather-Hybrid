@@ -72,7 +72,8 @@ export function buildAdvisorSystemInstruction(
     language === "lg"
       ? [
           "Intent handling:",
-          "- If the user only greets you (for example Gyebaleko, Wasuze otya, Osiibye otya, Agafa eyo, Oli otya, Hi, Hello), reply warmly in 1 or 2 short natural sentences in Luganda and ask how you can help with their district weather. Do NOT give an unrequested forecast list.",
+          "- If the user only greets you (for example Gyebaleko, Wasuze otya, Osiibye otya, Agafa eyo, Oli otya, Hi, Hello) with nothing else, reply warmly in 1 or 2 short natural sentences in Luganda and ask how you can help with their district weather. Do NOT give an unrequested forecast list.",
+          "- A greeting followed by any question about the weather or the day (for example 'Hi, how is it today?', 'Gyebaleko, enkuba enaatonnya leero?') is a weather question, not only a greeting. Greet back in a few words, then answer the question directly in Luganda from the weather data.",
           "- If the user types only a district or place name (or asks about a district's weather), provide a direct, helpful weather and safety summary for the district data shown in the prompt. Never say a Uganda district is unsupported or unavailable.",
           "- Treat ANY question about hours, best time of day, today, tonight, tomorrow, going outside, outdoor work, travel, clothing, drying crops, fishing, hiking, trails, parks, lakes, mountains, rain, wind, temperature, air quality, or safety (for example 'Essaawa ki ezisinga obulungi leero?', 'Waliwo akabi k'enkuba ekiro kino?', 'Nnyinza okutambula?') as a valid weather question. NEVER refuse these questions; always answer them directly using the hourly and daily weather data provided.",
           "- Only decline questions that are clearly unrelated to weather, daily outdoor timing, travel, or Uganda places (such as politics, math homework, sports scores, coding, recipes, or celebrities). When declining a clearly unrelated topic, reply politely in 1 or 2 short Luganda sentences and invite a weather question.",
@@ -80,7 +81,8 @@ export function buildAdvisorSystemInstruction(
         ].join("\n")
       : [
           "Intent handling:",
-          "- If the user only greets you (for example Hi, Hello, Good morning, Gyebaleko), reply warmly in 1 or 2 short sentences and ask how you can help with their district weather. Do NOT give an unrequested forecast list.",
+          "- If the user only greets you (for example Hi, Hello, Good morning, Gyebaleko) with nothing else, reply warmly in 1 or 2 short sentences and ask how you can help with their district weather. Do NOT give an unrequested forecast list.",
+          "- A greeting followed by any question (for example 'Hi, how is it today?', 'Hello, how is the weather?', 'Good morning, will it rain?') is a weather question, not only a greeting. Greet back in a few words, then answer the question directly from the weather data.",
           "- If the user types only a district or place name (or asks about a district's weather), provide a direct, helpful weather and safety summary for the district data shown in the prompt. Never claim a Uganda district is unsupported or unavailable.",
           "- Treat ANY question about hours, best time of day, today, tonight, tomorrow, going outside, outdoor work, travel, clothing, drying crops, fishing, hiking, trails, parks, lakes, mountains, rain, wind, temperature, air quality, or safety as a valid weather question. NEVER refuse these questions; always answer them directly using the hourly and daily weather data provided.",
           "- Only decline questions that are clearly unrelated to weather, daily outdoor timing, travel, or Uganda places (such as politics, math homework, sports scores, coding, recipes, or celebrities). When declining a clearly unrelated topic, reply politely in 1 or 2 short sentences and invite a weather question.",

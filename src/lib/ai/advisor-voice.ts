@@ -476,12 +476,18 @@ function startRecordedVoiceInput({
   onStatusChange?.("recording");
 
   void navigator.mediaDevices
-    .getUserMedia({ audio: true })
+    .getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    })
     .then((stream) => {
-      if (aborted) {
+      if (aborted || stopped) {
         stream.getTracks().forEach((track) => track.stop());
         onStatusChange?.("idle");
-        onEnd?.();
+        if (!aborted) onEnd?.();
         return;
       }
       activeStream = stream;
@@ -577,7 +583,7 @@ function startRecordedVoiceInput({
         cleanupMedia();
         if (aborted || chunks.length === 0) {
           onStatusChange?.("idle");
-          onEnd?.();
+          if (!aborted) onEnd?.();
           return;
         }
         onStatusChange?.("transcribing");
@@ -618,7 +624,7 @@ function startRecordedVoiceInput({
           })
           .finally(() => {
             onStatusChange?.("idle");
-            onEnd?.();
+            if (!aborted) onEnd?.();
           });
       };
 
@@ -680,9 +686,13 @@ export function startVoiceInput({
   onEnd,
   onStatusChange,
   onAudioLevel,
+  allowRecordedFallback = true,
 }: {
   language: SupportedLocale;
   capabilities?: VoiceServerCapabilities;
+  /** False for a listener that runs while a reply plays: recording would
+      capture the reply itself and pay to transcribe the app's own voice. */
+  allowRecordedFallback?: boolean;
   onTranscript: (text: string) => void;
   onFinal: (text: string) => void;
   onError?: (code: string) => void;
@@ -709,7 +719,7 @@ export function startVoiceInput({
   // MediaRecorder + Firebase AI Logic multimodal audio if SpeechRecognition
   // is unavailable or hits a network/service error.
   const canFallbackToRecordedAi =
-    isOnline && isMediaRecorderSupported() && isFirebaseAiConfigured();
+    allowRecordedFallback && isOnline && isMediaRecorderSupported() && isFirebaseAiConfigured();
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) {
     if (canFallbackToRecordedAi) {
@@ -734,12 +744,14 @@ export function startVoiceInput({
   recognition.maxAlternatives = 1;
 
   let finalText = "";
+  let aborted = false;
   let deliveredFinal = false;
+  let deliveredError = false;
   let fallbackHandle: VoiceInputHandle | null = null;
   let switchedToFallback = false;
 
   const trySwitchToFallback = (): boolean => {
-    if (switchedToFallback || deliveredFinal || finalText.trim().length > 0 || !canFallbackToRecordedAi) {
+    if (aborted || switchedToFallback || deliveredFinal || finalText.trim().length > 0 || !canFallbackToRecordedAi) {
       return false;
     }
     switchedToFallback = true;
@@ -760,6 +772,7 @@ export function startVoiceInput({
   };
 
   recognition.onresult = (event) => {
+    if (aborted) return;
     const results = event.results;
     if (!results) return;
     let combined = "";
@@ -785,6 +798,7 @@ export function startVoiceInput({
   };
 
   recognition.onerror = (event) => {
+    if (aborted) return;
     const errCode = (event?.error ?? "unknown").toLowerCase();
     if (
       (errCode === "network" ||
@@ -800,14 +814,21 @@ export function startVoiceInput({
         : errCode === "no-speech"
           ? "empty_transcript"
           : errCode;
+    deliveredError = true;
     onError?.(mapped);
   };
 
   recognition.onend = () => {
-    if (switchedToFallback) return;
+    if (aborted || switchedToFallback) return;
     if (!deliveredFinal && finalText.trim()) {
       deliveredFinal = true;
       onFinal(finalText.trim());
+    } else if (!deliveredFinal && !deliveredError) {
+      // The listener can end with no words and no error, for example when a
+      // short word like "two" was said just before it started. Report it so
+      // the conversation can ask again instead of stopping without a sign.
+      deliveredError = true;
+      onError?.("empty_transcript");
     }
     onEnd?.();
   };
@@ -828,6 +849,7 @@ export function startVoiceInput({
 
   return {
     stop: () => {
+      if (aborted) return;
       if (fallbackHandle) {
         fallbackHandle.stop();
         return;
@@ -839,6 +861,8 @@ export function startVoiceInput({
       }
     },
     abort: () => {
+      if (aborted) return;
+      aborted = true;
       deliveredFinal = true;
       if (fallbackHandle) {
         fallbackHandle.abort();
@@ -849,6 +873,7 @@ export function startVoiceInput({
       } catch {
         // Ignore abort errors if already ended
       }
+      onStatusChange?.("idle");
     },
   };
 }
@@ -1245,7 +1270,9 @@ export function resolveHandsFreeVoiceCommand(
     return { kind: "followup", index: 2, prompt: followUps[2] };
   }
 
-  // Also check if the user simply read out one of the recommended follow-up questions
+  // Also check if the user read out one of the recommended follow up questions,
+  // requiring high two way word overlap so extra place or time words ("in Gulu",
+  // "tomorrow") are never rewritten to a different question.
   const spokenWords = tokenizeWords(lower);
   if (spokenWords.length >= 2 && followUps.length > 0) {
     let bestIdx = -1;
@@ -1253,14 +1280,17 @@ export function resolveHandsFreeVoiceCommand(
     for (let i = 0; i < followUps.length; i += 1) {
       const candidate = followUps[i]!;
       const candidateLower = candidate.replace(/[!?.:,;]+$/g, "").trim().toLowerCase();
-      if (candidateLower === lower || candidateLower.includes(lower) || lower.includes(candidateLower)) {
+      if (candidateLower === lower) {
         return { kind: "followup", index: i, prompt: candidate };
       }
       const candidateWords = tokenizeWords(candidateLower);
       if (candidateWords.length === 0) continue;
       const matches = candidateWords.filter((w) => spokenWords.includes(w)).length;
-      const score = matches / candidateWords.length;
-      if (score >= 0.55 && score > bestScore) {
+      const candidateCoverage = matches / candidateWords.length;
+      const spokenMatches = spokenWords.filter((w) => candidateWords.includes(w)).length;
+      const spokenCoverage = spokenMatches / spokenWords.length;
+      const score = Math.min(candidateCoverage, spokenCoverage);
+      if (candidateCoverage === 1 && spokenCoverage === 1 && score > bestScore) {
         bestScore = score;
         bestIdx = i;
       }
@@ -1273,10 +1303,74 @@ export function resolveHandsFreeVoiceCommand(
   return { kind: "message", prompt: transcript.trim() };
 }
 
-/**
- * Formats an assistant reply for spoken output, appending numbered spoken
- * follow-up options when the user is in a continuous hands-free conversation.
- */
+/** True only for a short choice ("one", "two", "2", "three") or "stop"
+    that may cut in while a reply is still being read out. Full sentences are
+    not cut ins, so the app reading its own follow up options aloud can never
+    interrupt itself. */
+export function isHandsFreeCutInCommand(
+  transcript: string,
+  followUps: readonly string[] = [],
+): boolean {
+  const cleaned = transcript
+    .replace(/[!?.:,;]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  if (!cleaned) return false;
+  if (STOP_VOICE_SESSION_RE.test(cleaned)) return true;
+  if (followUps[0] && CHOICE_ONE_RE.test(cleaned)) return true;
+  if (followUps[1] && CHOICE_TWO_RE.test(cleaned)) return true;
+  if (followUps[2] && CHOICE_THREE_RE.test(cleaned)) return true;
+  return false;
+}
+
+/** Hands free voice (listening during the reply and opening the mic again
+    after it) needs live speech to text, which browsers only offer for
+    English. Luganda is recorded and sent to a paid service, so Luganda voice
+    is tap to talk: one question, one spoken answer, mic off. */
+export function supportsHandsFreeVoice(language: SupportedLocale): boolean {
+  return language === "en" && getSpeechRecognitionCtor() !== null;
+}
+
+const ECHO_FILLER_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "are",
+  "what",
+  "how",
+  "can",
+  "you",
+  "will",
+  "this",
+  "that",
+  "with",
+  "from",
+  "have",
+  "any",
+]);
+
+/** While the reply plays, the microphone can pick up the app's own voice.
+    Heard words that mostly repeat the reply are treated as that echo, so the
+    app never interrupts itself. A spoken choice or "stop" is never echo. */
+export function isEchoOfSpokenReply(heard: string, spokenReply: string): boolean {
+  // Choices and "stop" first: "2" or "to" are too short for the word check.
+  if (isHandsFreeCutInCommand(heard, ["_", "_", "_"])) return false;
+  const allHeardWords = tokenizeWords(heard.toLowerCase());
+  if (allHeardWords.length === 0) return true;
+  const contentWords = allHeardWords.filter((word) => !ECHO_FILLER_WORDS.has(word));
+  const heardWords = contentWords.length >= 2 ? contentWords : allHeardWords;
+  // The speaker says "24 degrees Celsius" where the text has "24°C", so both
+  // forms count as the reply's own words.
+  const replyWords = new Set([
+    ...tokenizeWords(spokenReply.toLowerCase()),
+    ...tokenizeWords(formatTextForSpeech(spokenReply).toLowerCase()),
+  ]);
+  if (replyWords.size === 0) return false;
+  const repeated = heardWords.filter((word) => replyWords.has(word)).length;
+  return repeated / heardWords.length >= 0.6;
+}
+
 export function buildSpokenAdvisorTurnText(
   text: string,
   followUps: readonly string[] | undefined,

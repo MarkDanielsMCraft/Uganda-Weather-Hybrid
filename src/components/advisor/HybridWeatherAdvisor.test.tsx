@@ -345,4 +345,178 @@ describe("HybridWeatherAdvisor", () => {
     expect(screen.queryByRole("menuitem", { name: "Take live photo" })).toBeNull();
     expect(screen.getByText("How can I help with today's weather?")).toBeInTheDocument();
   });
+
+  it("starts the hands free listener after a multi tick streaming reply and cuts in with full history", async () => {
+    const listeners: Array<{
+      onresult: ((e: unknown) => void) | null;
+      onerror: ((e: unknown) => void) | null;
+      onend: (() => void) | null;
+      ended: boolean;
+    }> = [];
+    let cancelCalls = 0;
+
+    class MockUtterance {
+      text: string;
+      lang = "";
+      rate = 1;
+      pitch = 1;
+      onend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+    vi.stubGlobal("SpeechSynthesisUtterance", MockUtterance);
+    vi.stubGlobal("speechSynthesis", {
+      speaking: false,
+      pending: false,
+      paused: false,
+      getVoices: () => [{ lang: "en-GB", name: "English", localService: true }],
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      resume: () => undefined,
+      speak: function (this: { speaking: boolean }) {
+        this.speaking = true;
+      },
+      cancel: function (this: { speaking: boolean }) {
+        this.speaking = false;
+        cancelCalls += 1;
+      },
+    });
+
+    class FakeSpeechRecognition {
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      maxAlternatives = 1;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      ended = false;
+      start() {
+        listeners.push(this);
+      }
+      stop() {
+        if (this.ended) return;
+        this.ended = true;
+        this.onend?.();
+      }
+      abort() {
+        this.ended = true;
+      }
+    }
+    vi.stubGlobal("webkitSpeechRecognition", FakeSpeechRecognition);
+
+    let resolveFirstTurn: ((value: unknown) => void) | undefined;
+    mockGenerateHybridWeatherBriefing
+      .mockImplementationOnce(
+        (opts: {
+          onPhaseChange?: (phase: "thinking" | "writing") => void;
+          onChunk?: (text: string) => void;
+        }) => {
+          opts.onPhaseChange?.("thinking");
+          opts.onPhaseChange?.("writing");
+          opts.onChunk?.("Dry skies this morning.");
+          return new Promise((resolve) => {
+            resolveFirstTurn = resolve;
+          });
+        },
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          text: "Winds stay gentle tomorrow afternoon.",
+          source: "cloud",
+          model: "gemini-3.5-flash-lite",
+          generatedAt: "2026-11-25T09:05:00Z",
+          usedCachedWeather: false,
+          followUps: ["Any evening rain?"],
+        },
+      });
+
+    const playSpy = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    localStorage.setItem("uw:gemini-voice-paused-until", String(Date.now() + 60 * 60 * 1000));
+    try {
+      render(<HybridWeatherAdvisor weather={makeWeatherBundle()} />);
+      fireEvent.click(screen.getByTestId("advisor-launcher"));
+
+      const voiceBtn = await screen.findByRole("button", { name: "Speak your question" });
+      fireEvent.click(voiceBtn);
+      expect(listeners).toHaveLength(1);
+
+      act(() => {
+        const first = listeners[0]!;
+        first.onresult?.({
+          results: [{ isFinal: true, 0: { transcript: "Is it safe to dry crops today" } }],
+        });
+        first.ended = true;
+        first.onend?.();
+      });
+
+      // Wait until the busy thinking/writing render has committed so canSend is false.
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
+      });
+
+      // Now finish the first reply and verify the during-reply listener still starts.
+      await act(async () => {
+        resolveFirstTurn?.({
+          ok: true,
+          data: {
+            text: "Dry skies this morning in Kampala.",
+            source: "cloud",
+            model: "gemini-3.5-flash-lite",
+            generatedAt: "2026-11-25T09:00:00Z",
+            usedCachedWeather: false,
+            followUps: [
+              "Will it rain tonight?",
+              "How strong is the wind tomorrow afternoon?",
+            ],
+          },
+        });
+      });
+
+      await waitFor(() => {
+        expect(listeners.some((l) => !l.ended)).toBe(true);
+      });
+
+      // Saying "two" cuts in, cancels speech, and sends the second follow-up with Turn 1 history.
+      const cancelsBefore = cancelCalls;
+      await act(async () => {
+        const live = [...listeners].reverse().find((l) => !l.ended)!;
+        live.onresult?.({
+          results: [{ isFinal: true, 0: { transcript: "two" } }],
+        });
+        live.ended = true;
+        live.onend?.();
+      });
+
+      expect(cancelCalls).toBeGreaterThan(cancelsBefore);
+      await waitFor(() => {
+        expect(mockGenerateHybridWeatherBriefing).toHaveBeenCalledTimes(2);
+      });
+      expect(mockGenerateHybridWeatherBriefing.mock.calls[1]?.[0]).toMatchObject({
+        customQuestion: "How strong is the wind tomorrow afternoon?",
+        history: [
+          { role: "user", text: "Is it safe to dry crops today" },
+          { role: "assistant", text: "Dry skies this morning in Kampala." },
+        ],
+      });
+
+      // Clicking Stop listening while the second reply plays stops both mic and audio.
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Stop listening" })).toBeInTheDocument();
+      });
+      const cancelsBeforeStop = cancelCalls;
+      fireEvent.click(screen.getByRole("button", { name: "Stop listening" }));
+      expect(cancelCalls).toBeGreaterThan(cancelsBeforeStop);
+      expect(listeners.some((l) => !l.ended)).toBe(false);
+    } finally {
+      playSpy.mockRestore();
+      pauseSpy.mockRestore();
+      localStorage.removeItem("uw:gemini-voice-paused-until");
+      vi.unstubAllGlobals();
+    }
+  });
 });
