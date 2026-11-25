@@ -110,3 +110,14 @@ describe("advisor-prompt", () => {
     expect(prompt).toContain("current/next hour rain chance");
   });
 });
+
+describe("greeting with a question", () => {
+  it("tells the AI that a greeting followed by a question must be answered", async () => {
+    const { buildAdvisorSystemInstruction } = await import("@/lib/ai/advisor-prompt");
+    for (const language of ["en", "lg"] as const) {
+      const text = buildAdvisorSystemInstruction("farmer" as never, language);
+      expect(text).toMatch(/greeting followed by any question/i);
+      expect(text).toContain("Hi, how is it today?");
+    }
+  });
+});

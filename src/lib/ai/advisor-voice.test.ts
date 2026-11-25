@@ -357,3 +357,36 @@ describe("advisor-voice", () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("hands free listening when nothing is heard", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reports an empty listen once, instead of ending without a sign", () => {
+    class SilentRecognition {
+      static last: SilentRecognition | null = null;
+      lang = ""; continuous = false; interimResults = false; maxAlternatives = 1;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start = vi.fn(); stop = vi.fn(); abort = vi.fn();
+      constructor() { SilentRecognition.last = this; }
+    }
+    vi.stubGlobal("webkitSpeechRecognition", SilentRecognition);
+    const onError = vi.fn();
+    const onFinal = vi.fn();
+    startVoiceInput({ language: "en", onTranscript: vi.fn(), onFinal, onError, onEnd: vi.fn() });
+    SilentRecognition.last?.onend?.();
+    expect(onFinal).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith("empty_transcript");
+  });
+
+  it("still picks the second suggestion when 'two' is heard", () => {
+    const choices = ["Will it rain this afternoon?", "What is the weather like tomorrow?"];
+    for (const heard of ["two", "Two.", "too", "number two", "the second one"]) {
+      expect(resolveHandsFreeVoiceCommand(heard, choices)).toMatchObject({ kind: "followup", index: 1 });
+    }
+  });
+});

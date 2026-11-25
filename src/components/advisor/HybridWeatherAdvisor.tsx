@@ -99,6 +99,10 @@ export function HybridWeatherAdvisor({
   const handsFreeTimerRef = useRef<number | null>(null);
   const latestFollowUpsRef = useRef<string[]>([]);
   const startVoiceSessionRef = useRef<(() => void) | null>(null);
+  /** Empty listens in a row during a hands free conversation. One retry is
+      allowed, so a short word cut off by the listener restarting is asked
+      for again instead of ending the conversation without a sign. */
+  const emptyListenRetriesRef = useRef(0);
   const photoMenuRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -799,6 +803,7 @@ export function HybridWeatherAdvisor({
       onFinal: (text) => {
         const cleaned = text.trim().slice(0, 240);
         setQuestion("");
+        if (cleaned) emptyListenRetriesRef.current = 0;
         if (!cleaned) {
           handsFreeSessionRef.current = false;
           return;
@@ -831,8 +836,29 @@ export function HybridWeatherAdvisor({
         void runBriefing(command.prompt, audience);
       },
       onError: (code) => {
-        handsFreeSessionRef.current = false;
         setVoiceInputState("idle");
+        if (
+          code === "empty_transcript" &&
+          handsFreeSessionRef.current &&
+          emptyListenRetriesRef.current < 1
+        ) {
+          emptyListenRetriesRef.current += 1;
+          const listenAgain = () => {
+            if (handsFreeSessionRef.current) startVoiceSessionRef.current?.();
+          };
+          const spoke =
+            voiceOutputReady &&
+            speakAdvisorReply({
+              text: copy.voiceSayAgain,
+              language: uiLanguage,
+              capabilities: voiceServerCapabilities,
+              onEnd: listenAgain,
+            });
+          if (!spoke) listenAgain();
+          return;
+        }
+        emptyListenRetriesRef.current = 0;
+        handsFreeSessionRef.current = false;
         const msg =
           code === "mic_denied"
             ? copy.voiceErrorMicDenied

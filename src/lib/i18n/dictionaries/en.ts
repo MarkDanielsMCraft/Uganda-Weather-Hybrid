@@ -960,6 +960,7 @@ export const en: TranslationDictionary = {
     voiceProcessing: "Checking what you said...",
     voiceErrorMicDenied: "Please allow microphone access so you can speak your question.",
     voiceErrorEmpty: "We did not hear anything. Please tap the mic and speak again.",
+    voiceSayAgain: "I did not hear that. Please say it again.",
     voiceErrorGeneral: "We could not hear that clearly. Please try again or type your question.",
     listenReply: "Listen",
     shareReplySms: "Share this answer by SMS",

@@ -167,6 +167,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- In a hands free voice conversation, a short answer such as "two" said while the reply was still playing could be lost, and the conversation stopped without a sign. An empty listen is now reported, the advisor says "I did not hear that. Please say it again." ("Tewali ddoboozi liwuliddwa. Ddamu okwogera.") and listens once more.
+- A greeting followed by a question, such as "Hi, how is it today?", now gets a short greeting and a real weather answer instead of only a greeting back.
 - When Google's free daily limit for the Gemini voice (10 requests a day) is used up, the app now waits for the time Google gives before trying again, and remembers that across page reloads, instead of spending a request every few minutes. English is read by the browser voice in the meantime.
 - Listen in the advisor now reads only the answer, in one natural Gemini voice. The voice model is told to read word for word, a long answer goes out in two requests at most instead of many (which hit Google's per minute limit), a 429 is retried once, and when Gemini cannot answer the English backup is the browser's instant voice instead of the slow Luganda service. Answers no longer switch voice partway through. The split into two parts never drops words, the spoken text sits between markers so words inside it are never taken as instructions, and the server no longer sends English to the Luganda service at all (`VOICE_ENGLISH_CLOUD_ENABLED` is gone).
 - A place whose key matches a district name (for example `place=kampala` with a point in Kabale) no longer gets that district's weather saved under its own point.

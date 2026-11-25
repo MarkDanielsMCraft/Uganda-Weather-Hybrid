@@ -735,6 +735,7 @@ export function startVoiceInput({
 
   let finalText = "";
   let deliveredFinal = false;
+  let deliveredError = false;
   let fallbackHandle: VoiceInputHandle | null = null;
   let switchedToFallback = false;
 
@@ -800,6 +801,7 @@ export function startVoiceInput({
         : errCode === "no-speech"
           ? "empty_transcript"
           : errCode;
+    deliveredError = true;
     onError?.(mapped);
   };
 
@@ -808,6 +810,12 @@ export function startVoiceInput({
     if (!deliveredFinal && finalText.trim()) {
       deliveredFinal = true;
       onFinal(finalText.trim());
+    } else if (!deliveredFinal && !deliveredError) {
+      // The listener can end with no words and no error, for example when a
+      // short word like "two" was said just before it started. Report it so
+      // the conversation can ask again instead of stopping without a sign.
+      deliveredError = true;
+      onError?.("empty_transcript");
     }
     onEnd?.();
   };
