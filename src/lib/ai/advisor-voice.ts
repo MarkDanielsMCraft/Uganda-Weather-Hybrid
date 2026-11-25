@@ -1285,10 +1285,11 @@ export function resolveHandsFreeVoiceCommand(
  * Formats an assistant reply for spoken output, appending numbered spoken
  * follow-up options when the user is in a continuous hands-free conversation.
  */
-/** Listening while a reply plays needs live speech to text, which browsers
-    only offer for English. Luganda is recorded and sent to a paid service, so
-    listening during the reply would pay to transcribe the app's own voice. */
-export function shouldListenDuringReply(language: SupportedLocale): boolean {
+/** Hands free voice (listening during the reply and opening the mic again
+    after it) needs live speech to text, which browsers only offer for
+    English. Luganda is recorded and sent to a paid service, so Luganda voice
+    is tap to talk: one question, one spoken answer, mic off. */
+export function supportsHandsFreeVoice(language: SupportedLocale): boolean {
   return language === "en";
 }
 
@@ -1296,13 +1297,19 @@ export function shouldListenDuringReply(language: SupportedLocale): boolean {
     Heard words that mostly repeat the reply are treated as that echo, so the
     app never interrupts itself. A spoken choice or "stop" is never echo. */
 export function isEchoOfSpokenReply(heard: string, spokenReply: string): boolean {
-  const heardWords = tokenizeWords(heard.toLowerCase());
-  if (heardWords.length === 0) return true;
+  // Choices and "stop" first: "2" or "to" are too short for the word check.
   if (resolveHandsFreeVoiceCommand(heard).kind === "stop") return false;
   if (/^(1|2|3|one|two|three|to|too|first|second|third|emu|bbiri|ssatu)$/i.test(heard.trim().replace(/[.!?,]+$/, ""))) {
     return false;
   }
-  const replyWords = new Set(tokenizeWords(spokenReply.toLowerCase()));
+  const heardWords = tokenizeWords(heard.toLowerCase());
+  if (heardWords.length === 0) return true;
+  // The speaker says "24 degrees Celsius" where the text has "24°C", so both
+  // forms count as the reply's own words.
+  const replyWords = new Set([
+    ...tokenizeWords(spokenReply.toLowerCase()),
+    ...tokenizeWords(formatTextForSpeech(spokenReply).toLowerCase()),
+  ]);
   if (replyWords.size === 0) return false;
   const repeated = heardWords.filter((word) => replyWords.has(word)).length;
   return repeated / heardWords.length >= 0.6;

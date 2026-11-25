@@ -400,16 +400,16 @@ describe("isEchoOfSpokenReply", () => {
   });
   it("never treats a choice, stop, or a new question as echo", async () => {
     const { isEchoOfSpokenReply } = await import("./advisor-voice");
-    for (const heard of ["two", "Two.", "one", "stop", "is it safe to fish on Lake Victoria"]) {
+    for (const heard of ["two", "Two.", "2", "to", "1", "one", "stop", "is it safe to fish on Lake Victoria"]) {
       expect(isEchoOfSpokenReply(heard, reply)).toBe(false);
     }
   });
 });
 
-describe("shouldListenDuringReply", () => {
-  it("listens during the reply only in English, never paying to transcribe a Luganda reply", async () => {
-    const { shouldListenDuringReply } = await import("./advisor-voice");
-    expect(shouldListenDuringReply("en")).toBe(true);
-    expect(shouldListenDuringReply("lg")).toBe(false);
+describe("supportsHandsFreeVoice", () => {
+  it("offers hands free voice only in English; Luganda is tap to talk", async () => {
+    const { supportsHandsFreeVoice } = await import("./advisor-voice");
+    expect(supportsHandsFreeVoice("en")).toBe(true);
+    expect(supportsHandsFreeVoice("lg")).toBe(false);
   });
 });
