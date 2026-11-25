@@ -112,6 +112,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Hands free voice now works like modern voice assistants. The microphone keeps listening while a reply is read out, so you can answer ("two", "stop", or a new question) or cut in at any time and the reply stops for you. The app ignores its own voice coming back through the microphone, and tapping Stop also turns the microphone off. A browser test holds a full conversation with a fake microphone and speaker.
 - The offline notice is a plain neutral strip instead of a gold border, and the map pin is blue instead of gold.
 - Every district page now has its own search title and description, built from that district's facts (city or district, region, lake, and rain seasons), within the lengths search results show. Luganda pages name the region in Luganda, and "okulabula" replaces "obulabula" for warnings.
 - The sitemap now lists only page addresses, including the `/lite` page. It no longer stamps every page with the build time or sets priority and change frequency, which Google ignores or distrusts.

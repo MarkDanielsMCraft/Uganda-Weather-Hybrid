@@ -1285,6 +1285,22 @@ export function resolveHandsFreeVoiceCommand(
  * Formats an assistant reply for spoken output, appending numbered spoken
  * follow-up options when the user is in a continuous hands-free conversation.
  */
+/** While the reply plays, the microphone can pick up the app's own voice.
+    Heard words that mostly repeat the reply are treated as that echo, so the
+    app never interrupts itself. A spoken choice or "stop" is never echo. */
+export function isEchoOfSpokenReply(heard: string, spokenReply: string): boolean {
+  const heardWords = tokenizeWords(heard.toLowerCase());
+  if (heardWords.length === 0) return true;
+  if (resolveHandsFreeVoiceCommand(heard).kind === "stop") return false;
+  if (/^(1|2|3|one|two|three|to|too|first|second|third|emu|bbiri|ssatu)$/i.test(heard.trim().replace(/[.!?,]+$/, ""))) {
+    return false;
+  }
+  const replyWords = new Set(tokenizeWords(spokenReply.toLowerCase()));
+  if (replyWords.size === 0) return false;
+  const repeated = heardWords.filter((word) => replyWords.has(word)).length;
+  return repeated / heardWords.length >= 0.6;
+}
+
 export function buildSpokenAdvisorTurnText(
   text: string,
   followUps: readonly string[] | undefined,

@@ -38,6 +38,7 @@ import {
   isVoiceOutputSupported,
   primeVoicePlaybackForGesture,
   resolveHandsFreeVoiceCommand,
+  isEchoOfSpokenReply,
   speakAdvisorReply,
   startVoiceInput,
   stopVoiceOutput,
@@ -98,7 +99,10 @@ export function HybridWeatherAdvisor({
   const handsFreeSessionRef = useRef(false);
   const handsFreeTimerRef = useRef<number | null>(null);
   const latestFollowUpsRef = useRef<string[]>([]);
-  const startVoiceSessionRef = useRef<(() => void) | null>(null);
+  const startVoiceSessionRef = useRef<((options?: { duringReply?: string }) => void) | null>(null);
+  /** True while a hands free reply is playing. The listener runs at the same
+      time, so the person can answer or interrupt without waiting. */
+  const replyPlayingRef = useRef(false);
   /** Empty listens in a row during a hands free conversation. One retry is
       allowed, so a short word cut off by the listener restarting is asked
       for again instead of ending the conversation without a sign. */
@@ -677,17 +681,16 @@ export function HybridWeatherAdvisor({
               shouldContinueHandsFree,
             );
             setSpeakingMessageId(assistantId);
+            replyPlayingRef.current = shouldContinueHandsFree;
             const started = speakAdvisorReply({
               text: spokenTurnText,
               language: uiLanguage,
               capabilities: voiceServerCapabilities,
-              onInterrupted: () => {
-                setSpeakingMessageId((current) => (current === assistantId ? null : current));
-                handsFreeSessionRef.current = true;
-                startVoiceSessionRef.current?.();
-              },
               onEnd: () => {
+                replyPlayingRef.current = false;
                 setSpeakingMessageId((current) => (current === assistantId ? null : current));
+                // The listener that ran during the reply simply keeps going.
+                if (voiceHandleRef.current) return;
                 if (shouldContinueHandsFree && handsFreeSessionRef.current) {
                   if (handsFreeTimerRef.current !== null) {
                     window.clearTimeout(handsFreeTimerRef.current);
@@ -701,7 +704,12 @@ export function HybridWeatherAdvisor({
                 }
               },
             });
-            if (!started) setSpeakingMessageId(null);
+            if (!started) {
+              replyPlayingRef.current = false;
+              setSpeakingMessageId(null);
+            } else if (shouldContinueHandsFree) {
+              startVoiceSessionRef.current?.({ duringReply: spokenTurnText });
+            }
           }
         }
       } else {
@@ -781,13 +789,28 @@ export function HybridWeatherAdvisor({
     setPhase(null);
   };
 
-  const startVoiceListeningSession = useCallback(() => {
+  const startVoiceListeningSession = useCallback((options?: { duringReply?: string }) => {
     if (!canSend) return;
+    const duringReply = options?.duringReply;
+    // Set once the person really speaks over the reply. Until then, heard
+    // words that only repeat the reply are the app's own voice.
+    let personSpoke = !duringReply;
+    const interruptReply = () => {
+      if (personSpoke) return;
+      personSpoke = true;
+      replyPlayingRef.current = false;
+      stopVoiceOutput();
+      setSpeakingMessageId(null);
+    };
     setVoiceMode(true);
-    stopVoiceOutput();
-    setSpeakingMessageId(null);
+    if (!duringReply) {
+      stopVoiceOutput();
+      setSpeakingMessageId(null);
+    }
     setError(null);
     setVoiceInputState("recording");
+    // Never leave an older listener running behind a new one.
+    voiceHandleRef.current?.abort();
     voiceHandleRef.current = startVoiceInput({
       language: uiLanguage,
       capabilities: voiceServerCapabilities,
@@ -798,11 +821,19 @@ export function HybridWeatherAdvisor({
         setVoiceLevel(level);
       },
       onTranscript: (text) => {
+        if (duringReply && !personSpoke) {
+          if (isEchoOfSpokenReply(text, duringReply)) return;
+          interruptReply();
+        }
         setQuestion(text.slice(0, 240));
       },
       onFinal: (text) => {
         const cleaned = text.trim().slice(0, 240);
         setQuestion("");
+        if (duringReply && !personSpoke) {
+          if (!cleaned || isEchoOfSpokenReply(cleaned, duringReply)) return;
+          interruptReply();
+        }
         if (cleaned) emptyListenRetriesRef.current = 0;
         if (!cleaned) {
           handsFreeSessionRef.current = false;
@@ -837,6 +868,9 @@ export function HybridWeatherAdvisor({
       },
       onError: (code) => {
         setVoiceInputState("idle");
+        // Silence while the reply is still playing is normal. The listener
+        // restarts in onEnd; it never counts as a missed answer.
+        if (duringReply && !personSpoke) return;
         if (
           code === "empty_transcript" &&
           handsFreeSessionRef.current &&
@@ -870,6 +904,11 @@ export function HybridWeatherAdvisor({
       onEnd: () => {
         voiceHandleRef.current = null;
         setVoiceInputState("idle");
+        if (duringReply && !personSpoke && handsFreeSessionRef.current) {
+          // The listener times out on its own. Keep listening for the rest of
+          // the reply, then for the answer once the reply has finished.
+          startVoiceSessionRef.current?.(replyPlayingRef.current ? { duringReply } : undefined);
+        }
       },
     });
   }, [
@@ -933,6 +972,10 @@ export function HybridWeatherAdvisor({
       }
       handsFreeSessionRef.current = false;
       autoSpeakNextRef.current = false;
+      replyPlayingRef.current = false;
+      // Stop also turns off the microphone that listened during the reply.
+      voiceHandleRef.current?.abort();
+      voiceHandleRef.current = null;
       setVoiceMode(false);
       stopVoiceOutput();
       setSpeakingMessageId(null);
@@ -1159,7 +1202,7 @@ export function HybridWeatherAdvisor({
                             className="max-h-36 w-full rounded-xl object-cover"
                           />
                         )}
-                        <p>{msg.text}</p>
+                        <p data-testid="advisor-user-message">{msg.text}</p>
                       </div>
                     </div>
                   );

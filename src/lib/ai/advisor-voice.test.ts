@@ -390,3 +390,18 @@ describe("hands free listening when nothing is heard", () => {
     }
   });
 });
+
+describe("isEchoOfSpokenReply", () => {
+  const reply = "Rain is likely after 3 pm in Kampala. Next, you can say one for: Will it rain tonight, or say two for: What about tomorrow, or say stop to end.";
+  it("treats the app's own words as echo", async () => {
+    const { isEchoOfSpokenReply } = await import("./advisor-voice");
+    expect(isEchoOfSpokenReply("rain is likely after 3 pm", reply)).toBe(true);
+    expect(isEchoOfSpokenReply("you can say one for will it rain tonight", reply)).toBe(true);
+  });
+  it("never treats a choice, stop, or a new question as echo", async () => {
+    const { isEchoOfSpokenReply } = await import("./advisor-voice");
+    for (const heard of ["two", "Two.", "one", "stop", "is it safe to fish on Lake Victoria"]) {
+      expect(isEchoOfSpokenReply(heard, reply)).toBe(false);
+    }
+  });
+});
