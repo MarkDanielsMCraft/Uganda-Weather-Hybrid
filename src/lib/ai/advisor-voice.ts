@@ -1285,6 +1285,13 @@ export function resolveHandsFreeVoiceCommand(
  * Formats an assistant reply for spoken output, appending numbered spoken
  * follow-up options when the user is in a continuous hands-free conversation.
  */
+/** Listening while a reply plays needs live speech to text, which browsers
+    only offer for English. Luganda is recorded and sent to a paid service, so
+    listening during the reply would pay to transcribe the app's own voice. */
+export function shouldListenDuringReply(language: SupportedLocale): boolean {
+  return language === "en";
+}
+
 /** While the reply plays, the microphone can pick up the app's own voice.
     Heard words that mostly repeat the reply are treated as that echo, so the
     app never interrupts itself. A spoken choice or "stop" is never echo. */

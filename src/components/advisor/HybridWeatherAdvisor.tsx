@@ -39,6 +39,7 @@ import {
   primeVoicePlaybackForGesture,
   resolveHandsFreeVoiceCommand,
   isEchoOfSpokenReply,
+  shouldListenDuringReply,
   speakAdvisorReply,
   startVoiceInput,
   stopVoiceOutput,
@@ -707,7 +708,8 @@ export function HybridWeatherAdvisor({
             if (!started) {
               replyPlayingRef.current = false;
               setSpeakingMessageId(null);
-            } else if (shouldContinueHandsFree) {
+            } else if (shouldContinueHandsFree && shouldListenDuringReply(uiLanguage)) {
+              // Luganda listens again only after the reply finishes.
               startVoiceSessionRef.current?.({ duringReply: spokenTurnText });
             }
           }

@@ -405,3 +405,11 @@ describe("isEchoOfSpokenReply", () => {
     }
   });
 });
+
+describe("shouldListenDuringReply", () => {
+  it("listens during the reply only in English, never paying to transcribe a Luganda reply", async () => {
+    const { shouldListenDuringReply } = await import("./advisor-voice");
+    expect(shouldListenDuringReply("en")).toBe(true);
+    expect(shouldListenDuringReply("lg")).toBe(false);
+  });
+});
