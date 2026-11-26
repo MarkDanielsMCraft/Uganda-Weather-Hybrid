@@ -15,6 +15,7 @@ export function FloatingAdvisorHost() {
     <HybridWeatherAdvisor
       weather={weather ?? null}
       districtName={district?.name ?? "Kampala"}
+      districtSlug={slug}
     />
   );
 }
