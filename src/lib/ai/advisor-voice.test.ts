@@ -357,3 +357,198 @@ describe("advisor-voice", () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("hands free listening when nothing is heard", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reports an empty listen once, instead of ending without a sign", () => {
+    class SilentRecognition {
+      static last: SilentRecognition | null = null;
+      lang = ""; continuous = false; interimResults = false; maxAlternatives = 1;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start = vi.fn(); stop = vi.fn(); abort = vi.fn();
+      constructor() { SilentRecognition.last = this; }
+    }
+    vi.stubGlobal("webkitSpeechRecognition", SilentRecognition);
+    const onError = vi.fn();
+    const onFinal = vi.fn();
+    startVoiceInput({ language: "en", onTranscript: vi.fn(), onFinal, onError, onEnd: vi.fn() });
+    SilentRecognition.last?.onend?.();
+    expect(onFinal).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith("empty_transcript");
+  });
+
+  it("still picks the second suggestion when 'two' is heard", () => {
+    const choices = ["Will it rain this afternoon?", "What is the weather like tomorrow?"];
+    for (const heard of ["two", "Two.", "too", "number two", "the second one"]) {
+      expect(resolveHandsFreeVoiceCommand(heard, choices)).toMatchObject({ kind: "followup", index: 1 });
+    }
+  });
+});
+
+describe("isEchoOfSpokenReply", () => {
+  const reply = "Rain is likely after 3 pm in Kampala. Next, you can say one for: Will it rain tonight, or say two for: What about tomorrow, or say stop to end.";
+  it("treats the app's own words as echo", async () => {
+    const { isEchoOfSpokenReply } = await import("./advisor-voice");
+    expect(isEchoOfSpokenReply("rain is likely after 3 pm", reply)).toBe(true);
+    expect(isEchoOfSpokenReply("you can say one for will it rain tonight", reply)).toBe(true);
+  });
+  it("never treats a choice, stop, or a new question as echo", async () => {
+    const { isEchoOfSpokenReply } = await import("./advisor-voice");
+    for (const heard of ["two", "Two.", "2", "to", "1", "one", "stop", "is it safe to fish on Lake Victoria"]) {
+      expect(isEchoOfSpokenReply(heard, reply)).toBe(false);
+    }
+  });
+});
+
+describe("supportsHandsFreeVoice", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("offers hands free voice only in English when live speech recognition is available; Luganda is tap to talk", async () => {
+    const { supportsHandsFreeVoice } = await import("./advisor-voice");
+    expect(supportsHandsFreeVoice("en")).toBe(false);
+    vi.stubGlobal("webkitSpeechRecognition", class {});
+    expect(supportsHandsFreeVoice("en")).toBe(true);
+    expect(supportsHandsFreeVoice("lg")).toBe(false);
+  });
+});
+
+describe("isHandsFreeCutInCommand and SpeechRecognition abort hygiene", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("allows only short choices or stop to cut in, never spoken follow up sentences", async () => {
+    const { isHandsFreeCutInCommand } = await import("./advisor-voice");
+    const choices = [
+      "Will it rain tonight?",
+      "What is the wind tomorrow?",
+    ];
+    for (const allowed of ["1", "one", "2", "two", "number two", "stop", "lekera awo"]) {
+      expect(isHandsFreeCutInCommand(allowed, choices)).toBe(true);
+    }
+    for (const blocked of [
+      "Will it rain tonight?",
+      "Next, you can say one for: Will it rain tonight?",
+      "for tomorrow",
+      "twenty seven degrees in Kampala",
+      "three",
+    ]) {
+      expect(isHandsFreeCutInCommand(blocked, choices)).toBe(false);
+    }
+  });
+
+  it("suppresses trailing error and end callbacks after an explicit abort", () => {
+    class AbortableRecognition {
+      static last: AbortableRecognition | null = null;
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      maxAlternatives = 1;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start = vi.fn();
+      stop = vi.fn();
+      abort = vi.fn(() => {
+        this.onerror?.({ error: "aborted" });
+        this.onend?.();
+      });
+      constructor() {
+        AbortableRecognition.last = this;
+      }
+    }
+    vi.stubGlobal("webkitSpeechRecognition", AbortableRecognition);
+    const onError = vi.fn();
+    const onEnd = vi.fn();
+    const onStatusChange = vi.fn();
+
+    const handle = startVoiceInput({
+      language: "en",
+      onTranscript: vi.fn(),
+      onFinal: vi.fn(),
+      onError,
+      onEnd,
+      onStatusChange,
+    });
+    expect(handle).not.toBeNull();
+    handle?.abort();
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(onStatusChange).toHaveBeenLastCalledWith("idle");
+  });
+
+  it("never rewrites a question with a different place or day into a suggested follow up", () => {
+    const choices = [
+      "Will it rain tonight?",
+      "Safe to farm or dry crops today?",
+      "Best hours to farm or dry crops tomorrow?",
+    ];
+    expect(resolveHandsFreeVoiceCommand("Will it rain tonight in Gulu?", choices)).toEqual({
+      kind: "message",
+      prompt: "Will it rain tonight in Gulu?",
+    });
+    expect(resolveHandsFreeVoiceCommand("Will it rain tomorrow?", choices)).toEqual({
+      kind: "message",
+      prompt: "Will it rain tomorrow?",
+    });
+    expect(resolveHandsFreeVoiceCommand("Safe to farm or dry crops tomorrow?", choices)).toEqual({
+      kind: "message",
+      prompt: "Safe to farm or dry crops tomorrow?",
+    });
+    expect(
+      resolveHandsFreeVoiceCommand("Best hours to farm or dry crops in Gulu tomorrow?", choices),
+    ).toEqual({
+      kind: "message",
+      prompt: "Best hours to farm or dry crops in Gulu tomorrow?",
+    });
+    expect(resolveHandsFreeVoiceCommand("Will it rain tonight?", choices)).toEqual({
+      kind: "followup",
+      index: 0,
+      prompt: "Will it rain tonight?",
+    });
+  });
+
+  it("stops the microphone stream at once if stop is called while getUserMedia is still opening", async () => {
+    const stopTrack = vi.fn();
+    let resolveMic: ((stream: MediaStream) => void) | undefined;
+    vi.stubGlobal("MediaRecorder", class {});
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(
+          () =>
+            new Promise<MediaStream>((resolve) => {
+              resolveMic = resolve;
+            }),
+        ),
+      },
+    });
+
+    const onEnd = vi.fn();
+    const handle = startVoiceInput({
+      language: "lg",
+      capabilities: { lugandaTts: true, lugandaStt: true, englishNeuralTts: false },
+      onTranscript: vi.fn(),
+      onFinal: vi.fn(),
+      onEnd,
+    });
+    expect(handle).not.toBeNull();
+
+    // User taps stop before the hardware stream resolves
+    handle?.stop();
+    resolveMic?.({ getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream);
+    await Promise.resolve();
+
+    expect(stopTrack).toHaveBeenCalledTimes(1);
+    expect(onEnd).toHaveBeenCalled();
+  });
+});

@@ -40,7 +40,7 @@ An app that only works online, only in English, and only on expensive phones sto
 
 ## What it does
 
-- **It answers offline on any phone.** Open the app once while you have signal and the forecast is saved on your phone. With no signal, phones that have Gemini Nano get full AI answers in English. Every other phone gets a short safety summary built only from the saved forecast numbers, clearly marked as made without AI.
+- **It answers offline on any phone.** Open the app once while you have signal and the forecast is saved on your device. With no signal, devices that have Gemini Nano get full AI answers in English. Every phone or computer without it gets a short safety summary built only from the saved forecast numbers, clearly marked as made without AI.
 - **It never leaves you with an error.** If the cloud AI is busy or fails, you still get the same forecast summary instead of an error message.
 - **It speaks Luganda and English.** Luganda questions go to Gemini in the cloud, because Gemini Nano only writes English.
 - **It reads answers aloud.** One tap reads any answer in natural English or Luganda, for people who cannot read.
@@ -62,31 +62,38 @@ The advisor is built on **Firebase AI Logic**, with **Firebase Remote Config** a
 
 ```mermaid
 flowchart LR
-  Question["You ask by typing, talking, or sending a photo"] --> Privacy["Phone numbers, emails, ID numbers, and photo locations are removed"]
-  Forecast["The real forecast for your place"] --> Privacy
-  Privacy --> Signal{"Do you have internet?"}
-  Signal -->|"No"| Nano{"Is the question in English, and does this phone have Gemini Nano?"}
-  Nano -->|"Yes"| OnPhone["Answered on the phone, no data used"]
-  Nano -->|"No"| Summary["Short safety summary from the forecast numbers, no AI"]
-  Signal -->|"Yes"| PhoneFirst["Tries the phone first to save data"]
-  PhoneFirst -->|"Luganda, photos, comparing districts, or no phone model"| Cloud["Gemini in the cloud through Firebase"]
+  Question["You type, speak, or attach a photo, photo age and area checked then GPS removed"] --> Signal{"Do you have internet?"}
+  Forecast["Real forecast for your place, also saved on this device"] --> Signal
+  Signal -->|"No"| OffDevice{"English, and Gemini Nano is on this device?"}
+  OffDevice -->|"Yes"| OnDeviceOff["Answered on this device, private and no data used"]
+  OffDevice -->|"No"| Summary["Short safety summary from the saved forecast numbers, no AI"]
+  OnDeviceOff -->|"Fails"| Summary
+  Signal -->|"Yes"| Clean["Phone numbers, emails, and ID numbers are removed"]
+  Clean --> CloudNeed{"Luganda, a photo, or comparing places?"}
+  CloudNeed -->|"No, plain English"| TryDevice{"On device preferred, and Gemini Nano ready?"}
+  TryDevice -->|"Yes"| OnDeviceOn["Answered on this device, private and no data used"]
+  TryDevice -->|"No"| Cloud["Gemini in the cloud through Firebase"]
+  OnDeviceOn -->|"Fails"| Cloud
+  CloudNeed -->|"Yes"| Cloud
   Cloud -->|"Busy or fails"| Summary
-  OnPhone --> Answer["Answer with a Go, Caution, or Wait verdict, read aloud, ready to share"]
-  PhoneFirst --> Answer
+  OnDeviceOff --> Answer["Clear answer with Go, Caution, or Wait, read aloud, ready to share"]
+  OnDeviceOn --> Answer
   Cloud --> Answer
   Summary --> Answer
 ```
 
-The forecast itself comes from weather services, with backups in case one is down.
+The forecast itself comes from three weather services in order, with saved copies so temporary outages do not leave a blank screen.
 
 ```mermaid
 flowchart LR
-  First["Open-Meteo, asked first"] -->|"Down or no answer"| Second["WeatherAPI.com, the backup"]
-  Second -->|"Down or no answer"| Third["Pirate Weather, the last backup"]
-  First --> Server["Uganda Weather server puts the forecast together"]
+  First["First weather service, Open-Meteo on this live site"] -->|"Down or slow"| Second["WeatherAPI.com backup"]
+  Second -->|"Down or slow"| Third["Pirate Weather second backup"]
+  First --> Server["Server checks the numbers and keeps a 10 minute copy"]
   Second --> Server
   Third --> Server
-  Server --> Phone["Your phone shows it and saves a copy for when there is no signal"]
+  Third -->|"All three down"| Saved["Recent saved copy up to 24 hours old"]
+  Saved --> Screen["Shown on screen and saved on this device for offline use"]
+  Server --> Screen
 ```
 
 The routing lives in `src/lib/ai/hybrid-advisor.ts`. It picks a Firebase AI Logic inference mode for every question.
@@ -114,17 +121,27 @@ Here is more of what Firebase does in this app.
 
 - Answers stream in word by word, and you can stop them.
 - When you compare two districts, the cloud model can look up the second district by itself (function calling).
-- The Go, Caution, or Wait verdict comes back as structured data, not guessed from the text.
+- Every weather answer carries a Go, Caution, or Wait safety verdict checked against the forecast rain and wind thresholds.
 - The rules the AI follows can be stored on Firebase as server prompt templates, so they do not ship inside the app.
 - Remote Config lets me change the AI model or the voice, or pause the advisor, without releasing a new version (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`).
 - App Check with reCAPTCHA Enterprise makes sure the AI is only used by this app.
-- The English voice comes from Gemini through Firebase AI Logic. Luganda speech comes from Sunbird AI. The phone's own voice is the last backup.
+- The English voice comes from Gemini through Firebase AI Logic, with a server voice backup and your browser's own voice after that, plus hands free listening while a reply plays so you can say a choice or stop at any time. Luganda voice is tap to talk and read aloud through Sunbird AI so replies are never sent for paid transcription.
+
+```mermaid
+flowchart LR
+  Speak["You speak a question"] --> SpeakLang{"Which language?"}
+  SpeakLang -->|"English"| EngMic["Browser speech to text, hands free during replies, with Gemini backup"]
+  SpeakLang -->|"Luganda"| LugMic["Tap to talk sends one short clip to Sunbird AI"]
+  Listen["You tap Listen on a forecast or answer"] --> ListenLang{"Which language?"}
+  ListenLang -->|"English"| EngVoice["Gemini voice, then server voice backup, then browser voice"]
+  ListenLang -->|"Luganda"| LugVoice["Sunbird AI Luganda voice, or browser voice if installed"]
+```
 
 The summary used when no AI can answer is in `src/lib/ai/offline-briefing.ts`. The privacy checks are in `src/lib/ai/advisor-guard.ts` and `src/lib/ai/advisor-image.ts`.
 
 ## Keeping it safe and fair to use
 
-- Voice clips are only fetched when you tap Listen, never just because a page opened, so nobody pays for data they did not ask for.
+- Voice clips are never fetched just because a page opened, only when you tap, focus, or point at Listen, so nobody pays for data on page load.
 - The paid voice routes refuse requests from other websites and have a monthly spending ceiling.
 - Each part of the app has its own request limit, so many people sharing one mobile network are not blocked together.
 - A forecast sent by SMS uses only basic SMS characters, so it costs one message, not three.
@@ -135,14 +152,14 @@ Uganda Weather existed before November 11, 2026, as a weather site and app for a
 
 Between November 11 and 30, 2026, I built
 
-- the whole Hybrid AI Weather Safety Advisor on Firebase AI Logic, with routing, streaming, function calling, structured verdicts, server prompt templates, Remote Config, and App Check,
+- the whole Hybrid AI Weather Safety Advisor on Firebase AI Logic, with routing, streaming, function calling, safety verdicts, server prompt templates, Remote Config, and App Check,
 - answers that still work offline on phones without an AI model, and when the cloud AI fails,
 - the privacy protections for questions and photos,
-- the English and Luganda voice reader and hands free voice questions,
+- English and Luganda read aloud, hands free voice in English, and tap to talk voice in Luganda,
 - the photo checks and the live camera,
 - the low data page, SMS and WhatsApp sharing, the large text and high contrast switches, and community safety warnings (sun protection for people with albinism, livestock heat and water in Karamoja, and landslide watch on mountain slopes),
 - layouts checked from tiny feature phone screens to desktop,
-- and 706 automated unit tests plus 27 browser tests.
+- and 748 automated unit tests plus 40 browser tests.
 
 ## Try it offline
 
@@ -196,12 +213,14 @@ The browser tests run with `pnpm test:e2e`.
 
 ```text
 uganda-weather/
-├── data/districts/     # Uganda district list and map points
-├── e2e/                # Browser tests
-├── public/screenshots/ # Screenshots of the live app
-├── scripts/            # Data building and safety check scripts
-├── openapi.yaml        # Description of the API
-└── src/                # The app and the Hybrid AI Weather Safety Advisor
+├── android/            # Android app and six home screen widgets
+├── data/districts/     # All 152 districts and their map points
+├── e2e/                # Automated browser tests
+├── ios/                # iPhone app and six home screen widgets
+├── public/             # Icons, offline page, and screenshots
+├── scripts/            # Data builders and safety check scripts
+├── openapi.yaml        # Description of the public weather and district routes
+└── src/                # Pages, server routes, and the Weather Safety Advisor
 ```
 
 ## More
