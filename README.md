@@ -62,7 +62,7 @@ The advisor is built on **Firebase AI Logic**, with **Firebase Remote Config** a
 
 ```mermaid
 flowchart LR
-  Question["You type, speak, or attach a photo with hidden GPS removed"] --> Signal{"Do you have internet?"}
+  Question["You type, speak, or attach a photo, photo age and area checked then GPS removed"] --> Signal{"Do you have internet?"}
   Forecast["Real forecast for your place, also saved on this device"] --> Signal
   Signal -->|"No"| OffDevice{"English, and Gemini Nano is on this device?"}
   OffDevice -->|"Yes"| OnDeviceOff["Answered on this device, private and no data used"]
@@ -70,7 +70,7 @@ flowchart LR
   OnDeviceOff -->|"Fails"| Summary
   Signal -->|"Yes"| Clean["Phone numbers, emails, and ID numbers are removed"]
   Clean --> CloudNeed{"Luganda, a photo, or comparing places?"}
-  CloudNeed -->|"No, plain English"| TryDevice{"Gemini Nano on this device?"}
+  CloudNeed -->|"No, plain English"| TryDevice{"On device preferred, and Gemini Nano ready?"}
   TryDevice -->|"Yes"| OnDeviceOn["Answered on this device, private and no data used"]
   TryDevice -->|"No"| Cloud["Gemini in the cloud through Firebase"]
   OnDeviceOn -->|"Fails"| Cloud
@@ -141,7 +141,7 @@ The summary used when no AI can answer is in `src/lib/ai/offline-briefing.ts`. T
 
 ## Keeping it safe and fair to use
 
-- Voice clips are only fetched when you tap Listen, never just because a page opened, so nobody pays for data they did not ask for.
+- Voice clips are never fetched just because a page opened, only when you tap, focus, or point at Listen, so nobody pays for data on page load.
 - The paid voice routes refuse requests from other websites and have a monthly spending ceiling.
 - Each part of the app has its own request limit, so many people sharing one mobile network are not blocked together.
 - A forecast sent by SMS uses only basic SMS characters, so it costs one message, not three.
@@ -216,10 +216,10 @@ uganda-weather/
 ├── android/            # Android app and six home screen widgets
 ├── data/districts/     # All 152 districts and their map points
 ├── e2e/                # Automated browser tests
-├── ios/                # iPhone app and home screen widgets
+├── ios/                # iPhone app and six home screen widgets
 ├── public/             # Icons, offline page, and screenshots
 ├── scripts/            # Data builders and safety check scripts
-├── openapi.yaml        # Description of every server route
+├── openapi.yaml        # Description of the public weather and district routes
 └── src/                # Pages, server routes, and the Weather Safety Advisor
 ```
 
