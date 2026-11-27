@@ -121,6 +121,7 @@ export function AirportsDetailContent({
                 </div>
                 {category && (
                   <span
+                    data-no-narrate
                     className={`text-[12px] font-medium tracking-[0.08rem] text-white/60 ${
                       isLg ? "" : "uppercase"
                     }`}
@@ -171,7 +172,9 @@ export function AirportsDetailContent({
                   </span>
                 </p>
               </div>
-              <p className="mt-2 truncate text-[11px] text-white/35">{report.rawOb}</p>
+              <p data-no-narrate className="mt-2 truncate text-[11px] text-white/35">
+                {report.rawOb}
+              </p>
             </button>
           );
         })}

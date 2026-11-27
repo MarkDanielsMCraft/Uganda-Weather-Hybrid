@@ -30,13 +30,13 @@ export function VisibilityDetailContent({ weather }: { weather: WeatherBundle })
       <p className="text-[36px] font-medium leading-tight text-white">
         {isLuganda ? (
           <>
-            <span className="mr-1 text-[18px] font-normal text-white/75">km</span>
+            <span className="text-[18px] font-normal text-white/75">km</span>{" "}
             {displayVisibility}
           </>
         ) : (
           <>
-            {displayVisibility}
-            <span className="ml-1 text-[18px] font-normal text-white/75">km</span>
+            {displayVisibility}{" "}
+            <span className="text-[18px] font-normal text-white/75">km</span>
           </>
         )}
       </p>

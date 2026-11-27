@@ -21,7 +21,7 @@ export function LakeShorelinePicker({ activeSlug }: { activeSlug: string }) {
   );
 
   return (
-    <div>
+    <div data-no-narrate>
       <p className="text-[13px] font-semibold text-white/55">
         {dict.marine.shorelineDistricts}
       </p>

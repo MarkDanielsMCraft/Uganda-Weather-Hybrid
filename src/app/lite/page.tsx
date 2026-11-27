@@ -11,7 +11,7 @@ import { getAllDistricts, getDistrictBySlug } from "@/lib/districts";
 import { getCached } from "@/lib/cache";
 import { buildPlainTextWeatherSms } from "@/lib/places/sms-share";
 import { buildCommunitySafetyAlerts } from "@/lib/weather/community-safety";
-import { buildHomeWeatherNarration } from "@/lib/voice/narrator";
+import { buildLiteWeatherNarration } from "@/lib/voice/narrator";
 import { getWeatherBundleForDistrict } from "@/lib/weather/provider";
 import { formatConditionLg, formatDayLg } from "@/lib/weather/copy-lg";
 
@@ -247,7 +247,15 @@ export default async function LiteWeatherPage({
 
   const currentRainChance = bundle ? getUpcomingHourRainChance(bundle) : 0;
   const guidance = bundle ? getDailyGuidance(bundle, isLg) : null;
-  const narration = bundle ? buildHomeWeatherNarration(bundle, district.name) : null;
+  const guidanceEn = bundle ? getDailyGuidance(bundle, false) : null;
+  const guidanceLg = bundle ? getDailyGuidance(bundle, true) : null;
+  const narration = bundle
+    ? buildLiteWeatherNarration(bundle, district.name, {
+        currentRainChance,
+        guidanceEn: guidanceEn?.text ?? null,
+        guidanceLg: guidanceLg?.text ?? null,
+      })
+    : null;
 
   return (
     <div className="main-scroll h-dvh max-h-dvh w-full overflow-y-auto overscroll-contain bg-[radial-gradient(ellipse_at_top,_rgba(13,144,59,0.18),_transparent_55%),linear-gradient(180deg,_#0f1422_0%,_#12101a_100%)] text-[#f7f4ef]">
@@ -384,7 +392,7 @@ export default async function LiteWeatherPage({
               </GlassPanel>
               <GlassPanel className="flex min-h-[52px] items-center justify-between gap-2 p-3 min-[360px]:min-h-[72px] min-[360px]:flex-col min-[360px]:items-stretch min-[360px]:justify-center min-[360px]:gap-0">
                 <p className="text-[12px] font-medium leading-snug text-white/70 min-[360px]:text-[11px]">
-                  {isLg ? "Obunnyogovu" : "Humidity"}
+                  {isLg ? "Obunnyogovu mu mpewo" : "Humidity"}
                 </p>
                 <p className="whitespace-nowrap text-[17px] font-semibold text-white min-[360px]:mt-0.5">
                   {Math.round(bundle.humidity)}%

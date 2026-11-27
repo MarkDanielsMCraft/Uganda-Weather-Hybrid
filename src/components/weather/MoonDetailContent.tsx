@@ -129,6 +129,7 @@ export function MoonDetailContent() {
       <div className="flex items-center justify-between">
         <button
           type="button"
+          data-no-narrate
           onClick={() => goToMonth(-1)}
           aria-label={dict.common.previousMonth}
           className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/70"
@@ -140,6 +141,7 @@ export function MoonDetailContent() {
         </p>
         <button
           type="button"
+          data-no-narrate
           onClick={() => goToMonth(1)}
           aria-label={dict.common.nextMonth}
           className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/70"
@@ -148,7 +150,7 @@ export function MoonDetailContent() {
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-y-2 text-center">
+      <div data-no-narrate className="mt-3 grid grid-cols-7 gap-y-2 text-center">
         {dict.common.weekdayInitials.map((label, index) => (
           <span key={`${label}-${index}`} className="text-[11px] font-medium text-white/40">
             {label}

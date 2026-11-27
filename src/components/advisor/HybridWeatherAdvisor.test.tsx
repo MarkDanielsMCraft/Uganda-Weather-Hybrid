@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HybridWeatherAdvisor } from "@/components/advisor/HybridWeatherAdvisor";
 import { makeWeatherBundle } from "@/lib/test-fixtures/weather-bundle";
@@ -259,15 +259,34 @@ describe("HybridWeatherAdvisor", () => {
     const inspector = screen.getByTestId("advisor-runtime-inspector");
     expect(inspector).not.toHaveTextContent("Remote Config");
     expect(inspector).not.toHaveTextContent("gemini-3.5-flash-lite");
+    expect(inspector).not.toHaveTextContent("Firebase AI Logic");
 
-    const offlineBtn = screen.getByRole("button", { name: "Offline" });
+    const offlineBtn = within(inspector).getByRole("button", { name: "Offline" });
     fireEvent.click(offlineBtn);
-    expect(offlineBtn).toHaveAttribute("aria-pressed", "true");
     expect(statusBtn).toHaveTextContent("Offline");
+    expect(screen.queryByTestId("advisor-runtime-inspector")).toBeNull();
 
-    const onlineBtn = screen.getByRole("button", { name: "Online" });
-    fireEvent.click(onlineBtn);
-    expect(onlineBtn).toHaveAttribute("aria-pressed", "true");
+    // Reopen dropdown to verify Offline active state and switch back to Online
+    fireEvent.click(statusBtn);
+    const reopenedInspector = screen.getByTestId("advisor-runtime-inspector");
+    expect(within(reopenedInspector).getByRole("button", { name: "Offline" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(within(reopenedInspector).getByRole("button", { name: "Online" }));
+    expect(statusBtn).toHaveTextContent("Cloud");
+    expect(screen.queryByTestId("advisor-runtime-inspector")).toBeNull();
+
+    // Pressing Escape closes only the floating dropdown while keeping the Advisor open
+    fireEvent.click(statusBtn);
+    expect(
+      within(screen.getByTestId("advisor-runtime-inspector")).getByRole("button", {
+        name: "Online",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("advisor-runtime-inspector")).toBeNull();
+    expect(screen.getByText("How can I help with today's weather?")).toBeInTheDocument();
   });
 
   it("renders agent-driven dynamic verdict and dynamic follow-up chips without repeating asked questions", async () => {

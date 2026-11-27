@@ -49,6 +49,46 @@ let cachedApp: FirebaseApp | null = null;
 let cachedAppCheck: AppCheck | null = null;
 let cachedAi: AI | null = null;
 
+/**
+ * Adds AbortSignal.any only on older browsers (such as iOS 15 to 17.3 Safari)
+ * where @firebase/ai calls AbortSignal.any() internally. Modern browsers have
+ * AbortSignal.any built in and skip this completely.
+ */
+export function ensureAbortSignalAnyPolyfill(): void {
+  if (typeof AbortSignal === "undefined" || typeof AbortSignal.any === "function") {
+    return;
+  }
+  AbortSignal.any = function abortSignalAny(signals: Iterable<AbortSignal>): AbortSignal {
+    const controller = new AbortController();
+    const list = Array.from(signals);
+    for (const sig of list) {
+      if (sig.aborted) {
+        try {
+          controller.abort(sig.reason);
+        } catch {
+          controller.abort();
+        }
+        return controller.signal;
+      }
+    }
+    const cleanups: Array<() => void> = [];
+    for (const sig of list) {
+      const onAbort = () => {
+        for (const cleanup of cleanups) cleanup();
+        cleanups.length = 0;
+        try {
+          controller.abort(sig.reason);
+        } catch {
+          controller.abort();
+        }
+      };
+      sig.addEventListener("abort", onAbort, { once: true });
+      cleanups.push(() => sig.removeEventListener("abort", onAbort));
+    }
+    return controller.signal;
+  };
+}
+
 export function isFirebaseAiConfigured(): boolean {
   return buildFirebaseOptions(readFirebaseClientEnv()) !== null;
 }
@@ -103,6 +143,7 @@ export function getFirebaseAiClient(): AI | null {
   if (typeof window === "undefined") return null;
   if (cachedAi) return cachedAi;
 
+  ensureAbortSignalAnyPolyfill();
   const app = getFirebaseApp();
   if (!app) return null;
 
@@ -114,6 +155,30 @@ export function getFirebaseAiClient(): AI | null {
     useLimitedUseAppCheckTokens: false,
   });
   return cachedAi;
+}
+
+/**
+ * Warms the Firebase App and App Check token exchange in the background during
+ * browser idle time (spending zero Gemini requests) so the first voice or
+ * advisor request does not wait ~700ms on cold App Check initialization.
+ */
+export function warmFirebaseAiClient(): void {
+  if (typeof window === "undefined" || cachedAi || !isFirebaseAiConfigured()) return;
+  const run = () => {
+    try {
+      getFirebaseAiClient();
+    } catch {
+      // Ignore background warm-up errors
+    }
+  };
+  const win = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  };
+  if (typeof win.requestIdleCallback === "function") {
+    win.requestIdleCallback(run, { timeout: 1_500 });
+  } else {
+    window.setTimeout(run, 350);
+  }
 }
 
 export function resetFirebaseAiClientForTests(): void {

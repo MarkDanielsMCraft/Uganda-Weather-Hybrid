@@ -1,4 +1,5 @@
 import { buildAgricultureAdvisory, computeFarmWorkWindows } from "@/lib/agriculture/advisory";
+import { hoursAheadSummary } from "@/lib/design/context";
 import { en as enDict } from "@/lib/i18n/dictionaries/en";
 import { lg as lgDict } from "@/lib/i18n/dictionaries/lg";
 import type { SupportedLocale } from "@/lib/i18n/types";
@@ -11,13 +12,17 @@ import {
 import { buildLakeVictoriaConditions } from "@/lib/marine/lake-victoria";
 import { buildDistrictContent } from "@/lib/seo/district-content";
 import { formatClockLabelForLanguage } from "@/lib/time/uganda";
+import { buildCommunitySafetyAlerts } from "@/lib/weather/community-safety";
 import {
   formatConditionLg,
   formatDayLg,
   formatDayPrepositionLg,
   formatMarineSafetyLg,
+  formatWindDirectionLg,
+  hoursAheadSummaryLg,
   localizeAlertForLanguage,
 } from "@/lib/weather/copy-lg";
+import { getWeatherProviderInfo } from "@/lib/weather/source";
 import type { District, WeatherBundle } from "@/types/weather";
 
 export interface SpokenBriefingPair {
@@ -96,10 +101,10 @@ export function buildSectionNarration(
 }
 
 /**
- * Builds a complete, natural radio-style Home & District spoken briefing
- * designed for grandmothers, blind users, and non-readers, covering the whole page:
- * current weather, 6-hour rain/wind, alerts, farming work windows, lake safety,
- * and upcoming 3-day outlook.
+ * Builds a spoken Home & District briefing matching the visible Home screen:
+ * hero condition & high/low, hours-ahead summary, 6-hour rain/wind/humidity,
+ * active warning banner (if present), lake tile summary (when visible for lake
+ * districts), and upcoming days.
  */
 export function buildHomeWeatherNarration(
   weather: WeatherBundle,
@@ -112,8 +117,8 @@ export function buildHomeWeatherNarration(
   const humidity = Math.round(weather.humidity);
   const nextRain = getNext6HourPeakRain(weather);
   const conditionLg = formatConditionLg(weather.condition.text, weather.isDay);
-  const farmEn = computeFarmWorkWindows(weather, "en");
-  const farmLg = computeFarmWorkWindows(weather, "lg");
+  const summaryEn = hoursAheadSummary(weather);
+  const summaryLg = hoursAheadSummaryLg(weather);
   const alert = weather.alerts?.[0];
   const alertLg = alert
     ? localizeAlertForLanguage(alert, "lg", lgDict.alerts.demo)
@@ -139,8 +144,7 @@ export function buildHomeWeatherNarration(
   }
 
   // Skip "Today" in the upcoming-days tail since today's exact temp, high/low,
-  // and next-6-hour rain chance are already announced first (avoids reading an
-  // outdated daytime rain % at night).
+  // and next-6-hour rain chance are already announced first.
   const upcomingDays = (weather.dailyForecast ?? [])
     .filter((d, idx) => !(idx === 0 && d.day.trim().toLowerCase() === "today"))
     .slice(0, 2);
@@ -163,23 +167,71 @@ export function buildHomeWeatherNarration(
           .join("; ")}.`
       : "";
 
-  const farmAdviceEn = weather.isDay
-    ? `${farmEn.dryingSummary} ${farmEn.sprayingSummary}`
-    : farmEn.dryingSummary;
-  const farmAdviceLg = weather.isDay
-    ? `${farmLg.dryingSummary} ${farmLg.sprayingSummary}`
-    : farmLg.dryingSummary;
-
-  const en = `${displayName}. Currently ${temp} degrees and ${weather.condition.text}, with a high of ${high} and low of ${low}. Rain chance over the next 6 hours is ${nextRain} percent, wind is ${wind} kilometers per hour, and humidity is ${humidity} percent.${alertPartEn} ${farmAdviceEn}${lakePartEn}${daysEn}`;
-  const lg = `Embeera y'obudde mu ${displayName} leero: ${conditionLg}, ng'ebbugumu liri ku ${temp}°C, waggulu ${high}°C ate wansi ${low}°C. Omukisa gw'enkuba mu ssaawa mukaaga eziddako guli ku ${nextRain}%, empewo eri ku ${wind} km/h, ate obunnyogovu buli ku ${humidity}%.${alertPartLg} ${farmAdviceLg}${lakePartLg}${daysLg}`;
+  const en = `${displayName}. Currently ${temp} degrees and ${weather.condition.text}. High of ${high} and low of ${low}. ${summaryEn} Rain chance over the next 6 hours is ${nextRain} percent, wind is ${wind} kilometers per hour, and humidity is ${humidity} percent.${alertPartEn}${lakePartEn}${daysEn}`;
+  const lg = `Embeera y'obudde mu ${displayName} leero: ${conditionLg}. Ebbugumu liri ku ${temp}°C, waggulu ${high}°C ate wansi ${low}°C. ${summaryLg} Omukisa gw'enkuba mu ssaawa mukaaga eziddako guli ku ${nextRain}%, empewo eri ku ${wind} km/h, ate obunnyogovu mu mpewo buli ku ${humidity}%.${alertPartLg}${lakePartLg}${daysLg}`;
 
   return { en, lg };
 }
 
 /**
- * Builds a context-aware spoken briefing for whichever DetailSheet tile, modal,
- * or page section is open. Accepts either a tileId, a localized sheet title,
- * or a combined string (`"${sheet.tileId} ${sheet.title}"`).
+ * Builds a spoken narration matching the exact visible cards on `/lite`.
+ */
+export function buildLiteWeatherNarration(
+  weather: WeatherBundle,
+  displayName: string,
+  options: {
+    currentRainChance: number;
+    guidanceEn?: string | null;
+    guidanceLg?: string | null;
+  },
+): SpokenBriefingPair {
+  const temp = Math.round(weather.temperature.celsius);
+  const high = Math.round(weather.daily.high);
+  const low = Math.round(weather.daily.low);
+  const wind = Math.round(weather.wind.speedKph);
+  const humidity = Math.round(weather.humidity);
+  const rain = Math.round(options.currentRainChance);
+  const conditionLg = formatConditionLg(weather.condition.text, weather.isDay);
+
+  const safetyEn = buildCommunitySafetyAlerts(weather, "en")[0];
+  const safetyLg = buildCommunitySafetyAlerts(weather, "lg")[0];
+
+  const days = (weather.dailyForecast ?? []).slice(0, 3);
+  const daysEn =
+    days.length > 0
+      ? ` Next days: ${days
+          .map((day, idx) => {
+            const chance =
+              idx === 0 && !weather.isDay ? rain : Math.round(day.rainChance ?? 0);
+            return `${day.day}, rain ${chance} percent, ${Math.round(day.low)}° / ${Math.round(day.high)}°`;
+          })
+          .join("; ")}.`
+      : "";
+  const daysLg =
+    days.length > 0
+      ? ` Ennaku ezijja: ${days
+          .map((day, idx) => {
+            const chance =
+              idx === 0 && !weather.isDay ? rain : Math.round(day.rainChance ?? 0);
+            return `${formatDayLg(day.day)}, enkuba ${chance}%, ${Math.round(day.low)}° / ${Math.round(day.high)}°`;
+          })
+          .join("; ")}.`
+      : "";
+
+  const guidancePartEn = options.guidanceEn ? ` ${options.guidanceEn}` : "";
+  const guidancePartLg = options.guidanceLg ? ` ${options.guidanceLg}` : "";
+  const safetyPartEn = safetyEn ? ` ${safetyEn.title}. ${safetyEn.summary}` : "";
+  const safetyPartLg = safetyLg ? ` ${safetyLg.title}. ${safetyLg.summary}` : "";
+
+  return {
+    en: `${displayName}. ${temp} degrees Celsius, ${weather.condition.text}. High ${high} degrees, Low ${low} degrees.${guidancePartEn} Rain ${rain} percent, Wind ${wind} kilometers per hour, Humidity ${humidity} percent.${safetyPartEn}${daysEn}`,
+    lg: `Embeera y'obudde mu ${displayName}: ${temp}°C, ${conditionLg}. Waggulu ${high}°C, Wansi ${low}°C.${guidancePartLg} Enkuba ${rain}%, Empewo km/h ${wind}, Obunnyogovu mu mpewo ${humidity}%.${safetyPartLg}${daysLg}`,
+  };
+}
+
+/**
+ * Builds a context-aware spoken fallback for whichever DetailSheet tile, modal,
+ * or page section is open when live DOM extraction is not supplied.
  */
 export function buildSheetNarration(
   tileId: string | null | undefined,
@@ -197,6 +249,30 @@ export function buildSheetNarration(
 
   const key = tileId.toLowerCase();
 
+  if (key.includes("luganda-beta") || key.includes("okulongoosa oluganda") || key.includes("luganda feedback")) {
+    return {
+      en: `${enDict.lugandaBeta.sheetTitle}. ${enDict.lugandaBeta.formIntro}`,
+      lg: `${lgDict.lugandaBeta.sheetTitle}. ${lgDict.lugandaBeta.formIntro}`,
+    };
+  }
+
+  if (key.includes("site-health") || key.includes("site health") || key.includes("embeera y'omukutu")) {
+    const providerEn = getWeatherProviderInfo(weather.source, "en");
+    const providerLg = getWeatherProviderInfo(weather.source, "lg");
+    return {
+      en: `${enDict.sheets.siteHealth.title}. ${providerEn.description}.`,
+      lg: `${lgDict.sheets.siteHealth.title}. ${providerLg.description}.`,
+    };
+  }
+
+  if (key.includes("averages") || key.includes("ebipimo ebya bulijjo")) {
+    const high = Math.round(weather.daily.high);
+    return {
+      en: `Historical averages for ${displayName}. Today's forecast high is ${high} degrees Celsius.`,
+      lg: `Ebipimo ebya bulijjo mu ${displayName}. Ebbugumu lya leero erisinga waggulu liri ku ${high}°C.`,
+    };
+  }
+
   if (key.includes("agriculture") || key.includes("ebyobulimi")) {
     const advEn = buildAgricultureAdvisory(weather, "en");
     const advLg = buildAgricultureAdvisory(weather, "lg");
@@ -204,9 +280,15 @@ export function buildSheetNarration(
     const farmLg = computeFarmWorkWindows(weather, "lg");
     const tipsEn = advEn.recommendations.slice(0, 2).join(" ");
     const tipsLg = advLg.recommendations.slice(0, 2).join(" ");
+    const soilSentenceLg =
+      advLg.soilMoisture.level === "low"
+        ? "Amazzi mu ttaka matono."
+        : advLg.soilMoisture.level === "high"
+          ? "Amazzi mu ttaka mangi."
+          : "Amazzi mu ttaka ga kigero.";
     return {
       en: `Farming advice for ${displayName}. ${advEn.agroZoneLabel}, ${advEn.season.label}. Soil moisture is ${advEn.soilMoisture.label}. ${farmEn.dryingSummary} ${farmEn.sprayingSummary} ${tipsEn}`,
-      lg: `Amagezi ag'ebyobulimi mu ${displayName}. ${advLg.agroZoneLabel}, ${advLg.season.label}. Amazzi mu ttaka gali ku mutendera gwa: ${advLg.soilMoisture.label}. ${farmLg.dryingSummary} ${farmLg.sprayingSummary} ${tipsLg}`,
+      lg: `Amagezi ag'ebyobulimi mu ${displayName}. ${advLg.agroZoneLabel}, ${advLg.season.label}. ${soilSentenceLg} ${farmLg.dryingSummary} ${farmLg.sprayingSummary} ${tipsLg}`,
     };
   }
 
@@ -227,7 +309,6 @@ export function buildSheetNarration(
         : isEdward
           ? EDWARD_CONFIG.name
           : "Lake Victoria";
-    // Drop initial vowel 'E-' after locative 'ku' per Munno orthography Section 5
     const lakeLocativeLg = isKyoga
       ? "Nnyanja Kyoga"
       : isAlbert
@@ -310,6 +391,14 @@ export function buildSheetNarration(
 
   if (key.includes("air quality") || key.includes("air-quality") || key.includes("obulungi bw'empewo")) {
     const aqi = Math.round(weather.airQuality.aqi);
+    const aqiCategoryLg =
+      aqi <= 50
+        ? lgDict.metrics.aqiGood.toLowerCase()
+        : aqi <= 100
+          ? lgDict.metrics.aqiModerate.toLowerCase()
+          : aqi <= 150
+            ? lgDict.metrics.aqiUnhealthySensitive.toLowerCase()
+            : lgDict.metrics.aqiUnhealthy.toLowerCase();
     const aqiAdviceLg =
       aqi <= 50
         ? "Empewo nnungi okukoleramu emirimu gy'ebweru."
@@ -318,7 +407,7 @@ export function buildSheetNarration(
           : "Empewo si nnungi nnyo. Kendeeza emirimu egya maanyi ebweru.";
     return {
       en: `Air quality in ${displayName} is ${weather.airQuality.category} with an index of ${aqi}. ${weather.airQuality.advice}`,
-      lg: `Obulungi bw'empewo mu ${displayName} buli ku kipimo kya ${aqi}. ${aqiAdviceLg}`,
+      lg: `Obulungi bw'empewo mu ${displayName}: empewo ${aqiCategoryLg}, ku kipimo kya ${aqi}. ${aqiAdviceLg}`,
     };
   }
 
@@ -333,9 +422,10 @@ export function buildSheetNarration(
   if (key.includes("wind") || key.includes("empewo")) {
     const speed = Math.round(weather.wind.speedKph);
     const gust = Math.round(weather.wind.gustKph ?? weather.wind.speedKph);
+    const dirLg = formatWindDirectionLg(weather.wind.direction).toLowerCase();
     return {
       en: `Wind in ${displayName} is ${speed} kilometers per hour from the ${weather.wind.direction}, with gusts up to ${gust} kilometers per hour.`,
-      lg: `Empewo mu ${displayName} eri ku ${speed} km/h, ng'etuuka ku ${gust} km/h mu kibuyaga.`,
+      lg: `Empewo mu ${displayName} eri ku ${speed} km/h okuva mu ${dirLg}, ng'etuuka ku ${gust} km/h mu kibuyaga.`,
     };
   }
 
@@ -372,7 +462,13 @@ export function buildSheetNarration(
     };
   }
 
-  if (key.includes("feels") || key.includes("liwulirwa") || key.includes("ewulirwa")) {
+  if (
+    key.includes("feels") ||
+    key.includes("liwulirwa") ||
+    key.includes("ewulirwa") ||
+    key.includes("conditions") ||
+    key.includes("embeera y'obudde")
+  ) {
     const feels = Math.round(weather.temperature.feelsLike);
     const actual = Math.round(weather.temperature.celsius);
     return {
@@ -408,8 +504,6 @@ export function buildSheetNarration(
 
 /**
  * Helper to pick the right spoken string for speakAdvisorReply().
- * Always uses the verified Munno Luganda string (pair.lg) when language === "lg"
- * so the Luganda TTS engine never translates or reads raw English strings.
  */
 export function selectSpokenPayload(
   pair: SpokenBriefingPair,

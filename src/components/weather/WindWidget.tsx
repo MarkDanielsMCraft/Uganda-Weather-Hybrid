@@ -36,13 +36,13 @@ export function WindWidget({ weather }: { weather: WeatherBundle }) {
           <p className="text-[34px] font-semibold leading-none tabular-nums text-white">
             {uiLanguage === "lg" ? (
               <>
-                <span className="mr-1 text-[17px] font-medium text-white/90">km/h</span>
+                <span className="text-[17px] font-medium text-white/90">km/h</span>{" "}
                 {speed}
               </>
             ) : (
               <>
-                {speed}
-                <span className="ml-1 text-[17px] font-medium text-white/90">km/h</span>
+                {speed}{" "}
+                <span className="text-[17px] font-medium text-white/90">km/h</span>
               </>
             )}
           </p>

@@ -69,7 +69,9 @@ export function buildPlainTextWeatherSms(
   const temp = Math.round(weather.temperature.celsius);
   const rain = Math.round(weather.precipitation.chance);
   const wind = Math.round(weather.wind.speedKph);
-  const condition = isLg ? formatConditionLg(weather.condition.text) : weather.condition.text;
+  const condition = isLg
+    ? formatConditionLg(weather.condition.text, weather.isDay)
+    : weather.condition.text;
   const safetyAlerts = buildCommunitySafetyAlerts(weather, language);
   const topNote = customNote?.trim() || safetyAlerts[0]?.title || "";
 

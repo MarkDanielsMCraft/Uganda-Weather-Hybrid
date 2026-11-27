@@ -75,7 +75,7 @@ export function buildCommunitySafetyAlerts(
       level,
       title: isLg ? "Okwekuuma omusana ogw'amaanyi" : "High UV sun protection",
       summary: isLg
-        ? `Omusana gw'amaanyi nnyo (UV ${uv}). Funa ekisiikirize mu ttuntu, yambala enkofiira n'engoye empanvu. Okwegendereza okw'enjawulo eri abakozi ab'ebweru, abaana, n'abantu abalina albinism.`
+        ? `Omusana gw'amaanyi nnyo (UV ${uv}). Funa ekisiikirize mu ttuntu, yambala enkoofiira n'engoye empanvu. Okwegendereza okw'enjawulo eri abakozi ab'ebweru, abaana, n'abantu abalina albinism.`
         : `UV index is ${uv}. Seek shade midday, wear a hat, long sleeves, and sunscreen. Extra care for outdoor workers, children, and persons with albinism.`,
     });
   }

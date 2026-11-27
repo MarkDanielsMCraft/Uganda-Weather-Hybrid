@@ -10,10 +10,12 @@ import { useWeatherBundle } from "@/hooks/useWeatherBundle";
 import { loadWeatherCache } from "@/lib/offline/weather-cache";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { localizeDistrictName, useTranslation } from "@/lib/i18n";
+import { warmFirebaseAiClient } from "@/lib/ai/firebase-client";
 import {
   fetchVoiceCapabilities,
   isVoiceOutputSupported,
   prefetchVoiceClip,
+  primeVoicePlaybackForGesture,
   speakAdvisorReply,
   stopVoiceOutput,
   type VoiceServerCapabilities,
@@ -28,30 +30,53 @@ import {
 // mount WeatherListenButton, only one instance can ever auto-narrate a section.
 let lastGlobalAutoNarratedKey = "";
 
-function WeatherListenButtonWithQuery(props: {
+export function resetWeatherListenAutoNarrateForTests(): void {
+  lastGlobalAutoNarratedKey = "";
+}
+
+function parseDistrictSlugFromPathname(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const match = /^\/(?:lg\/)?district\/([^/?#]+)/.exec(pathname);
+  if (!match?.[1]) return null;
+  try {
+    const decoded = decodeURIComponent(match[1]).trim().toLowerCase();
+    return getDistrictBySlug(decoded) ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface WeatherListenButtonProps {
   compact?: boolean;
   tileIdOverride?: string | null;
+  spokenTextOverride?: string | null;
+  getLiveSpokenText?: () => string;
   autoNarrateOnSheetChange?: boolean;
   testId?: string;
-}) {
-  const districtSlug = usePreferencesStore((state) => state.districtSlug);
-  const activePlace = usePreferencesStore((state) => state.activePlace);
+}
+
+function WeatherListenButtonWithQuery(props: WeatherListenButtonProps) {
+  const pathname = usePathname();
+  const storeDistrictSlug = usePreferencesStore((state) => state.districtSlug);
+  const storeActivePlace = usePreferencesStore((state) => state.activePlace);
+  const routeDistrictSlug = parseDistrictSlugFromPathname(pathname);
+  const effectiveDistrictSlug = routeDistrictSlug ?? storeDistrictSlug;
+  const effectivePlace = routeDistrictSlug ? null : storeActivePlace;
   const ready = useAppReady();
-  const { data } = useWeatherBundle(districtSlug, ready, activePlace);
+  const { data } = useWeatherBundle(effectiveDistrictSlug, ready, effectivePlace);
   return <WeatherListenButtonInner {...props} weather={data?.data ?? null} />;
 }
 
-export function WeatherListenButton(props: {
-  compact?: boolean;
-  tileIdOverride?: string | null;
-  autoNarrateOnSheetChange?: boolean;
-  testId?: string;
-}) {
+export function WeatherListenButton(props: WeatherListenButtonProps) {
+  const pathname = usePathname();
   const queryClient = useContext(QueryClientContext);
-  const districtSlug = usePreferencesStore((state) => state.districtSlug);
-  const activePlace = usePreferencesStore((state) => state.activePlace);
+  const storeDistrictSlug = usePreferencesStore((state) => state.districtSlug);
+  const storeActivePlace = usePreferencesStore((state) => state.activePlace);
   if (!queryClient) {
-    const cached = loadWeatherCache(activePlace?.key ?? districtSlug)?.data ?? null;
+    const routeDistrictSlug = parseDistrictSlugFromPathname(pathname);
+    const effectiveDistrictSlug = routeDistrictSlug ?? storeDistrictSlug;
+    const effectivePlace = routeDistrictSlug ? null : storeActivePlace;
+    const cached = loadWeatherCache(effectivePlace?.key ?? effectiveDistrictSlug)?.data ?? null;
     return <WeatherListenButtonInner {...props} weather={cached} />;
   }
   return <WeatherListenButtonWithQuery {...props} />;
@@ -60,14 +85,12 @@ export function WeatherListenButton(props: {
 function WeatherListenButtonInner({
   compact = false,
   tileIdOverride,
+  spokenTextOverride,
+  getLiveSpokenText,
   autoNarrateOnSheetChange = false,
   testId = "weather-listen-toggle",
   weather,
-}: {
-  compact?: boolean;
-  tileIdOverride?: string | null;
-  autoNarrateOnSheetChange?: boolean;
-  testId?: string;
+}: WeatherListenButtonProps & {
   weather: import("@/types/weather").WeatherBundle | null;
 }) {
   const { dict, uiLanguage } = useTranslation();
@@ -85,6 +108,12 @@ function WeatherListenButtonInner({
     return () => window.removeEventListener("uw:district-modal-open", handleDistrictModal);
   }, []);
 
+  const isHomeOrDistrictRoute =
+    !pathname ||
+    pathname === "/" ||
+    pathname === "/lg" ||
+    /^\/(?:lg\/)?district(?:\/|$)/.test(pathname);
+
   const activeTileId =
     tileIdOverride !== undefined
       ? tileIdOverride
@@ -92,11 +121,15 @@ function WeatherListenButtonInner({
         ? `${detailSheet.sheet.tileId} ${detailSheet.sheet.title}`
         : districtModalOpen
           ? "about-district"
-          : pathname && pathname !== "/" && !pathname.startsWith("/district/")
+          : !isHomeOrDistrictRoute
             ? pathname
             : null;
-  const districtSlug = usePreferencesStore((state) => state.districtSlug);
-  const activePlace = usePreferencesStore((state) => state.activePlace);
+
+  const storeDistrictSlug = usePreferencesStore((state) => state.districtSlug);
+  const storeActivePlace = usePreferencesStore((state) => state.activePlace);
+  const routeDistrictSlug = parseDistrictSlugFromPathname(pathname);
+  const districtSlug = routeDistrictSlug ?? storeDistrictSlug;
+  const activePlace = routeDistrictSlug ? null : storeActivePlace;
   const voiceMode = usePreferencesStore((state) => state.voiceMode);
   const setVoiceMode = usePreferencesStore((state) => state.setVoiceMode);
   const district = getDistrictBySlug(districtSlug);
@@ -117,10 +150,17 @@ function WeatherListenButtonInner({
   const sectionNarration = activeTileId
     ? buildSectionNarration(activeTileId, district ?? weather?.district ?? null)
     : null;
-  const hasNarrationSource = Boolean(weather || sectionNarration);
+  const hasExplicitSpokenText =
+    typeof spokenTextOverride === "string" && spokenTextOverride.trim().length > 0;
+  const hasNarrationSource = Boolean(
+    weather || sectionNarration || hasExplicitSpokenText || spokenTextOverride === null,
+  );
 
   useEffect(() => {
     if (!hasNarrationSource) return;
+    if (uiLanguage === "en") {
+      warmFirebaseAiClient();
+    }
     let active = true;
     void fetchVoiceCapabilities().then((caps) => {
       if (active) setServerCapabilities(caps);
@@ -128,7 +168,7 @@ function WeatherListenButtonInner({
     return () => {
       active = false;
     };
-  }, [hasNarrationSource]);
+  }, [hasNarrationSource, uiLanguage]);
 
   useEffect(() => {
     const syncVoiceSupport = () => {
@@ -147,7 +187,7 @@ function WeatherListenButtonInner({
   }, [uiLanguage, serverCapabilities]);
 
   useEffect(() => {
-    const contextKey = `${uiLanguage}:${districtSlug}:${activePlace?.key ?? ""}`;
+    const contextKey = `${uiLanguage}:${districtSlug}:${activePlace?.key ?? ""}:${activeTileId ?? ""}`;
     if (prevContextKeyRef.current !== null && prevContextKeyRef.current !== contextKey) {
       if (isSpeakingRef.current) {
         stopVoiceOutput();
@@ -155,7 +195,7 @@ function WeatherListenButtonInner({
       setPlaybackState("idle");
     }
     prevContextKeyRef.current = contextKey;
-  }, [uiLanguage, districtSlug, activePlace?.key]);
+  }, [uiLanguage, districtSlug, activePlace?.key, activeTileId]);
 
   useEffect(() => {
     return () => {
@@ -174,14 +214,26 @@ function WeatherListenButtonInner({
       )
     : district?.name ?? "";
 
-  const narrationPair = sectionNarration
+  const fallbackPair = sectionNarration
     ? sectionNarration
     : weather
       ? buildSheetNarration(activeTileId, weather, displayName)
       : { en: "", lg: "" };
-  const payload = selectSpokenPayload(narrationPair, uiLanguage);
+  const fallbackPayload = selectSpokenPayload(fallbackPair, uiLanguage);
+
+  const resolveSpokenPayload = useCallback(() => {
+    const liveDomText = getLiveSpokenText?.().trim() ?? "";
+    if (liveDomText) {
+      return { text: liveDomText, sourceLanguage: undefined as undefined };
+    }
+    if (typeof spokenTextOverride === "string" && spokenTextOverride.trim()) {
+      return { text: spokenTextOverride.trim(), sourceLanguage: undefined as undefined };
+    }
+    return fallbackPayload;
+  }, [fallbackPayload, getLiveSpokenText, spokenTextOverride]);
 
   const triggerSpeak = useCallback(() => {
+    const payload = resolveSpokenPayload();
     if (!payload.text) return;
     setPlaybackState("loading");
     const started = speakAdvisorReply({
@@ -191,41 +243,47 @@ function WeatherListenButtonInner({
       capabilities: serverCapabilities,
       onStateChange: (nextState) => setPlaybackState(nextState),
       onEnd: () => setPlaybackState("idle"),
+      onError: () => setPlaybackState("idle"),
     });
     if (!started) {
       setPlaybackState("idle");
     }
-  }, [payload.sourceLanguage, payload.text, serverCapabilities, uiLanguage]);
+  }, [resolveSpokenPayload, serverCapabilities, uiLanguage]);
 
-  // Hands-free companion mode: when a user has selected voice once (voiceMode=true)
-  // and opens any DetailSheet card, About District modal, or legal page,
-  // automatically read that section aloud so blind and non-reading users hear it immediately.
+  const autoNarrateKey = activeTileId
+    ? `${uiLanguage}:${districtSlug}:${activePlace?.key ?? ""}:${activeTileId}`
+    : "";
+
   useEffect(() => {
-    if (!voiceMode || !activeTileId) {
+    if (!voiceMode || !activeTileId || !autoNarrateOnSheetChange) {
+      if (
+        lastAutoNarratedKeyRef.current &&
+        lastGlobalAutoNarratedKey === lastAutoNarratedKeyRef.current
+      ) {
+        lastGlobalAutoNarratedKey = "";
+      }
       lastAutoNarratedKeyRef.current = "";
-      lastGlobalAutoNarratedKey = "";
+      return;
+    }
+    if (!voiceReady || !hasNarrationSource || spokenTextOverride === null) {
       return;
     }
     if (
-      !autoNarrateOnSheetChange ||
-      !voiceReady ||
-      !hasNarrationSource
+      lastAutoNarratedKeyRef.current === autoNarrateKey ||
+      lastGlobalAutoNarratedKey === autoNarrateKey
     ) {
       return;
     }
-    const key = `${uiLanguage}:${districtSlug}:${activePlace?.key ?? ""}:${activeTileId}`;
-    if (lastAutoNarratedKeyRef.current === key || lastGlobalAutoNarratedKey === key) return;
-    lastAutoNarratedKeyRef.current = key;
-    lastGlobalAutoNarratedKey = key;
+    lastAutoNarratedKeyRef.current = autoNarrateKey;
+    lastGlobalAutoNarratedKey = autoNarrateKey;
     triggerSpeak();
   }, [
-    activePlace?.key,
     activeTileId,
+    autoNarrateKey,
     autoNarrateOnSheetChange,
-    districtSlug,
     hasNarrationSource,
+    spokenTextOverride,
     triggerSpeak,
-    uiLanguage,
     voiceMode,
     voiceReady,
   ]);
@@ -233,6 +291,8 @@ function WeatherListenButtonInner({
   if (!voiceReady || !hasNarrationSource) return null;
 
   const handlePrefetch = () => {
+    const payload = resolveSpokenPayload();
+    if (!payload.text) return;
     prefetchVoiceClip({
       text: payload.text,
       language: uiLanguage,
@@ -241,12 +301,26 @@ function WeatherListenButtonInner({
     });
   };
 
+  const handlePointerWarmup = () => {
+    primeVoicePlaybackForGesture();
+    if (uiLanguage === "en") {
+      warmFirebaseAiClient();
+    }
+  };
+
   const handleToggle = () => {
     if (isSpeaking) {
       setVoiceMode(false);
       stopVoiceOutput();
       setPlaybackState("idle");
       return;
+    }
+    // Mark the current sheet/section as already narrated BEFORE enabling
+    // `voiceMode` so the companion effect does not double-fire 1ms later and
+    // self-abort the user-gesture audio session.
+    if (autoNarrateKey) {
+      lastAutoNarratedKeyRef.current = autoNarrateKey;
+      lastGlobalAutoNarratedKey = autoNarrateKey;
     }
     setVoiceMode(true);
     triggerSpeak();
@@ -258,7 +332,7 @@ function WeatherListenButtonInner({
       onClick={handleToggle}
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
-      onPointerDown={handlePrefetch}
+      onPointerDown={handlePointerWarmup}
       data-testid={testId}
       aria-pressed={isSpeaking}
       aria-label={
@@ -276,9 +350,7 @@ function WeatherListenButtonInner({
       } ${
         isSpeaking
           ? "border-white/25 bg-brand-green/75 text-white shadow-[0_6px_18px_rgba(13,144,59,0.35)]"
-          : voiceMode
-            ? "border-brand-green/50 bg-brand-green/25 text-white hover:bg-brand-green/35"
-            : "border-white/15 bg-white/10 text-white/90 hover:border-white/25 hover:bg-white/[0.16]"
+          : "border-white/15 bg-white/10 text-white/90 hover:border-white/25 hover:bg-white/[0.16]"
       }`}
     >
       <svg

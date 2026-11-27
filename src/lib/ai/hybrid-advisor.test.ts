@@ -424,4 +424,29 @@ describe("hybrid-advisor", () => {
       );
     }
   });
+
+  it("allows immediate back-to-back offline saved forecast queries during voice barge-in without rate-limiting", async () => {
+    const first = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle({ stale: true }),
+      audience: "general",
+      language: "en",
+      customQuestion: "Will it rain later?",
+      isOnline: false,
+    });
+    const second = await generateHybridWeatherBriefing({
+      weather: makeWeatherBundle({ stale: true }),
+      audience: "general",
+      language: "en",
+      customQuestion: "That of Wakiso",
+      spellingCorrection: { typed: "Waukesha", resolvedName: "Wakiso" },
+      isOnline: false,
+    });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(second.data.source).toBe("saved_forecast");
+      expect(second.data.text.startsWith("Did you mean Wakiso?")).toBe(true);
+    }
+  });
 });

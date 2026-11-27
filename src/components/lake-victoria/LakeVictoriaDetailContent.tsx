@@ -83,13 +83,13 @@ export function LakeVictoriaDetailContent({
             <p className="mt-2 text-[28px] font-light text-white">
               {isLg ? (
                 <>
-                  <span className="mr-1 text-[16px] text-white/70">km/h</span>
+                  <span className="text-[16px] text-white/70">km/h</span>{" "}
                   {conditions.windSpeedKph}
                 </>
               ) : (
                 <>
-                  {conditions.windSpeedKph}
-                  <span className="ml-1 text-[16px] text-white/70">km/h</span>
+                  {conditions.windSpeedKph}{" "}
+                  <span className="text-[16px] text-white/70">km/h</span>
                 </>
               )}
             </p>

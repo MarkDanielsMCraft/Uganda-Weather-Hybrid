@@ -141,7 +141,7 @@ export function FeelsLikeDetailContent({
         </div>
       )}
 
-      <div className="mt-3 flex rounded-full border border-white/15 bg-white/[0.05] p-1">
+      <div data-no-narrate className="mt-3 flex rounded-full border border-white/15 bg-white/[0.05] p-1">
         <button
           type="button"
           onClick={() => setTab("actual")}
@@ -235,20 +235,28 @@ export function FeelsLikeDetailContent({
             .replace(
               "{lowAt}",
               lowHour
-                ? fl.aroundHour.replace(
-                    "{hour}",
-                    formatClockLabelForLanguage(lowHour.label, uiLanguage, "medium"),
-                  )
+                ? lowHour.label.trim().toLowerCase() === "now"
+                  ? isLuganda
+                    ? " kati"
+                    : " right now"
+                  : fl.aroundHour.replace(
+                      "{hour}",
+                      formatClockLabelForLanguage(lowHour.label, uiLanguage, "medium"),
+                    )
                 : "",
             )
             .replace("{high}", String(selectedDay?.high ?? ""))
             .replace(
               "{highAt}",
               highHour
-                ? fl.aroundHour.replace(
-                    "{hour}",
-                    formatClockLabelForLanguage(highHour.label, uiLanguage, "medium"),
-                  )
+                ? highHour.label.trim().toLowerCase() === "now"
+                  ? isLuganda
+                    ? " kati"
+                    : " right now"
+                  : fl.aroundHour.replace(
+                      "{hour}",
+                      formatClockLabelForLanguage(highHour.label, uiLanguage, "medium"),
+                    )
                 : "",
             )}
           {feelsLow != null && feelsHigh != null

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -16,7 +17,9 @@ import { computeSheetLayout, type DetailSheetLayout } from "@/components/sheet/d
 import { DetailSheetPointer } from "@/components/sheet/DetailSheetPointer";
 import { DetailSheetGrabber } from "@/components/sheet/DetailSheetGrabber";
 import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
+import { stopVoiceOutput } from "@/lib/ai/advisor-voice";
 import { useTranslation } from "@/lib/i18n";
+import { extractReadableCardText } from "@/lib/voice/dom-narration";
 
 // Genuinely translucent: real colour and light from the page behind
 // should read through clearly, not just a faint hint at the edges. Since
@@ -78,8 +81,53 @@ export function DetailSheet({ sheet, onClose }: { sheet: SheetState | null; onCl
   const wheelOverscrollRef = useRef<{ accum: number; lastTs: number }>({ accum: 0, lastTs: 0 });
 
   const sheetTileId = sheet?.tileId ?? null;
+  const sheetTitle = sheet?.title ?? "";
   const sheetAnchorEl = sheet?.anchorEl ?? null;
   const isSheetOpen = Boolean(sheet);
+  const contentBodyRef = useRef<HTMLDivElement | null>(null);
+  const [contentBodyEl, setContentBodyEl] = useState<HTMLDivElement | null>(null);
+  const [narrationState, setNarrationState] = useState<{
+    tileId: string;
+    text: string;
+  } | null>(null);
+  const wasOpenRef = useRef(false);
+
+  const handleContentBodyRef = useCallback((node: HTMLDivElement | null) => {
+    contentBodyRef.current = node;
+    setContentBodyEl(node);
+  }, []);
+
+  useEffect(() => {
+    if (wasOpenRef.current && !isSheetOpen) {
+      stopVoiceOutput();
+    }
+    wasOpenRef.current = isSheetOpen;
+  }, [isSheetOpen]);
+
+  useLayoutEffect(() => {
+    if (!sheetTileId || !contentBodyEl) return;
+    if (contentBodyEl.getAttribute("data-sheet-tile-id") !== sheetTileId) return;
+
+    const syncText = () => {
+      if (contentBodyEl.getAttribute("data-sheet-tile-id") !== sheetTileId) return;
+      const nextText = extractReadableCardText(contentBodyEl, sheetTitle);
+      setNarrationState((prev) =>
+        prev && prev.tileId === sheetTileId && prev.text === nextText
+          ? prev
+          : { tileId: sheetTileId, text: nextText },
+      );
+    };
+    syncText();
+
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(syncText);
+    observer.observe(contentBodyEl, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  }, [contentBodyEl, sheetTileId, sheetTitle]);
 
   useEffect(() => {
     if (!isSheetOpen) return;
@@ -365,13 +413,23 @@ export function DetailSheet({ sheet, onClose }: { sheet: SheetState | null; onCl
                     {sheet.title}
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <WeatherListenButton
-                    compact
-                    tileIdOverride={`${sheet.tileId} ${sheet.title}`}
-                    autoNarrateOnSheetChange
-                    testId="sheet-listen-toggle"
-                  />
+                <div data-no-sheet-drag className="flex shrink-0 items-center gap-2">
+                  {sheet.tileId !== "luganda-beta-feedback" && (
+                    <WeatherListenButton
+                      compact
+                      tileIdOverride={`${sheet.tileId} ${sheet.title}`}
+                      spokenTextOverride={
+                        narrationState?.tileId === sheet.tileId ? narrationState.text : null
+                      }
+                      getLiveSpokenText={() =>
+                        contentBodyRef.current?.getAttribute("data-sheet-tile-id") === sheet.tileId
+                          ? extractReadableCardText(contentBodyRef.current, sheet.title)
+                          : ""
+                      }
+                      autoNarrateOnSheetChange
+                      testId="sheet-listen-toggle"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={onClose}
@@ -386,6 +444,8 @@ export function DetailSheet({ sheet, onClose }: { sheet: SheetState | null; onCl
               <AnimatePresence mode="wait">
                 <motion.div
                   key={sheet.tileId}
+                  ref={handleContentBodyRef}
+                  data-sheet-tile-id={sheet.tileId}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}

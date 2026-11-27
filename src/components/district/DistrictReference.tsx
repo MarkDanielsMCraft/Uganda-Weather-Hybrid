@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Panel } from "@/components/glass/GlassCard";
 import { WeatherListenButton } from "@/components/settings/WeatherListenButton";
+import { stopVoiceOutput } from "@/lib/ai/advisor-voice";
 import { getAllDistricts } from "@/lib/districts";
 import { sortByDistance } from "@/lib/geo/distance";
 import { getDictionary, useTranslation } from "@/lib/i18n";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { buildDistrictContent } from "@/lib/seo/district-content";
+import { extractReadableCardText } from "@/lib/voice/dom-narration";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import type { District } from "@/types/weather";
 
@@ -39,7 +41,10 @@ export function DistrictReference({
 }) {
   const { dict: clientDict, uiLanguage } = useTranslation();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const wasOpenRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [modalSpokenText, setModalSpokenText] = useState<string | null>(null);
   const activeLocale = locale ?? uiLanguage;
   const dict = locale ? getDictionary(locale) : clientDict;
   const content = buildDistrictContent(district, activeLocale);
@@ -47,6 +52,10 @@ export function DistrictReference({
   const title = dict.districtRef.aboutTitle.replace("{district}", district.name);
 
   const syncModalState = (open: boolean) => {
+    if (wasOpenRef.current && !open) {
+      stopVoiceOutput();
+    }
+    wasOpenRef.current = open;
     setIsOpen(open);
     if (typeof window === "undefined") return;
     document.documentElement.dataset.districtModalOpen = open ? "1" : "0";
@@ -59,6 +68,14 @@ export function DistrictReference({
     }
     syncModalState(false);
   };
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setModalSpokenText(null);
+      return;
+    }
+    setModalSpokenText(extractReadableCardText(bodyRef.current, title));
+  }, [activeLocale, district.slug, isOpen, title]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -124,6 +141,8 @@ export function DistrictReference({
                 <WeatherListenButton
                   compact
                   tileIdOverride="about-district"
+                  spokenTextOverride={isOpen ? modalSpokenText : null}
+                  getLiveSpokenText={() => extractReadableCardText(bodyRef.current, title)}
                   autoNarrateOnSheetChange={isOpen}
                   testId="about-district-listen"
                 />
@@ -140,7 +159,7 @@ export function DistrictReference({
               </div>
             </div>
 
-            <div className="space-y-5 overflow-y-auto px-5 pt-2 pb-5">
+            <div ref={bodyRef} className="space-y-5 overflow-y-auto px-5 pt-2 pb-5">
               <p className="text-[14px] leading-relaxed text-white/80">{content.intro}</p>
 
               <div>
@@ -182,7 +201,7 @@ export function DistrictReference({
                 </dl>
               </div>
 
-              <div>
+              <div data-no-narrate>
                 <h3 className="text-[15px] font-semibold text-white">
                   {dict.districtRef.nearbyDistrictsTitle}
                 </h3>

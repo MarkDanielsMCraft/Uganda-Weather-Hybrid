@@ -1,6 +1,72 @@
+import { compactWavBufferTo12kHz } from "@/lib/voice/gemini-tts";
 import { normalizeLugandaForSpeech } from "@/lib/voice/luganda-speech";
 
 const DEFAULT_VOICE_API_BASE = "https://api.sunbird.ai";
+const SAFE_AUDIO_CONTENT_TYPE =
+  /^audio\/[a-z0-9.+-]+(?:;[ \t]*[a-z0-9.+-]+=[a-z0-9.+-]+)*$/i;
+
+function getMaxAudioBytes(): number {
+  const parsed = Number(process.env.VOICE_MAX_AUDIO_BYTES);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 16_777_216
+    ? parsed
+    : 4_194_304;
+}
+
+export function normalizeSafeAudioContentType(
+  raw: string | null | undefined,
+  fallback: string,
+): string {
+  const candidate = (raw ?? "").trim();
+  if (
+    candidate.length > 0 &&
+    candidate.length <= 128 &&
+    SAFE_AUDIO_CONTENT_TYPE.test(candidate)
+  ) {
+    return candidate;
+  }
+  return fallback;
+}
+
+async function readBoundedAudioBuffer(response: Response): Promise<ArrayBuffer> {
+  const maxBytes = getMaxAudioBytes();
+  const declaredLen = Number(response.headers?.get?.("content-length"));
+  if (Number.isFinite(declaredLen) && declaredLen > maxBytes) {
+    throw new Error("VOICE_TTS_AUDIO_TOO_LARGE");
+  }
+  if (!response.body || typeof response.body.getReader !== "function") {
+    const buf = await response.arrayBuffer();
+    if (buf.byteLength > maxBytes) {
+      throw new Error("VOICE_TTS_AUDIO_TOO_LARGE");
+    }
+    return buf;
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value && value.byteLength > 0) {
+        total += value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel().catch(() => {});
+          throw new Error("VOICE_TTS_AUDIO_TOO_LARGE");
+        }
+        chunks.push(value);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged.buffer;
+}
 
 function normalizeBaseUrl(raw: string | undefined, fallback: string): string {
   const candidate = raw?.trim() || fallback;
@@ -177,6 +243,7 @@ export async function synthesizeSunbirdSpeech(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(requestBody),
+    redirect: "error",
     signal,
   });
 
@@ -186,13 +253,20 @@ export async function synthesizeSunbirdSpeech(
 
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.startsWith("audio/") || contentType.startsWith("application/octet-stream")) {
-    const audio = await response.arrayBuffer();
-    if (audio.byteLength === 0) {
+    const rawAudio = await readBoundedAudioBuffer(response);
+    if (rawAudio.byteLength === 0) {
       throw new Error("VOICE_TTS_EMPTY_AUDIO");
     }
+    const normalizedType = normalizeSafeAudioContentType(
+      contentType.startsWith("audio/") ? contentType : "audio/wav",
+      "audio/wav",
+    );
+    const audio = normalizedType.toLowerCase().includes("wav")
+      ? compactWavBufferTo12kHz(rawAudio)
+      : rawAudio;
     return {
       audio,
-      contentType: contentType.startsWith("audio/") ? contentType : "audio/wav",
+      contentType: normalizedType,
     };
   }
 
@@ -206,14 +280,24 @@ export async function synthesizeSunbirdSpeech(
     throw new Error("VOICE_TTS_INVALID_AUDIO_URL");
   }
 
-  const audioResponse = await fetch(audioUrl, { signal });
+  const audioResponse = await fetch(audioUrl, { signal, redirect: "error" });
   if (!audioResponse.ok) {
     throw new Error(`VOICE_AUDIO_FETCH_HTTP_${audioResponse.status}`);
   }
 
+  const fetchedType = normalizeSafeAudioContentType(
+    audioResponse.headers.get("content-type"),
+    "audio/mpeg",
+  );
+  const fetchedBytes = await readBoundedAudioBuffer(audioResponse);
+  if (fetchedBytes.byteLength === 0) {
+    throw new Error("VOICE_TTS_EMPTY_AUDIO");
+  }
   return {
-    audio: await audioResponse.arrayBuffer(),
-    contentType: audioResponse.headers.get("content-type") || "audio/mpeg",
+    audio: fetchedType.toLowerCase().includes("wav")
+      ? compactWavBufferTo12kHz(fetchedBytes)
+      : fetchedBytes,
+    contentType: fetchedType,
   };
 }
 

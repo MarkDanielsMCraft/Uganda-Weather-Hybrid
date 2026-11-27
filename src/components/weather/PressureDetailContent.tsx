@@ -63,20 +63,22 @@ export function PressureDetailContent({ weather }: { weather: WeatherBundle }) {
 
       {nowHour && (
         <p className="text-[13px] text-white/45">
-          {formatClockLabelForLanguage(nowHour.label, uiLanguage, "medium")}
+          {isLuganda && nowHour.label.trim().toLowerCase() !== "now"
+            ? `Ssaawa ${formatClockLabelForLanguage(nowHour.label, uiLanguage, "medium")}`
+            : formatClockLabelForLanguage(nowHour.label, uiLanguage, "medium")}
         </p>
       )}
       <div className="flex items-baseline gap-3">
         <p className="text-[36px] font-medium leading-tight text-white">
           {isLuganda ? (
             <>
-              <span className="mr-1 text-[18px] font-normal text-white/75">hPa</span>
+              <span className="text-[18px] font-normal text-white/75">hPa</span>{" "}
               {displayPressure}
             </>
           ) : (
             <>
-              {displayPressure}
-              <span className="ml-1 text-[18px] font-normal text-white/75">hPa</span>
+              {displayPressure}{" "}
+              <span className="text-[18px] font-normal text-white/75">hPa</span>
             </>
           )}
         </p>
