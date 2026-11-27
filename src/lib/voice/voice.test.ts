@@ -244,6 +244,13 @@ describe("voice providers and API routes", () => {
     ).toBe(
       "Ekibuga Mbarara. Ebbugumu ddiguli abiri mu nnya, enkuba ebitundu kyenda mu mukaaga ku kikumi, empewo kilomiita mukaaga buli ssaawa.",
     );
+
+    const start = performance.now();
+    const adversarialSpaces = `${" ".repeat(50_000)}Mbarara (Equator) · 24°C`;
+    expect(normalizeLugandaForSpeech(adversarialSpaces)).toBe(
+      "Mbarara, ddiguli abiri mu nnya",
+    );
+    expect(performance.now() - start).toBeLessThan(100);
   });
 
   it("reads Luganda TTS model, voice, language code, and sample rate dynamically from environment variables", async () => {

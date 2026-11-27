@@ -210,10 +210,11 @@ function decimalToLugandaWords(intStr: string, decStr: string): string {
 export function normalizeLugandaForSpeech(text: string): string {
   return (
     text
+      .replace(/\s+/g, " ")
       // Strip redundant English parenthetical glosses used in UI explanations
-      .replace(/\s*\((?:Equator|dew point|O3|NO2|CO)\)/gi, "")
+      .replace(/ ?\((?:Equator|dew point|O3|NO2|CO)\)/gi, "")
       // Turn visual middle dots and long dashes into spoken comma pauses
-      .replace(/\s*[·•—–]\s*/g, ", ")
+      .replace(/ ?[·•—–] ?/g, ", ")
       // Strip thousands commas inside multi-digit numbers (e.g. "2,607", "356,500")
       .replace(/\b(\d{1,3})(?:,(\d{3}))+\b/g, (match) => match.replace(/,/g, ""))
       // Place titles (bounded non-overlapping word groups to prevent ReDoS)

@@ -605,7 +605,10 @@ describe("weak Ugandan mobile network voice start-speed safeguards", () => {
           });
         }
         return Promise.resolve(
-          new Response(new Blob(["chunk-2"], { type: "audio/mpeg" }), { status: 200 }),
+          new Response(new TextEncoder().encode("chunk-2"), {
+            status: 200,
+            headers: { "Content-Type": "audio/mpeg" },
+          }),
         );
       }),
     );
@@ -626,7 +629,10 @@ describe("weak Ugandan mobile network voice start-speed safeguards", () => {
     expect(requestedTexts[0]).toBe(longLuganda);
 
     resolveFirstFetch?.(
-      new Response(new Blob(["chunk-1"], { type: "audio/mpeg" }), { status: 200 }),
+      new Response(new TextEncoder().encode("chunk-1"), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      }),
     );
     await vi.waitFor(() => {
       expect(playFirstAudio).toBeDefined();
@@ -764,7 +770,11 @@ describe("weak Ugandan mobile network voice start-speed safeguards", () => {
       },
     );
     const fetchSpy = vi.fn(
-      async () => new Response(new Blob(["lg-bytes"], { type: "audio/mpeg" }), { status: 200 }),
+      async () =>
+        new Response(new TextEncoder().encode("lg-bytes"), {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        }),
     );
     vi.stubGlobal("fetch", fetchSpy);
 
