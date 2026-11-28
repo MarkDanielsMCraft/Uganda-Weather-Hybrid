@@ -34,9 +34,9 @@ import {
 import { isMultiLocationQuery } from "@/lib/ai/advisor-tools";
 import {
   buildSpokenAdvisorTurnText,
+  extractHumanBargeInFromTranscript,
   fetchVoiceCapabilities,
   isHandsFreeCutInCommand,
-  isHumanBargeInUtterance,
   isPauseOnlyVoiceCommand,
   isVoiceInputSupported,
   isVoiceOutputSupported,
@@ -66,7 +66,7 @@ const BRAND_GLASS_GREEN =
 const LISTENER_RESTART_DELAY_MS = 300;
 const MAX_LISTENER_RESTARTS_PER_REPLY = 10;
 const QUICK_LISTENER_END_MS = 1000;
-const REPLY_ECHO_TAIL_MS = 600;
+const REPLY_ECHO_TAIL_MS = 2400;
 
 export function HybridWeatherAdvisor({
   weather,
@@ -123,6 +123,9 @@ export function HybridWeatherAdvisor({
   /** Time when the spoken reply ended, so normal silence right after speech
       does not count as a failed listen. */
   const replyEndedAtRef = useRef(0);
+  /** Text of the most recent spoken reply so late room reverb or cloud STT
+      results arriving right after playback ends are still filtered as echo. */
+  const lastSpokenReplyRef = useRef("");
   /** Number of the newest spoken reply, so stopping an older reply never runs
       its end callback. */
   const spokenReplySeqRef = useRef(0);
@@ -203,6 +206,7 @@ export function HybridWeatherAdvisor({
       handsFreeSessionRef.current = false;
       autoSpeakNextRef.current = false;
       emptyListenRetriesRef.current = 0;
+      lastSpokenReplyRef.current = "";
       silenceActiveVoiceIO();
       if (disableVoiceMode) {
         setVoiceMode(false);
@@ -821,6 +825,7 @@ export function HybridWeatherAdvisor({
             setSpeakingMessageId(assistantId);
             replyPlayingRef.current = shouldContinueHandsFree;
             replyEndedAtRef.current = 0;
+            lastSpokenReplyRef.current = spokenTurnText;
             listenerRestartsRef.current = 0;
             pendingQuestionRef.current = null;
             const replySeq = ++spokenReplySeqRef.current;
@@ -961,10 +966,11 @@ export function HybridWeatherAdvisor({
     (options?: { duringReply?: string; autoHandsFree?: boolean }) => {
       if (!canAskAdvisor || isBusyRef.current) return;
       const duringReply = options?.duringReply;
-      // Set once the person really answers. Until then, while the reply plays,
-      // only a choice ("one", "two", "2") or "stop" may cut in, so the app's own
-      // voice coming back through the microphone can never start a question.
-      let personSpoke = !duringReply;
+      // `turnCommitted` flips only in `onFinal` after final echo filtering passes,
+      // so an interim partial match can never trick `onFinal` into submitting the
+      // Advisor's own spoken reply as a user question.
+      let turnCommitted = false;
+      let silencedReplyEarly = false;
       let heardAnything = false;
       let sawInterim = false;
       let utteranceStartedNearReply = false;
@@ -991,40 +997,72 @@ export function HybridWeatherAdvisor({
       const inReplySilenceGrace = () =>
         replyPlayingRef.current ||
         (replyEndedAtRef.current > 0 && Date.now() - replyEndedAtRef.current < REPLY_ECHO_TAIL_MS);
-      /** True when heard text should be ignored as the app's own voice. */
-      const ignoreWhileReplying = (text: string) => {
-        if (!duringReply || personSpoke) return false;
+      const silencePlaybackForBargeIn = () => {
+        silencedReplyEarly = true;
         if (replyPlayingRef.current) {
-          const isRealPlaceCutIn =
-            text.trim().split(/\s+/).length <= 3 &&
-            !isEchoOfSpokenReply(text, duringReply) &&
-            resolveReferencedUgandaLocation(text) !== null;
-          if (isRealPlaceCutIn) return false;
-          return !isHumanBargeInUtterance({
-            transcript: text,
+          spokenReplySeqRef.current += 1;
+          replyPlayingRef.current = false;
+          replyEndedAtRef.current = Date.now();
+          stopVoiceOutput();
+          setSpeakingMessageId(null);
+        }
+      };
+      const commitTurn = () => {
+        if (turnCommitted) return;
+        turnCommitted = true;
+        pendingQuestionRef.current = null;
+        silencePlaybackForBargeIn();
+      };
+      /** Resolves the clean human utterance from a final transcript, or returns
+          `null` when the heard text is echo from the Advisor's own voice. */
+      const resolveFinalHumanUtterance = (text: string): string | null => {
+        const trimmed = text.trim();
+        if (!trimmed) return "";
+        if (duringReply) {
+          if (replyPlayingRef.current || silencedReplyEarly) {
+            const isRealPlaceCutIn =
+              trimmed.split(/\s+/).length <= 3 &&
+              !isEchoOfSpokenReply(trimmed, duringReply) &&
+              resolveReferencedUgandaLocation(trimmed) !== null;
+            if (isRealPlaceCutIn) return trimmed;
+            return extractHumanBargeInFromTranscript({
+              transcript: trimmed,
+              spokenReply: duringReply,
+              followUps: activeChoices(),
+              isFinal: true,
+            });
+          }
+          if (isCutIn(trimmed) || matchesExactChoiceText(trimmed)) return trimmed;
+          const couldBeReplyEcho = sawInterim
+            ? utteranceStartedNearReply
+            : replyEndedAtRef.current > 0 && Date.now() - replyEndedAtRef.current < REPLY_ECHO_TAIL_MS;
+          if (!couldBeReplyEcho) return trimmed;
+          return extractHumanBargeInFromTranscript({
+            transcript: trimmed,
             spokenReply: duringReply,
             followUps: activeChoices(),
             isFinal: true,
           });
         }
-        if (isCutIn(text) || matchesExactChoiceText(text)) return false;
-        const couldBeReplyEcho = sawInterim
-          ? utteranceStartedNearReply
-          : replyEndedAtRef.current > 0 && Date.now() - replyEndedAtRef.current < 1800;
-        if (!couldBeReplyEcho) return false;
-        return !text.trim() || isEchoOfSpokenReply(text, duringReply);
-      };
-      const takeTurn = () => {
-        if (personSpoke) return;
-        personSpoke = true;
-        // The person has answered now, so an earlier held question is dropped.
-        pendingQuestionRef.current = null;
-        if (replyPlayingRef.current) {
-          spokenReplySeqRef.current += 1;
-          replyPlayingRef.current = false;
-          stopVoiceOutput();
-          setSpeakingMessageId(null);
+        // Also guard `autoHandsFree` listeners started right after playback ends
+        // against late speaker reverb or delayed Web Speech API recognition results.
+        if (
+          options?.autoHandsFree &&
+          lastSpokenReplyRef.current &&
+          replyEndedAtRef.current > 0 &&
+          Date.now() - replyEndedAtRef.current < REPLY_ECHO_TAIL_MS
+        ) {
+          if (isCutIn(trimmed) || matchesExactChoiceText(trimmed)) return trimmed;
+          if (isEchoOfSpokenReply(trimmed, lastSpokenReplyRef.current)) {
+            return extractHumanBargeInFromTranscript({
+              transcript: trimmed,
+              spokenReply: lastSpokenReplyRef.current,
+              followUps: activeChoices(),
+              isFinal: true,
+            });
+          }
         }
+        return trimmed;
       };
       setVoiceMode(true);
       if (!duringReply) {
@@ -1061,33 +1099,54 @@ export function HybridWeatherAdvisor({
               utteranceStartedNearReply = inReplySilenceGrace();
             }
           }
-          // Cut in right away when the user begins speaking a real question,
-          // choice, or stop/wait command, while ignoring interim single-word
-          // "To ..." or speaker echo.
-          if (duringReply && !personSpoke) {
-            if (
-              !isHumanBargeInUtterance({
-                transcript: text,
-                spokenReply: duringReply,
-                followUps: activeChoices(),
-                isFinal: false,
-              })
-            ) {
+          if (duringReply && !turnCommitted) {
+            const interimBargeIn = extractHumanBargeInFromTranscript({
+              transcript: text,
+              spokenReply: duringReply,
+              followUps: activeChoices(),
+              isFinal: false,
+            });
+            if (!interimBargeIn) {
               return;
             }
+            silencePlaybackForBargeIn();
+            setQuestion(interimBargeIn.slice(0, 240));
+            return;
           }
-          takeTurn();
+          if (
+            options?.autoHandsFree &&
+            lastSpokenReplyRef.current &&
+            inReplySilenceGrace() &&
+            isEchoOfSpokenReply(text, lastSpokenReplyRef.current)
+          ) {
+            return;
+          }
           setQuestion(text.slice(0, 240));
         },
         onFinal: (text) => {
           if (!isCurrent()) return;
-          const cleaned = text.trim().slice(0, 240);
+          const rawCleaned = text.trim().slice(0, 240);
           setQuestion("");
-          if (cleaned) heardAnything = true;
-          if (ignoreWhileReplying(cleaned)) {
+          if (rawCleaned) heardAnything = true;
+          const resolvedHumanText = resolveFinalHumanUtterance(rawCleaned);
+          if (resolvedHumanText === null) {
+            // Ignored speaker echo; if this was an autoHandsFree post-reply listener,
+            // reopen cleanly once `onEnd` settles so the user can speak next.
+            if (!duringReply && options?.autoHandsFree && handsFreeSessionRef.current) {
+              if (handsFreeTimerRef.current !== null) {
+                window.clearTimeout(handsFreeTimerRef.current);
+              }
+              handsFreeTimerRef.current = window.setTimeout(() => {
+                handsFreeTimerRef.current = null;
+                if (handsFreeSessionRef.current && !isBusyRef.current) {
+                  startVoiceSessionRef.current?.({ autoHandsFree: true });
+                }
+              }, LISTENER_RESTART_DELAY_MS);
+            }
             return;
           }
-          takeTurn();
+          const cleaned = resolvedHumanText.trim().slice(0, 240);
+          commitTurn();
           if (cleaned) emptyListenRetriesRef.current = 0;
           if (!cleaned) {
             handsFreeSessionRef.current = false;
@@ -1111,6 +1170,7 @@ export function HybridWeatherAdvisor({
           if (command.kind === "stop") {
             handsFreeSessionRef.current = false;
             autoSpeakNextRef.current = false;
+            lastSpokenReplyRef.current = "";
             setVoiceMode(false);
             if (voiceOutputReady) {
               const promptSeq = ++spokenReplySeqRef.current;
@@ -1139,7 +1199,7 @@ export function HybridWeatherAdvisor({
         onError: (code) => {
           if (!isCurrent()) return;
           setVoiceInputState("idle");
-          if (duringReply && !personSpoke && code === "network" && replyPlayingRef.current) {
+          if (duringReply && !turnCommitted && code === "network" && replyPlayingRef.current) {
             pausedUntilReplyEnds = true;
             return;
           }
@@ -1155,7 +1215,7 @@ export function HybridWeatherAdvisor({
             code === "mic_denied" || code === "audio-capture" || code === "start_failed" || code === "not-allowed";
           // Silence or a timeout while the reply plays is normal. The listener
           // restarts in onEnd. A blocked or missing microphone is never hidden.
-          if (duringReply && !personSpoke && inReplySilenceGrace() && !micUnusable) return;
+          if (duringReply && !turnCommitted && inReplySilenceGrace() && !micUnusable) return;
           handledError = true;
           if (
             code === "empty_transcript" &&
@@ -1201,7 +1261,7 @@ export function HybridWeatherAdvisor({
           if (!isCurrent()) return;
           voiceHandleRef.current = null;
           setVoiceInputState("idle");
-          if (handledError || !duringReply || personSpoke || !handsFreeSessionRef.current) return;
+          if (handledError || !duringReply || turnCommitted || !handsFreeSessionRef.current) return;
           // The reply's own end starts normal listening once it finishes.
           if (pausedUntilReplyEnds && replyPlayingRef.current) return;
           // Only a listener that ends at once with nothing heard points to a

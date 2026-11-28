@@ -1565,10 +1565,108 @@ const PAUSE_OR_WAIT_CUT_IN_RE =
   /^(wait|hold\s+on|hang\s+on|pause|quiet|silence|enough|excuse\s+me|lindako|siriikirira)$/i;
 
 const INTERIM_QUESTION_OPENER_RE =
-  /^(what|what's|how|how's|when|where|will|can|could|should|is\s+it|are\s+there|tell\s+me|check|that\s+of|that\s+in|that\s+for|and\s+what|and\s+in|weather\s+in|weather\s+for|forecast\s+for|wait\b|hold\s+on|actually\b)/i;
+  /^(what|what's|how|how's|when|where|will|can|could|should|is\s+it|are\s+there|tell\s+me|check|that\s+of|that\s+in|that\s+for|what\s+of|what\s+about|how\s+about|and\s+what|and\s+in|weather\s+in|weather\s+for|forecast\s+for|wait\b|hold\s+on|actually\b)/i;
 
 const TELEMETRY_READOUT_ECHO_RE =
   /\b(degrees\s+celsius|degrees\s+fahrenheit|kilometers\s+per\s+hour|millimeters|millibars|saved\s+forecast|made\s+from\s+the\s+saved\s+numbers|without\s+ai|next,?\s+you\s+can\s+say\s+one)\b/i;
+
+const AMBIGUOUS_SINGLE_WORD_INTERIM_CHOICE_RE = /^(to|too)$/i;
+
+const SPOKEN_NUMBER_ECHO_WORDS: readonly string[] = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+  "twenty",
+  "thirty",
+  "forty",
+  "fifty",
+  "sixty",
+  "seventy",
+  "eighty",
+  "ninety",
+  "hundred",
+  "percent",
+];
+
+function normalizeAlnumPhrase(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isVerbatimOrPartialSubstringOfReply(heard: string, spokenReply: string): boolean {
+  const normHeard = normalizeAlnumPhrase(heard);
+  if (!normHeard) return true;
+  const normRaw = normalizeAlnumPhrase(spokenReply);
+  if (normRaw && normRaw.includes(normHeard)) return true;
+  const normFormatted = normalizeAlnumPhrase(formatTextForSpeech(spokenReply));
+  return Boolean(normFormatted && normFormatted.includes(normHeard));
+}
+
+function isWithinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  const lenA = a.length;
+  const lenB = b.length;
+  if (Math.abs(lenA - lenB) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < lenA && j < lenB) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+    } else {
+      edits += 1;
+      if (edits > 1) return false;
+      if (lenA > lenB) i += 1;
+      else if (lenB > lenA) j += 1;
+      else {
+        i += 1;
+        j += 1;
+      }
+    }
+  }
+  if (i < lenA || j < lenB) edits += 1;
+  return edits <= 1;
+}
+
+function matchesReplyToken(
+  word: string,
+  replyWords: ReadonlySet<string>,
+  replyWordList: readonly string[],
+): boolean {
+  if (replyWords.has(word)) return true;
+  if (word.length < 4) return false;
+  for (let i = 0; i < replyWordList.length; i += 1) {
+    const rw = replyWordList[i]!;
+    if (rw.length >= 4 && (rw.startsWith(word) || word.startsWith(rw))) {
+      return true;
+    }
+    if (word.length >= 5 && rw.length >= 5 && isWithinOneEdit(word, rw)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function isPauseOnlyVoiceCommand(transcript: string): boolean {
   const cleaned = transcript
@@ -1581,10 +1679,10 @@ export function isPauseOnlyVoiceCommand(transcript: string): boolean {
 /**
  * Determines whether speech heard while a reply is playing is a real human
  * interruption (barge-in) rather than speaker echo of the Advisor's own voice.
- * - `isFinal === false` (interim): triggers early barge-in as soon as the user
- *   says a clear stop/choice/pause command (excluding ambiguous single-word "to")
- *   or starts a non-echo question ("What about...", "That of..."), silencing
- *   playback immediately while the user finishes speaking.
+ * - `isFinal === false` (interim): triggers early barge-in only on clear
+ *   stop/pause/multi-word choice commands or an explicit non-echo question
+ *   opener ("What about...", "That of..."), never on arbitrary 4-word
+ *   declarative fragments that could be mid-syllable speaker echo.
  * - `isFinal === true`: accepts choices, stop/pause commands, and any non-echo,
  *   non-telemetry user question or place query.
  */
@@ -1611,9 +1709,9 @@ export function isHumanBargeInUtterance({
   }
 
   if (isHandsFreeCutInCommand(cleaned, followUps)) {
-    // A reply sentence starting with "To ..." emits interim "To" first; wait
-    // for finalization on bare "to"/"too" so the speaker never cuts itself off.
-    if (!isFinal && /^(to|too)$/i.test(lower)) {
+    // Wait for finalization on bare single-word numbers/homophones ("to", "one",
+    // "two", "2") so mid-sentence forecast numbers or "To ..." never cut off playback.
+    if (!isFinal && AMBIGUOUS_SINGLE_WORD_INTERIM_CHOICE_RE.test(lower)) {
       return false;
     }
     return true;
@@ -1631,11 +1729,122 @@ export function isHumanBargeInUtterance({
   }
 
   if (!isFinal) {
-    return (hasQuestionOpener && words.length >= 2) || words.length >= 4;
+    return hasQuestionOpener && words.length >= 2;
   }
 
   return words.length >= 2 || hasQuestionOpener;
 }
+
+/**
+ * Extracts a genuine human barge-in command or question even when browser
+ * `SpeechRecognition` concatenated leading speaker echo onto the front of the
+ * user's voice (e.g. `"For this evening in Kampala City stop"` -> `"stop"`, or
+ * `"For this evening in Kampala City what about Wakiso"` -> `"what about Wakiso"`).
+ * Returns `null` when the transcript is speaker echo or not yet ready to cut in.
+ */
+export function extractHumanBargeInFromTranscript({
+  transcript,
+  spokenReply,
+  followUps = [],
+  isFinal,
+}: {
+  transcript: string;
+  spokenReply: string;
+  followUps?: readonly string[];
+  isFinal: boolean;
+}): string | null {
+  const cleaned = transcript
+    .replace(/[!?.:,;]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+
+  // Standalone short choice/stop/pause commands never carry leading echo.
+  if (
+    isPauseOnlyVoiceCommand(cleaned) ||
+    isHandsFreeCutInCommand(cleaned, followUps)
+  ) {
+    return isHumanBargeInUtterance({
+      transcript: cleaned,
+      spokenReply,
+      followUps,
+      isFinal,
+    })
+      ? cleaned
+      : null;
+  }
+
+  // If the entire heard string appears verbatim (or as a partial word stem)
+  // inside the spoken reply, 100% of it came from the speaker.
+  if (isVerbatimOrPartialSubstringOfReply(cleaned, spokenReply)) {
+    return null;
+  }
+
+  const rawWords = cleaned.split(/\s+/).filter(Boolean);
+  if (rawWords.length >= 3 && spokenReply.trim()) {
+    const normRawReply = normalizeAlnumPhrase(spokenReply);
+    const normFormattedReply = normalizeAlnumPhrase(formatTextForSpeech(spokenReply));
+    const maxTail = Math.min(10, rawWords.length - 2);
+
+    // Strip leading speaker echo when followed by a fresh human question opener
+    // (e.g. "For this evening in Kampala City what about Wakiso tonight" ->
+    // "what about Wakiso tonight").
+    for (let tailLen = maxTail; tailLen >= 2; tailLen -= 1) {
+      const splitIdx = rawWords.length - tailLen;
+      const prefix = rawWords.slice(0, splitIdx).join(" ");
+      const tail = rawWords.slice(splitIdx).join(" ");
+      const tailLower = tail.toLowerCase();
+      if (!INTERIM_QUESTION_OPENER_RE.test(tailLower)) continue;
+      if (!isFinal && tailLen < 3) continue;
+      if (!isEchoOfSpokenReply(prefix, spokenReply)) continue;
+      const boundaryPair = normalizeAlnumPhrase(`${rawWords[splitIdx - 1]} ${rawWords[splitIdx]}`);
+      if (
+        boundaryPair &&
+        (normRawReply.includes(boundaryPair) || normFormattedReply.includes(boundaryPair))
+      ) {
+        continue;
+      }
+      if (isEchoOfSpokenReply(tail, spokenReply)) continue;
+      if (TELEMETRY_READOUT_ECHO_RE.test(tailLower)) continue;
+      return tail;
+    }
+
+    // Strip leading speaker echo before a trailing stop, pause, or explicit choice
+    // ("... stop", "... wait", "... hold on", "... option two").
+    for (let tailLen = Math.min(3, maxTail); tailLen >= 1; tailLen -= 1) {
+      const splitIdx = rawWords.length - tailLen;
+      const prefix = rawWords.slice(0, splitIdx).join(" ");
+      const tail = rawWords.slice(splitIdx).join(" ");
+      const tailLower = tail.toLowerCase();
+      const isStopOrPause =
+        STOP_VOICE_SESSION_RE.test(tailLower) || PAUSE_OR_WAIT_CUT_IN_RE.test(tailLower);
+      const isExplicitMultiWordChoice =
+        tailLen >= 2 &&
+        /^(option|number|choice)\s+(one|two|three|1|2|3)$/i.test(tailLower) &&
+        isHandsFreeCutInCommand(tail, followUps);
+      if (!isStopOrPause && !isExplicitMultiWordChoice) continue;
+      if (!isEchoOfSpokenReply(prefix, spokenReply)) continue;
+      const boundaryPhrase = normalizeAlnumPhrase(`${rawWords[splitIdx - 1]} ${tail}`);
+      if (
+        boundaryPhrase &&
+        (normRawReply.includes(boundaryPhrase) || normFormattedReply.includes(boundaryPhrase))
+      ) {
+        continue;
+      }
+      return tail;
+    }
+  }
+
+  return isHumanBargeInUtterance({
+    transcript: cleaned,
+    spokenReply,
+    followUps,
+    isFinal,
+  })
+    ? cleaned
+    : null;
+}
+
 /** Hands free voice (listening during the reply and opening the mic again
     after it) needs live speech to text, which browsers only offer for
     English. Luganda is recorded and sent to a paid service, so Luganda voice
@@ -1663,24 +1872,39 @@ const ECHO_FILLER_WORDS = new Set([
 ]);
 
 /** While the reply plays, the microphone can pick up the app's own voice.
-    Heard words that mostly repeat the reply are treated as that echo, so the
-    app never interrupts itself. A spoken choice or "stop" is never echo. */
+    Heard words that mostly repeat the reply (including mid-syllable interim
+    word stems like "Kampal" for "Kampala") are treated as that echo, so the
+    app never interrupts itself or submits its own sentence. A standalone
+    spoken choice, pause, or "stop" command is never echo. */
 export function isEchoOfSpokenReply(heard: string, spokenReply: string): boolean {
-  // Choices and "stop" first: "2" or "to" are too short for the word check.
-  if (isHandsFreeCutInCommand(heard, ["_", "_", "_"])) return false;
+  // Choices, pause words, and "stop" first: "2" or "to" are too short for the word check.
+  if (isHandsFreeCutInCommand(heard, ["_", "_", "_"]) || isPauseOnlyVoiceCommand(heard)) {
+    return false;
+  }
+  if (!spokenReply.trim()) return false;
+  if (isVerbatimOrPartialSubstringOfReply(heard, spokenReply)) {
+    return true;
+  }
   const allHeardWords = tokenizeWords(heard.toLowerCase());
   if (allHeardWords.length === 0) return true;
   const contentWords = allHeardWords.filter((word) => !ECHO_FILLER_WORDS.has(word));
-  const heardWords = contentWords.length >= 2 ? contentWords : allHeardWords;
-  // The speaker says "24 degrees Celsius" where the text has "24°C", so both
-  // forms count as the reply's own words.
+  // The speaker says "24 degrees Celsius" or "twenty four" where the text has
+  // "24°C", so spoken expansions and number words count as the reply's own words.
+  const hasDigits = /\d/.test(spokenReply);
   const replyWords = new Set([
     ...tokenizeWords(spokenReply.toLowerCase()),
     ...tokenizeWords(formatTextForSpeech(spokenReply).toLowerCase()),
+    ...(hasDigits ? SPOKEN_NUMBER_ECHO_WORDS : []),
   ]);
   if (replyWords.size === 0) return false;
-  const repeated = heardWords.filter((word) => replyWords.has(word)).length;
-  return repeated / heardWords.length >= 0.6;
+  const replyWordList = Array.from(replyWords);
+  const ratio =
+    contentWords.length >= 2
+      ? contentWords.filter((word) => matchesReplyToken(word, replyWords, replyWordList)).length /
+        contentWords.length
+      : allHeardWords.filter((word) => matchesReplyToken(word, replyWords, replyWordList)).length /
+        allHeardWords.length;
+  return ratio >= 0.6;
 }
 
 export function buildSpokenAdvisorTurnText(

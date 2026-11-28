@@ -49,6 +49,9 @@ describe("GoogleAnalyticsLoader", () => {
     expect(script).not.toBeNull();
     expect(script?.src).toContain(`https://www.googletagmanager.com/gtag/js?id=${TEST_MEASUREMENT_ID}`);
     expect(Array.isArray(window.dataLayer)).toBe(true);
+    expect(window.dataLayer?.length).toBeGreaterThanOrEqual(2);
+    expect(Object.prototype.toString.call(window.dataLayer?.[0])).toBe("[object Arguments]");
+    expect(Object.prototype.toString.call(window.dataLayer?.[1])).toBe("[object Arguments]");
   });
 
   it("stays off when no measurement ID is configured, even with consent", async () => {
