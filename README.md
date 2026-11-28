@@ -165,7 +165,7 @@ Between November 11 and 30, 2026, I built
 - the photo checks and the live camera,
 - the low data page, SMS and WhatsApp sharing, the large text and high contrast switches, and community safety warnings (sun protection for people with albinism, livestock heat and water in Karamoja, and landslide watch on mountain slopes),
 - layouts checked from tiny feature phone screens to desktop,
-- and 772 automated unit tests plus 40 browser tests.
+- and 773 automated unit tests plus 41 browser tests.
 
 ## Try it offline
 
@@ -173,8 +173,8 @@ Without Gemini Nano (on any phone, or in Chrome without the setting below), open
 
 To see Gemini Nano answer on your own computer, use desktop Chrome with at least 22 GB of free disk space.
 
-1. Open `chrome://flags/#prompt-api-for-gemini-nano` and `chrome://flags/#optimization-guide-on-device-model`, set both to Enabled, and restart Chrome.
-2. Open `chrome://on-device-internals` and wait until the model is ready.
+1. Open `chrome://flags/#prompt-api` (or `chrome://flags/#prompt-api-for-gemini-nano` on older Chrome versions, where `chrome://flags/#optimization-guide-on-device-model` was also separate), set Prompt API to Enabled, and restart Chrome.
+2. Open `chrome://components` and check Optimization Guide On Device Model, or enable internal debug pages at `chrome://chrome-urls` and open `chrome://on-device-internals` until the model is ready.
 3. Open [hybrid.uganda-weather.com](https://hybrid.uganda-weather.com), open the green advisor button, switch to Offline, and ask a question. The answer is marked On device.
 
 ## Run it on your computer

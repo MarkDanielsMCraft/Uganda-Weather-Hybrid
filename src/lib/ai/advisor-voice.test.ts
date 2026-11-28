@@ -936,4 +936,89 @@ describe("weak Ugandan mobile network voice start-speed safeguards", () => {
     expect(isPauseOnlyVoiceCommand("Wait")).toBe(true);
     expect(isPauseOnlyVoiceCommand("That of Waukesha")).toBe(false);
   });
+
+  it("blocks mid-syllable self-echo stems ('For this evening in Kampal') and extracts human barge-in from echo-glued transcripts", async () => {
+    const { extractHumanBargeInFromTranscript, isEchoOfSpokenReply, isHumanBargeInUtterance } =
+      await import("./advisor-voice");
+    const eveningReply =
+      "For this evening in Kampala City, the weather remains dry and calm. Temperatures will cool from 26°C at 6:00 pm to 23°C at 8:00 pm and 21°C by 10:00 pm. Next, you can say one for: Will it rain tomorrow in Kampala City, or say two for: What are the temperatures for tomorrow, or ask another question, or say stop to end.";
+    const followUps = [
+      "Will it rain tomorrow in Kampala City?",
+      "What are the temperatures for tomorrow?",
+    ];
+
+    // Exact bug caught in production: partial interim stem "For this evening in Kampal"
+    // followed by final "For this evening in Kampala City" must NEVER cut in or submit
+    expect(isEchoOfSpokenReply("For this evening in Kampal", eveningReply)).toBe(true);
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "For this evening in Kampal",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBe(false);
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "For this evening in Kampal",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBeNull();
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "For this evening in Kampala City",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBeNull();
+
+    // Advisor reading its own "...or say stop to end" footer must never extract "stop"
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript:
+          "Next, you can say one for: Will it rain tomorrow in Kampala City, or say stop to end",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBeNull();
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "or say stop",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBeNull();
+
+    // When SpeechRecognition glues speaker echo in front of a real human interruption,
+    // extract ONLY the human's trailing question or stop/pause command
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "For this evening in Kampala City the weather remains dry stop",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBe("stop");
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "For this evening in Kampala City wait",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBe("wait");
+    expect(
+      extractHumanBargeInFromTranscript({
+        transcript: "For this evening in Kampala City what about Wakiso tonight",
+        spokenReply: eveningReply,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBe("what about Wakiso tonight");
+  });
 });

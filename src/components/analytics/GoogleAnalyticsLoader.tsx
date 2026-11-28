@@ -10,6 +10,7 @@ const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || "";
 declare global {
   interface Window {
     dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -35,11 +36,14 @@ export function GoogleAnalyticsLoader() {
     document.head.appendChild(script);
 
     window.dataLayer = window.dataLayer || [];
-    function gtag(...args: unknown[]) {
-      window.dataLayer!.push(args);
+    function gtag() {
+      // gtag.js requires native `Arguments` entries in dataLayer rather than plain arrays.
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer!.push(arguments);
     }
-    gtag("js", new Date());
-    gtag("config", measurementId, { anonymize_ip: true });
+    window.gtag = gtag as (...args: unknown[]) => void;
+    window.gtag("js", new Date());
+    window.gtag("config", measurementId);
   }, [hasHydrated, analyticsConsent]);
 
   return null;

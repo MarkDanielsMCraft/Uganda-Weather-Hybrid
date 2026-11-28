@@ -23,6 +23,8 @@ info:
     name: MIT
 
 servers:
+  - url: https://hybrid.uganda-weather.com/api/v1
+    description: Hybrid AI Edition
   - url: https://uganda-weather.com/api/v1
     description: Production
   - url: http://localhost:3000/api/v1
