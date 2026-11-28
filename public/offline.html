@@ -162,7 +162,15 @@
       window.NativeSplash.hide();
     }
     function retryConnection() {
-      window.location.href = "https://www.uganda-weather.com";
+      var origin = window.location.origin || "";
+      if (
+        (origin.indexOf("http://") === 0 || origin.indexOf("https://") === 0) &&
+        (window.location.hostname !== "localhost" || Boolean(window.location.port))
+      ) {
+        window.location.href = origin + "/";
+        return;
+      }
+      window.location.href = "https://hybrid.uganda-weather.com/";
     }
     window.addEventListener("online", function () {
       retryConnection();
