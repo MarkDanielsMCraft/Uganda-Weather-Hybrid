@@ -350,3 +350,33 @@ test("echo of spoken follow up choices or interim 'To' never cuts in, and Stop l
   expect((await voiceLog(page)).cancelled).toBeGreaterThan(cancelsBefore);
 });
 
+test("mid-word speaker echo stems never self-submit, while echo-glued human barge-in interrupts cleanly", async ({ page }) => {
+  await startVoiceAnswer(page);
+  const bubbles = await page.getByTestId("advisor-user-message").count();
+  const cancelsBefore = (await voiceLog(page)).cancelled;
+  const firstSentence = (await voiceLog(page)).spoken[0]!;
+  // Simulate Chrome STT streaming a mid-word stem of the Advisor's own sentence
+  // (like "Kampal" before "Kampala") followed by the full sentence.
+  const truncatedEcho = firstSentence.slice(0, Math.max(12, firstSentence.length - 3));
+  await page.evaluate(
+    ({ interim, full }) => (window as never as VoiceWindow).__sayInterim(interim, full),
+    { interim: truncatedEcho, full: firstSentence },
+  );
+  await page.waitForTimeout(500);
+  expect((await voiceLog(page)).cancelled).toBe(cancelsBefore);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles);
+
+  // Now simulate SpeechRecognition gluing speaker echo in front of the user's interruption:
+  // only the user's trailing question ("what about Waukesha") should interrupt and submit.
+  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
+  await page.evaluate(
+    (echoPrefix) =>
+      (window as never as VoiceWindow).__say(`${echoPrefix} what about Waukesha`),
+    firstSentence,
+  );
+  await expect.poll(async () => (await voiceLog(page)).cancelled).toBeGreaterThan(cancelsBefore);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
+  await expect(page.getByTestId("advisor-user-message").last()).toHaveText("what about Waukesha");
+  await expect(page.getByText(/Did you mean Wakiso\?/i).last()).toBeVisible({ timeout: 15_000 });
+});
+

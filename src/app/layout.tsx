@@ -23,6 +23,7 @@ const CRITICAL_STYLES = {
 } as const;
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://uganda-weather.com";
+const isHybridSubdomain = /^https?:\/\/hybrid\./i.test(appUrl);
 const DEFAULT_DESCRIPTION =
   "Live, district level weather for all 152 districts of Uganda: hourly and 10 day forecasts, severe weather alerts, air quality, agriculture advisories, fishing safety for four lakes, national park and mountain weather, and airport conditions.";
 const defaultOgImage = ogImageUrl(appUrl.replace(/\/$/, ""));
@@ -53,15 +54,14 @@ export const metadata: Metadata = {
   creator: "MCraft",
   publisher: "MCraft",
   robots: {
-    index: true,
-    follow: true,
-    // Without these, web crawlers cap the snippet length and show only a
-    // thumbnail. A weather page lives or dies on the searcher seeing the
-    // place name, the conditions and a real image in the result itself,
-    // so opt into the full presentation everywhere.
+    index: !isHybridSubdomain,
+    follow: !isHybridSubdomain,
+    // Keep the standalone hybrid subdomain out of search indexes so it does not
+    // duplicate pages from the main uganda-weather.com site, while keeping full
+    // snippets enabled whenever built for the main domain.
     googleBot: {
-      index: true,
-      follow: true,
+      index: !isHybridSubdomain,
+      follow: !isHybridSubdomain,
       "max-snippet": -1,
       "max-image-preview": "large",
       "max-video-preview": -1,
