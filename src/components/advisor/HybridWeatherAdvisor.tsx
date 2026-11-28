@@ -20,6 +20,7 @@ import {
   resolveHybridReadiness,
   resolveReferencedUgandaLocation,
   syncAdvisorRemoteConfig,
+  warmFirebaseAiClient,
   type AdvisorAudience,
   type BriefingPhase,
   type HybridRuntimeReadiness,
@@ -35,6 +36,8 @@ import {
   buildSpokenAdvisorTurnText,
   fetchVoiceCapabilities,
   isHandsFreeCutInCommand,
+  isHumanBargeInUtterance,
+  isPauseOnlyVoiceCommand,
   isVoiceInputSupported,
   isVoiceOutputSupported,
   primeVoicePlaybackForGesture,
@@ -65,10 +68,6 @@ const MAX_LISTENER_RESTARTS_PER_REPLY = 10;
 const QUICK_LISTENER_END_MS = 1000;
 const REPLY_ECHO_TAIL_MS = 600;
 
-function tokenizeSpokenWords(text: string): string[] {
-  return text.toLowerCase().split(/[^\p{L}\p{N}']+/u).filter(Boolean);
-}
-
 export function HybridWeatherAdvisor({
   weather,
   districtName,
@@ -81,7 +80,6 @@ export function HybridWeatherAdvisor({
   const { dict, uiLanguage } = useTranslation();
   const copy = dict.hybridAdvisor;
   const questionInputId = useId();
-  const activePlaceKey = usePreferencesStore((state) => state.activePlace?.key ?? "");
   const activePlaceCoords = usePreferencesStore((state) =>
     state.activePlace ? `${state.activePlace.key}@${state.activePlace.lat},${state.activePlace.lon}` : "",
   );
@@ -164,6 +162,7 @@ export function HybridWeatherAdvisor({
   const [voiceOutputReady, setVoiceOutputReady] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const runtimeMenuRef = useRef<HTMLDivElement | null>(null);
   const voiceHandleRef = useRef<VoiceInputHandle | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   const hasInteractedRef = useRef(false);
@@ -174,8 +173,6 @@ export function HybridWeatherAdvisor({
   const cloudConfigured = isFirebaseAiConfigured();
   const activeDistrictName = weather?.district.name ?? districtName ?? "Kampala";
   const activeDistrictSlug = districtSlug ?? weather?.district.slug ?? "";
-  const activeCacheKey =
-    (districtSlug ? activePlaceKey : "") || weather?.district.slug || activeDistrictSlug;
   const activeLocationIdentity = activeDistrictSlug
     ? `${activeDistrictSlug}:${districtSlug ? activePlaceCoords : ""}`
     : "";
@@ -362,6 +359,7 @@ export function HybridWeatherAdvisor({
   useEffect(() => {
     if (!isOpen) {
       endVoiceConversation(false);
+      setShowRuntimeDetails(false);
       setPhotoMenuOpen(false);
       stopLiveCamera();
     } else if (detailSheet?.sheet) {
@@ -373,6 +371,7 @@ export function HybridWeatherAdvisor({
     void refreshCapabilities();
     if (cloudConfigured) {
       void syncAdvisorRemoteConfig();
+      warmFirebaseAiClient();
     }
   }, [refreshCapabilities, cloudConfigured]);
 
@@ -499,6 +498,11 @@ export function HybridWeatherAdvisor({
           stopLiveCamera();
           return;
         }
+        if (showRuntimeDetails) {
+          event.stopPropagation();
+          setShowRuntimeDetails(false);
+          return;
+        }
         if (photoMenuOpen) {
           event.stopPropagation();
           setPhotoMenuOpen(false);
@@ -510,6 +514,13 @@ export function HybridWeatherAdvisor({
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) return;
+      if (
+        showRuntimeDetails &&
+        runtimeMenuRef.current &&
+        !runtimeMenuRef.current.contains(target)
+      ) {
+        setShowRuntimeDetails(false);
+      }
       if (
         photoMenuOpen &&
         photoMenuRef.current &&
@@ -532,7 +543,7 @@ export function HybridWeatherAdvisor({
       document.removeEventListener("mousedown", handleOutsideClick);
       document.removeEventListener("touchstart", handleOutsideClick);
     };
-  }, [isOpen, liveCameraOpen, photoMenuOpen, stopLiveCamera]);
+  }, [isOpen, liveCameraOpen, photoMenuOpen, showRuntimeDetails, stopLiveCamera]);
 
   useEffect(() => {
     if (!activeLocationIdentity) return;
@@ -706,6 +717,14 @@ export function HybridWeatherAdvisor({
               typed: referencedLocation.typedTerm,
               resolvedName: referencedLocation.name,
             };
+            const escapedTyped = referencedLocation.typedTerm.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&",
+            );
+            effectiveQuestion = effectiveQuestion.replace(
+              new RegExp(`\\b${escapedTyped}\\b`, "gi"),
+              referencedLocation.name,
+            );
           }
 
           if (referencedLocation.isBareLocationQuery) {
@@ -809,6 +828,7 @@ export function HybridWeatherAdvisor({
               text: spokenTurnText,
               language: uiLanguage,
               capabilities: voiceServerCapabilities,
+              preferLocalVoice: !effectiveOnline,
               onEnd: () => {
                 if (replySeq !== spokenReplySeqRef.current) return;
                 replyPlayingRef.current = false;
@@ -974,7 +994,19 @@ export function HybridWeatherAdvisor({
       /** True when heard text should be ignored as the app's own voice. */
       const ignoreWhileReplying = (text: string) => {
         if (!duringReply || personSpoke) return false;
-        if (replyPlayingRef.current) return !isCutIn(text);
+        if (replyPlayingRef.current) {
+          const isRealPlaceCutIn =
+            text.trim().split(/\s+/).length <= 3 &&
+            !isEchoOfSpokenReply(text, duringReply) &&
+            resolveReferencedUgandaLocation(text) !== null;
+          if (isRealPlaceCutIn) return false;
+          return !isHumanBargeInUtterance({
+            transcript: text,
+            spokenReply: duringReply,
+            followUps: activeChoices(),
+            isFinal: true,
+          });
+        }
         if (isCutIn(text) || matchesExactChoiceText(text)) return false;
         const couldBeReplyEcho = sawInterim
           ? utteranceStartedNearReply
@@ -1029,9 +1061,21 @@ export function HybridWeatherAdvisor({
               utteranceStartedNearReply = inReplySilenceGrace();
             }
           }
-          // Wait for a finished word or sentence before cutting into a reply,
-          // so a sentence starting with "To ..." or "One ..." never cuts itself off.
-          if (duringReply && !personSpoke) return;
+          // Cut in right away when the user begins speaking a real question,
+          // choice, or stop/wait command, while ignoring interim single-word
+          // "To ..." or speaker echo.
+          if (duringReply && !personSpoke) {
+            if (
+              !isHumanBargeInUtterance({
+                transcript: text,
+                spokenReply: duringReply,
+                followUps: activeChoices(),
+                isFinal: false,
+              })
+            ) {
+              return;
+            }
+          }
           takeTurn();
           setQuestion(text.slice(0, 240));
         },
@@ -1041,22 +1085,26 @@ export function HybridWeatherAdvisor({
           setQuestion("");
           if (cleaned) heardAnything = true;
           if (ignoreWhileReplying(cleaned)) {
-            // A real question said over the reply (not echo, at least 3 words)
-            // is kept and asked as soon as the reply ends.
-            if (
-              duringReply &&
-              replyPlayingRef.current &&
-              tokenizeSpokenWords(cleaned).length >= 3 &&
-              !isEchoOfSpokenReply(cleaned, duringReply)
-            ) {
-              pendingQuestionRef.current = cleaned;
-            }
             return;
           }
           takeTurn();
           if (cleaned) emptyListenRetriesRef.current = 0;
           if (!cleaned) {
             handsFreeSessionRef.current = false;
+            return;
+          }
+          if (isPauseOnlyVoiceCommand(cleaned)) {
+            if (handsFreeSessionRef.current) {
+              if (handsFreeTimerRef.current !== null) {
+                window.clearTimeout(handsFreeTimerRef.current);
+              }
+              handsFreeTimerRef.current = window.setTimeout(() => {
+                handsFreeTimerRef.current = null;
+                if (handsFreeSessionRef.current) {
+                  startVoiceSessionRef.current?.({ autoHandsFree: true });
+                }
+              }, 200);
+            }
             return;
           }
           const command = resolveHandsFreeVoiceCommand(cleaned, activeChoices());
@@ -1071,6 +1119,7 @@ export function HybridWeatherAdvisor({
                 text: copy.voiceEnded,
                 language: uiLanguage,
                 capabilities: voiceServerCapabilities,
+                preferLocalVoice: !effectiveOnline,
                 onEnd: () => {
                   if (promptSeq !== spokenReplySeqRef.current) return;
                   setSpeakingMessageId((cur) => (cur === "__voice_prompt__" ? null : cur));
@@ -1129,6 +1178,7 @@ export function HybridWeatherAdvisor({
                 text: copy.voiceSayAgain,
                 language: uiLanguage,
                 capabilities: voiceServerCapabilities,
+                preferLocalVoice: !effectiveOnline,
                 onEnd: listenAgain,
               });
             if (!spoke) {
@@ -1185,6 +1235,7 @@ export function HybridWeatherAdvisor({
     [
       canAskAdvisor,
       copy,
+      effectiveOnline,
       setVoiceMode,
       uiLanguage,
       voiceOutputReady,
@@ -1227,6 +1278,7 @@ export function HybridWeatherAdvisor({
       text: msg.text,
       language: uiLanguage,
       capabilities: voiceServerCapabilities,
+      preferLocalVoice: !effectiveOnline,
       onEnd: () => {
         if (replySeq !== spokenReplySeqRef.current) return;
         setSpeakingMessageId((current) => (current === msg.id ? null : current));
@@ -1243,10 +1295,6 @@ export function HybridWeatherAdvisor({
       : thinkingStep === 1
         ? copy.stepChecking
         : copy.stepDrafting;
-
-  const hasCachedForecast = Boolean(
-    activeCacheKey && loadWeatherCache(activeCacheKey)?.data,
-  );
 
   useEffect(() => {
     if (isDetailSheetOpen || districtModalOpen || installGuideOpen) {
@@ -1273,29 +1321,104 @@ export function HybridWeatherAdvisor({
           {/* Minimal top bar */}
           <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
             <div className="flex min-w-0 items-center gap-2 text-[12px]">
-              <button
-                type="button"
-                aria-expanded={showRuntimeDetails}
-                data-testid="advisor-runtime-badge"
-                onClick={() => setShowRuntimeDetails((prev) => !prev)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 font-medium transition hover:bg-white/[0.14] ${statusMeta.textClass}`}
-              >
-                <span role="status" aria-live="polite">
-                  {statusMeta.label}
-                </span>
-                <svg
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  aria-hidden="true"
-                  className={`h-3 w-3 opacity-75 transition-transform duration-150 ${
-                    showRuntimeDetails ? "rotate-180" : ""
-                  }`}
-                  stroke="currentColor"
-                  strokeWidth="1.7"
+              <div ref={runtimeMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={showRuntimeDetails}
+                  data-testid="advisor-runtime-badge"
+                  onClick={() => setShowRuntimeDetails((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 font-medium transition hover:bg-white/[0.14] ${statusMeta.textClass}`}
                 >
-                  <path d="M3 4.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                  <span role="status" aria-live="polite">
+                    {statusMeta.label}
+                  </span>
+                  <svg
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    aria-hidden="true"
+                    className={`h-3 w-3 opacity-75 transition-transform duration-150 ${
+                      showRuntimeDetails ? "rotate-180" : ""
+                    }`}
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                  >
+                    <path d="M3 4.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+
+                {showRuntimeDetails && (
+                  <div
+                    data-testid="advisor-runtime-inspector"
+                    data-no-narrate
+                    className="absolute left-0 top-full z-40 mt-1.5 w-44 rounded-[18px] border border-white/[0.14] bg-[rgba(14,20,34,0.97)] p-1.5 shadow-[0_18px_40px_-6px_rgba(0,0,0,0.72),0_4px_12px_-2px_rgba(0,0,0,0.45)] backdrop-blur-[32px] backdrop-saturate-[200%]"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={!offlineOnly}
+                      onClick={() => {
+                        setOfflineOnly(false);
+                        setShowRuntimeDetails(false);
+                      }}
+                      className={`my-0.5 flex min-h-[38px] w-full items-center gap-2 rounded-full px-3 py-1.5 text-left text-[13px] font-medium transition-colors motion-reduce:transition-none ${
+                        !offlineOnly
+                          ? "bg-brand-green/65 text-white shadow-[0_6px_18px_rgba(13,144,59,0.25),inset_0_1px_0_rgba(255,255,255,0.24)]"
+                          : "text-white/80 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                        {!offlineOnly && (
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          >
+                            <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="truncate">{copy.modeOnline}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-pressed={offlineOnly}
+                      onClick={() => {
+                        setOfflineOnly(true);
+                        setShowRuntimeDetails(false);
+                      }}
+                      className={`my-0.5 flex min-h-[38px] w-full items-center gap-2 rounded-full px-3 py-1.5 text-left text-[13px] font-medium transition-colors motion-reduce:transition-none ${
+                        offlineOnly
+                          ? "bg-brand-green/65 text-white shadow-[0_6px_18px_rgba(13,144,59,0.25),inset_0_1px_0_rgba(255,255,255,0.24)]"
+                          : "text-white/80 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                        {offlineOnly && (
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          >
+                            <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="truncate">{copy.modeOffline}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <span aria-hidden="true" className="text-white/25">
                 /
               </span>
@@ -1327,43 +1450,6 @@ export function HybridWeatherAdvisor({
               </button>
             </div>
           </div>
-
-          {showRuntimeDetails && (
-            <div
-              data-testid="advisor-runtime-inspector"
-              className="mx-4 mb-1.5 flex items-center justify-between gap-2 rounded-full bg-white/[0.05] px-2.5 py-1.5 text-[11px] text-white/75"
-            >
-              <div className="inline-flex items-center rounded-full bg-white/[0.06] p-0.5">
-                <button
-                  type="button"
-                  aria-pressed={!offlineOnly}
-                  onClick={() => setOfflineOnly(false)}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                    !offlineOnly
-                      ? "bg-brand-green/65 text-white backdrop-blur-xl"
-                      : "text-white/65 hover:text-white"
-                  }`}
-                >
-                  {copy.modeOnline}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={offlineOnly}
-                  onClick={() => setOfflineOnly(true)}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                    offlineOnly
-                      ? "bg-brand-green/65 text-white backdrop-blur-xl"
-                      : "text-white/65 hover:text-white"
-                  }`}
-                >
-                  {copy.modeOffline}
-                </button>
-              </div>
-              <span className="pr-1.5 text-white/75">
-                {hasCachedForecast ? copy.forecastSaved : copy.forecastNotSaved}
-              </span>
-            </div>
-          )}
 
           {/* Live weather context strip */}
           {weather && (
@@ -1598,9 +1684,9 @@ export function HybridWeatherAdvisor({
                         onClick={() => handleQuickPrompt(audience, followUp)}
                         className="rounded-full border border-white/15 px-3.5 py-1.5 text-left text-[12px] text-white/80 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
                       >
-                        <span className="mr-1.5 font-semibold text-brand-green">
+                        <span className="mr-1 font-semibold text-brand-green">
                           {idx + 1}.
-                        </span>
+                        </span>{" "}
                         <span>{followUp}</span>
                       </button>
                     ))}

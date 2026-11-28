@@ -61,7 +61,10 @@ export function DaySelector({
 
   return (
     <div className="mb-4">
-      <div className={isLuganda ? "grid grid-cols-4 gap-1" : "grid grid-cols-7 gap-1 sm:grid-cols-8"}>
+      <div
+        data-no-narrate
+        className={isLuganda ? "grid grid-cols-4 gap-1" : "grid grid-cols-7 gap-1 sm:grid-cols-8"}
+      >
         {days.slice(0, 8).map((day, index) => {
           if (!day.date) return null;
           const isSelected = index === selectedIndex;
@@ -101,6 +104,7 @@ export function DaySelector({
       <div className="mt-3 flex items-center justify-between gap-3 pt-3">
         <button
           type="button"
+          data-no-narrate
           onClick={() => onSelect(Math.max(0, selectedIndex - 1))}
           disabled={selectedIndex <= 0}
           aria-label={dict.common.previousDay}
@@ -113,6 +117,7 @@ export function DaySelector({
         </p>
         <button
           type="button"
+          data-no-narrate
           onClick={() => onSelect(Math.min(days.length - 1, selectedIndex + 1))}
           disabled={selectedIndex >= days.length - 1}
           aria-label={dict.common.nextDay}

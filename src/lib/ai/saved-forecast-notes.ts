@@ -3,10 +3,12 @@
     /lite page can recognise them without loading the AI code. */
 export const OFFLINE_NOTICE_EN =
   "This phone cannot run the AI advisor without internet, so here is a summary of your saved forecast.";
-export const OFFLINE_NOTICE_LG = "Toli ku mutimbagano kati.";
+export const OFFLINE_NOTICE_LG =
+  "Toli ku mutimbagano kati. Essimu eno tesobola kukozesa muwi w'amagezi owa AI awatali yintaneeti, kale buno bwe bufunze bw'obudde obwaterekebwa.";
 export const AI_UNAVAILABLE_NOTICE_EN =
   "The AI advisor could not answer just now, so here is a summary of the forecast.";
-export const AI_UNAVAILABLE_NOTICE_LG = "Omuwi w'amagezi tali mwetegefu kati.";
+export const AI_UNAVAILABLE_NOTICE_LG =
+  "Omuwi w'amagezi tali mwetegefu kati. Buno bwe bufunze bw'obudde obwaterekebwa.";
 const SAVED_NOTE_ENDINGS = ["without AI.", "tebukozesezza AI."];
 
 /** True for the lines that only make sense inside the app (the offline and AI

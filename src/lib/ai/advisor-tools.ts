@@ -30,14 +30,24 @@ export function parseAgentStructuredDirectives(rawText: string): ParsedAgentDire
   let verdictExplicitlyNone = false;
   const followUps: string[] = [];
 
-  const verdictMatch = /\[\s*VERD[IA]CTS?\s*:\s*([^\]\n]+)\]/i.exec(rawText);
+  const verdictMatch = /\[\s*(?:VERD[IA]CTS?|OKUSALAWO)\s*:\s*([^\]\n]+)\]/i.exec(rawText);
   if (verdictMatch && verdictMatch[1]) {
     const parts = verdictMatch[1].split("|").map((p) => p.trim());
     const rawLevel = (parts[0] ?? "").toLowerCase();
     const customLabel = parts[1]?.replace(/[\[\]]/g, "").trim();
-    if (rawLevel === "none" || rawLevel === "skip" || rawLevel === "n/a") {
+    if (
+      rawLevel === "none" ||
+      rawLevel === "skip" ||
+      rawLevel === "n/a" ||
+      rawLevel === "tewali"
+    ) {
       verdictExplicitlyNone = true;
-    } else if (rawLevel === "go" || rawLevel === "safe") {
+    } else if (
+      rawLevel === "go" ||
+      rawLevel === "safe" ||
+      rawLevel === "bulungi" ||
+      rawLevel === "obudde bulungi"
+    ) {
       const label = customLabel || "Safe to go";
       verdict = {
         level: "go",
@@ -45,7 +55,13 @@ export function parseAgentStructuredDirectives(rawText: string): ParsedAgentDire
         labelLg: customLabel || "Obudde bulungi",
         dynamicLabel: label,
       };
-    } else if (rawLevel === "caution" || rawLevel === "careful") {
+    } else if (
+      rawLevel === "caution" ||
+      rawLevel === "careful" ||
+      rawLevel === "mwegendereza" ||
+      rawLevel === "beera mwegendereza" ||
+      rawLevel === "weekenneenye"
+    ) {
       const label = customLabel || "Caution";
       verdict = {
         level: "caution",
@@ -53,7 +69,12 @@ export function parseAgentStructuredDirectives(rawText: string): ParsedAgentDire
         labelLg: customLabel || "Beera mwegendereza",
         dynamicLabel: label,
       };
-    } else if (rawLevel === "wait" || rawLevel === "high risk" || rawLevel === "stop") {
+    } else if (
+      rawLevel === "wait" ||
+      rawLevel === "high risk" ||
+      rawLevel === "stop" ||
+      rawLevel === "linda"
+    ) {
       const label = customLabel || "Wait / High risk";
       verdict = {
         level: "wait",
@@ -65,12 +86,16 @@ export function parseAgentStructuredDirectives(rawText: string): ParsedAgentDire
   }
 
   const followUpsMatch =
-    /\[\s*FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?\s*:\s*([^\]]+)\]/i.exec(rawText) ??
-    /(?:^|\n)\s*FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?\s*:\s*([^\n]+)/i.exec(rawText);
+    /\[\s*(?:FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?|EBIBUUZO(?:\s+EBIRALA|\s+EBY'OKUGOBERERA)?)\s*:\s*([^\]]+)\]/i.exec(
+      rawText,
+    ) ??
+    /(?:^|\n)\s*(?:FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?|EBIBUUZO(?:\s+EBIRALA|\s+EBY'OKUGOBERERA)?)\s*:\s*([^\n]+)/i.exec(
+      rawText,
+    );
   if (followUpsMatch && followUpsMatch[1]) {
     for (const item of followUpsMatch[1].replace(/\s+/g, " ").split("|")) {
       const cleaned = item.replace(/^[-•*\d.)\s]+/, "").trim();
-      if (cleaned.length >= 6 && cleaned.length <= 110 && !followUps.includes(cleaned)) {
+      if (cleaned.length >= 6 && cleaned.length <= 125 && !followUps.includes(cleaned)) {
         followUps.push(cleaned);
       }
       if (followUps.length >= 2) break;
@@ -79,12 +104,21 @@ export function parseAgentStructuredDirectives(rawText: string): ParsedAgentDire
 
   // Strip complete, misspelled, unbracketed, multiline, or partially streamed
   // internal directive blocks ([VERDICT:...], [FOLLOWUPS:...], [FOLLOWOPS:...],
-  // [FOLLOWAPS:...], [FOLLOW-UP QUESTIONS:...], etc.) so internal tags never leak.
+  // [EBIBUUZO:...], [OKUSALAWO:...], etc.) so internal tags never leak.
   const cleanText = rawText
-    .replace(/\[\s*VERD[A-Z]{0,5}\s*:[^\]]*\]?/gi, "")
-    .replace(/\[\s*FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?\s*:[^\]]*\]?/gi, "")
-    .replace(/(?:^|\n)\s*\*{0,2}(?:VERD[A-Z]{0,5}|FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?)(?:\*{0,2}\s*:|:\s*\*{0,2})[^\n]*/gi, "")
-    .replace(/\[\s*(?:VERD[A-Z]{0,5}|FOLL(?:OW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?)?)\s*$/i, "")
+    .replace(/\[\s*(?:VERD[A-Z]{0,5}|OKUSALAWO)\s*:[^\]]*\]?/gi, "")
+    .replace(
+      /\[\s*(?:FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?|EBIBUUZO(?:\s+EBIRALA|\s+EBY'OKUGOBERERA)?)\s*:[^\]]*\]?/gi,
+      "",
+    )
+    .replace(
+      /(?:^|\n)\s*\*{0,2}(?:VERD[A-Z]{0,5}|OKUSALAWO|FOLLOW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?|EBIBUUZO(?:\s+EBIRALA|\s+EBY'OKUGOBERERA)?)(?:\*{0,2}\s*:|:\s*\*{0,2})[^\n]*/gi,
+      "",
+    )
+    .replace(
+      /\[\s*(?:VERD[A-Z]{0,5}|OKUSALAWO|EBIBUUZO|FOLL(?:OW[-_\s]?[A-Z]?PS?(?:\s+QUESTIONS?)?)?)\s*$/i,
+      "",
+    )
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
@@ -256,11 +290,14 @@ export function deriveSafetyVerdict(
     /\b(not safe|do not launch|do not dry|delay outdoor|wait until tomorrow|severe storm|dangerous|storm warning|heavy rain expected|high risk of|tekyali kya bukuumi|obulabe bwa maanyi)\b/i.test(
       lower,
     );
+  const hasSafeToWithoutNegation =
+    /\bsafe to\b/i.test(lower) && !/\b(?:not|never|hardly|barely)\s+safe to\b/i.test(lower);
   const explicitLowRisk =
     !explicitWait &&
-    /\b(low risk|low chance of rain|(?<!not\s)safe to|good conditions|calm night|no storm risk|clear skies|no heavy rain|tewali bulabe|obudde bulungi|buteefu)\b/i.test(
-      lower,
-    );
+    (hasSafeToWithoutNegation ||
+      /\b(low risk|low chance of rain|good conditions|calm night|no storm risk|clear skies|no heavy rain|tewali bulabe|obudde bulungi|buteefu)\b/i.test(
+        lower,
+      ));
   const explicitCaution =
     /\b(caution|be careful|watch out|possible showers|cover your crops|light rain|keep covers|unexpected localized showers|mwegendereza|eyinza okutonnya)\b/i.test(
       lower,

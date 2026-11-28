@@ -7,9 +7,14 @@ import {
   OFFLINE_NOTICE_LG,
 } from "@/lib/ai/saved-forecast-notes";
 import { hoursAheadSummary } from "@/lib/design/context";
+import { lg as lgDict } from "@/lib/i18n/dictionaries/lg";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { formatClockLabelForLanguage, formatUgandaClock } from "@/lib/time/uganda";
-import { formatMarineSafetyLg, hoursAheadSummaryLg } from "@/lib/weather/copy-lg";
+import {
+  formatMarineSafetyLg,
+  hoursAheadSummaryLg,
+  localizeAlertForLanguage,
+} from "@/lib/weather/copy-lg";
 import type { WeatherBundle } from "@/types/weather";
 
 /** How many upcoming hours the offline summary looks at. Matches the 12 hour
@@ -97,12 +102,12 @@ const ADVICE_EN: Record<AdvisorAudience, Record<SafetyVerdictLevel, string>> = {
   },
 };
 
-/** Fisher advice reuses the reviewed Luganda lake safety copy. The landslide
-    and storm lines reuse reviewed alert copy from the Luganda dictionary. */
+/** Fisher advice reuses the reviewed Luganda lake safety copy. Other audience
+    lines match English 1-to-1 in practical safety detail. */
 const ADVICE_LG: Record<AdvisorAudience, Record<SafetyVerdictLevel, string>> = {
   farmer: {
-    wait: "Toyanika birime wabweru kati.",
-    caution: "Beera mwegendereza era kebera eggulu buli kaseera.",
+    wait: "Toyanika birime wabweru kati. Kuuma ebirime ebikungule nga bibikkiddwa oba mu nnyumba, era tofuuyira ddagala.",
+    caution: "Yanika ebirime we osobola okubibikka amangu, era kebera eggulu buli kaseera.",
     go: "Obudde bulungi okwanika ebirime n'okukola mu nnimiro.",
   },
   fisher: {
@@ -111,16 +116,30 @@ const ADVICE_LG: Record<AdvisorAudience, Record<SafetyVerdictLevel, string>> = {
     go: formatMarineSafetyLg({ label: "Safe", summary: "" }).summary,
   },
   mountain_park: {
-    wait: "Ebisenge by'ensozi ebyewunzise biyinza okutenguka oluvannyuma lw'enkuba etonnya ennyo.",
-    caution: "Beera mwegendereza era kebera eggulu buli kaseera.",
-    go: "Obudde bulungi okutambula.",
+    wait: "Lindako okutambula ku bisenge by'ensozi ebyewunzise era weewale okusomoka emigga.",
+    caution: "Simbula bukyali, tambula n'ebikukuuma ku nkuba, era ddayo emabega ng'enkuba ey'amaanyi etandise.",
+    go: "Obudde bulungi okutambula. Tambula n'amazzi ag'okunywa era weewale omusana omungi.",
   },
   general: {
-    wait: "Noonya ekifo ekikuumibwa era weewale okubeera mu bbanga.",
-    caution: "Beera mwegendereza era kebera eggulu buli kaseera.",
-    go: "Obudde bulungi.",
+    wait: "Sigala mu nnyumba mu ssaawa ezisingamu enkuba bw'oba osobola, era weewale enguudo ezijjudde amazzi.",
+    caution: "Tambula n'ebikukuuma ku nkuba era weekwate obudde obumala mu lugendo.",
+    go: "Tewali buzibu bwa maanyi ku mbeera y'obudde busuubirwa.",
   },
 };
+
+function selectAudienceAdvice(
+  weather: WeatherBundle,
+  audience: AdvisorAudience,
+  level: SafetyVerdictLevel,
+  language: "en" | "lg",
+): string {
+  if (audience === "farmer" && level === "go" && weather.isDay === false) {
+    return language === "lg"
+      ? "Obudde bw'ekiro buteefu. Kuuma ebirime ebikungule mu nnyumba okwewala omusulo gw'ekiro, era tegeka okwanika oba okulima enkya ku makya."
+      : "Skies are calm tonight. Keep harvested crops covered indoors away from night moisture, and plan drying or field work for tomorrow morning.";
+  }
+  return language === "lg" ? ADVICE_LG[audience][level] : ADVICE_EN[audience][level];
+}
 
 function formatUpdatedAt(weather: WeatherBundle, language: SupportedLocale): string | null {
   const parsed = new Date(weather.updatedAt);
@@ -134,12 +153,18 @@ function buildEnglish(
   rain: UpcomingRain,
   verdict: SafetyVerdict,
   notice: SavedForecastNotice,
+  spellingCorrection?: { typed: string; resolvedName: string },
 ): string {
   const wind = cleanSpeed(weather.wind?.speedKph);
   const gust = cleanSpeed(weather.wind?.gustKph);
   const updated = formatUpdatedAt(weather, "en");
   const lines: string[] = [];
 
+  if (spellingCorrection) {
+    lines.push(
+      `Did you mean ${spellingCorrection.resolvedName}? Showing the forecast for ${spellingCorrection.resolvedName}.`,
+    );
+  }
   if (notice !== "none") {
     lines.push(NOTICE_TEXT.en[notice]);
   }
@@ -158,8 +183,8 @@ function buildEnglish(
   const windSentence =
     wind === null ? "" : gust === null ? ` Wind ${wind} km/h.` : ` Wind ${wind} km/h, gusts up to ${gust} km/h.`;
   lines.push(rainSentence + windSentence);
-  lines.push(ADVICE_EN[audience][verdict.level]);
-  for (const alert of weather.alerts.slice(0, 2)) {
+  lines.push(selectAudienceAdvice(weather, audience, verdict.level, "en"));
+  for (const alert of (weather.alerts ?? []).slice(0, 2)) {
     lines.push(`Active warning: ${alert.title}.`);
   }
   lines.push(
@@ -176,10 +201,18 @@ function buildLuganda(
   rain: UpcomingRain,
   verdict: SafetyVerdict,
   notice: SavedForecastNotice,
+  spellingCorrection?: { typed: string; resolvedName: string },
 ): string {
   const wind = cleanSpeed(weather.wind?.speedKph);
+  const gust = cleanSpeed(weather.wind?.gustKph);
+  const updated = formatUpdatedAt(weather, "lg");
   const lines: string[] = [];
 
+  if (spellingCorrection) {
+    lines.push(
+      `Obadde otegeeza ${spellingCorrection.resolvedName}? Buno bwe bufunze bw'obudde bw'e ${spellingCorrection.resolvedName}.`,
+    );
+  }
   if (notice !== "none") {
     lines.push(NOTICE_TEXT.lg[notice]);
   }
@@ -188,17 +221,29 @@ function buildLuganda(
     ? null
     : isNowLabel(rain.peakLabel)
       ? "kati"
-      : `ku ${formatClockLabelForLanguage(rain.peakLabel, "lg", "medium")}`;
+      : `ku ssaawa ${formatClockLabelForLanguage(rain.peakLabel, "lg", "medium")}`;
   const rainSentence =
     rain.peakChance === null
-      ? "Omukisa gw'enkuba tegumanyiddwa."
+      ? "Obudde obwaterekebwa tebulaga mukisa gwa nkuba mu ssaawa eziddako."
       : peakWhen
-        ? `Omukisa gw'enkuba ${rain.peakChance}% ${peakWhen}.`
-        : `Omukisa gw'enkuba ${rain.peakChance}%.`;
-  lines.push(rainSentence + (wind === null ? "" : ` Empewo ya km/h ${wind}.`));
-  lines.push(ADVICE_LG[audience][verdict.level]);
+        ? `Omukisa gw'enkuba ${rain.peakChance}% gwe gusinga mu ssaawa ${LOOKAHEAD_HOURS} eziddako, ${peakWhen}.`
+        : `Omukisa gw'enkuba ${rain.peakChance}% leero.`;
+  const windSentence =
+    wind === null
+      ? ""
+      : gust === null
+        ? ` Empewo eri km/h ${wind}.`
+        : ` Empewo eri km/h ${wind}, ng'etuuka ku km/h ${gust} mu kibuyaga.`;
+  lines.push(rainSentence + windSentence);
+  lines.push(selectAudienceAdvice(weather, audience, verdict.level, "lg"));
+  for (const alert of (weather.alerts ?? []).slice(0, 2)) {
+    const localized = localizeAlertForLanguage(alert, "lg", lgDict.alerts.demo);
+    lines.push(`Okulabula okuliwo: ${localized.title}.`);
+  }
   lines.push(
-    `${weather.district.name}: obubaka buno buva ku budde obuterekeddwa ku ssimu yo, tebukozesezza AI.`,
+    updated
+      ? `${weather.district.name}, byazziddwa obuggya ku ssaawa ${updated}: obubaka buno buva ku budde obuterekeddwa ku ssimu yo, tebukozesezza AI.`
+      : `${weather.district.name}: obubaka buno buva ku budde obuterekeddwa ku ssimu yo, tebukozesezza AI.`,
   );
   return lines.join("\n\n");
 }
@@ -216,17 +261,19 @@ export function buildSavedForecastBriefing({
   audience,
   language,
   notice = "none",
+  spellingCorrection,
 }: {
   weather: WeatherBundle;
   audience: AdvisorAudience;
   language: SupportedLocale;
   notice?: SavedForecastNotice;
+  spellingCorrection?: { typed: string; resolvedName: string };
 }): SavedForecastBriefing {
   const rain = readUpcomingRain(weather);
   const verdict = verdictFromRainAndWind(rain.verdictChance, cleanSpeed(weather.wind?.speedKph) ?? 0);
   const text =
     language === "lg"
-      ? buildLuganda(weather, audience, rain, verdict, notice)
-      : buildEnglish(weather, audience, rain, verdict, notice);
+      ? buildLuganda(weather, audience, rain, verdict, notice, spellingCorrection)
+      : buildEnglish(weather, audience, rain, verdict, notice, spellingCorrection);
   return { text, verdict };
 }

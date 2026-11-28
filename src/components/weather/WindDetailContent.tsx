@@ -102,13 +102,13 @@ export function WindDetailContent({ weather }: { weather: WeatherBundle }) {
             <p className="text-[36px] font-medium leading-tight text-white">
               {isLuganda ? (
                 <>
-                  <span className="mr-1 text-[18px] font-normal text-white/75">km/h</span>
+                  <span className="text-[18px] font-normal text-white/75">km/h</span>{" "}
                   {displaySpeed}
                 </>
               ) : (
                 <>
-                  {displaySpeed}
-                  <span className="ml-1 text-[18px] font-normal text-white/75">km/h</span>
+                  {displaySpeed}{" "}
+                  <span className="text-[18px] font-normal text-white/75">km/h</span>
                 </>
               )}
             </p>
@@ -139,7 +139,10 @@ export function WindDetailContent({ weather }: { weather: WeatherBundle }) {
                 : ""}
             </p>
             {weather.district.coordinates && (
-              <p className="mt-1 text-[13px] font-medium tracking-wide text-white/70 tabular-nums">
+              <p
+                data-no-narrate
+                className="mt-1 text-[13px] font-medium tracking-wide text-white/70 tabular-nums"
+              >
                 {formatDmsCoordinates(
                   weather.district.coordinates.lat,
                   weather.district.coordinates.lon,
@@ -170,7 +173,7 @@ export function WindDetailContent({ weather }: { weather: WeatherBundle }) {
             nowTime={nowHour?.time}
             unit=" km/h"
           />
-          <div className="mt-2 flex items-center gap-4 text-[12px] text-white/55">
+          <div data-no-narrate className="mt-2 flex items-center gap-4 text-[12px] text-white/55">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#5ac8fa]" />
               {w.averageWind}
@@ -234,7 +237,7 @@ export function WindDetailContent({ weather }: { weather: WeatherBundle }) {
         </p>
       </div>
 
-      <div className="mt-4 pt-3">
+      <div data-no-narrate className="mt-4 pt-3">
         <p className="text-[15px] font-semibold text-white/90">{w.beaufortTitle}</p>
         <div
           className={

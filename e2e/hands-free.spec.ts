@@ -276,12 +276,13 @@ test("many quiet timeouts during a long reply do not end the conversation", asyn
   await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
 });
 
-test("a question asked over the reply is kept and asked when the reply ends", async ({ page }) => {
-  test.setTimeout(60_000);
+test("a question spoken over the reply interrupts the speaker immediately and asks right away", async ({ page }) => {
   await startVoiceAnswer(page);
   const bubbles = await page.getByTestId("advisor-user-message").count();
+  const cancelsBefore = (await voiceLog(page)).cancelled;
   await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
-  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 40_000 });
+  await expect.poll(async () => (await voiceLog(page)).cancelled).toBeGreaterThan(cancelsBefore);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
   await expect(page.getByTestId("advisor-user-message").last()).toContainText("Lake Victoria");
 });
 
@@ -293,26 +294,23 @@ test("a network error while the reply plays never records the reply", async ({ p
   expect((await voiceLog(page)).micOpens).toBe(before);
 });
 
-test("a held question gets an answer without ending the conversation", async ({ page }) => {
-  test.setTimeout(60_000);
+test("an interrupted question gets a spoken answer without ending the conversation", async ({ page }) => {
   await startVoiceAnswer(page);
   const bubbles = await page.getByTestId("advisor-user-message").count();
   await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
-  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 40_000 });
-  await page.waitForTimeout(4000);
+  await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
+  await page.waitForTimeout(2000);
   await expect(page.getByText(/could not hear that clearly/i)).toHaveCount(0);
 });
 
-test("a choice said after a held question wins, and the held question is dropped", async ({ page }) => {
+test("spoken 'That of Waukesha' over a reply interrupts immediately and resolves to Wakiso", async ({ page }) => {
   await startVoiceAnswer(page);
   const bubbles = await page.getByTestId("advisor-user-message").count();
-  await say(page, "is it safe to fish on Lake Victoria tomorrow morning");
-  await expect.poll(async () => (await voiceLog(page)).listening).toBe(true);
-  await say(page, "2");
+  const cancelsBefore = (await voiceLog(page)).cancelled;
+  await say(page, "That of Waukesha");
+  await expect.poll(async () => (await voiceLog(page)).cancelled).toBeGreaterThan(cancelsBefore);
   await expect(page.getByTestId("advisor-user-message")).toHaveCount(bubbles + 1, { timeout: 10_000 });
-  await expect(page.getByTestId("advisor-user-message").last()).not.toContainText("Lake Victoria");
-  await page.waitForTimeout(8000);
-  await expect(page.getByTestId("advisor-user-message").filter({ hasText: "Lake Victoria" })).toHaveCount(0);
+  await expect(page.getByText(/Did you mean Wakiso\?/i).last()).toBeVisible({ timeout: 15_000 });
 });
 
 test("a network error during the reply waits quietly instead of showing an error", async ({ page }) => {

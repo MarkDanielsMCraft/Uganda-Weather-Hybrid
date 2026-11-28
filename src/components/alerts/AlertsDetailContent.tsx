@@ -30,7 +30,9 @@ export function AlertsDetailContent({
 
   return (
     <div className="space-y-5">
-      <PushAlertsToggle />
+      <div data-no-narrate>
+        <PushAlertsToggle />
+      </div>
 
       {alerts.length === 0 && (
         <div className="rounded-[16px] border border-white/10 bg-white/[0.04] p-4 text-center">
@@ -81,7 +83,7 @@ export function AlertsDetailContent({
               {issued && <p>{dict.alerts.issued.replace("{time}", issued)}</p>}
               {expires && <p>{dict.alerts.expires.replace("{time}", expires)}</p>}
             </div>
-            <div className="mt-3">
+            <div data-no-narrate className="mt-3">
               <AlertShareButton alert={alert} districtSlug={districtSlug} />
             </div>
           </div>

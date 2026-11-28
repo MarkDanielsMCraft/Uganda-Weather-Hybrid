@@ -107,7 +107,7 @@ export function SunArc({
         )}
       </svg>
       {!compact && (
-        <div className="mt-1 flex justify-between text-[11px] text-white/40">
+        <div data-no-narrate className="mt-1 flex justify-between text-[11px] text-white/40">
           <span>{dict.sheets.sunset.sunrise}</span>
           <span>{dict.common.solarNoon}</span>
           <span>{dict.sheets.sunset.sunset}</span>

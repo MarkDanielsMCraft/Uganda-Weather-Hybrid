@@ -1,10 +1,33 @@
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { isFirebaseAiConfigured } from "@/lib/ai/firebase-client";
+import { getAdvisorRemoteConfig } from "@/lib/ai/remote-config";
 import { transcribeEnglishAudioWithFirebaseAi } from "@/lib/ai/firebase-audio-transcribe";
+import * as firebaseTtsNamespace from "@/lib/ai/firebase-tts";
 import {
   isFirebaseNeuralTtsAvailable,
   synthesizeSpeechWithFirebaseAi,
 } from "@/lib/ai/firebase-tts";
+import {
+  createPcmStreamSession,
+  isWebAudioStreamSupported,
+  primePcmStreamAudioForGesture,
+  stopActivePcmStream,
+} from "@/lib/voice/pcm-stream-player";
+
+function getStreamSpeechWithFirebaseAi():
+  | typeof import("@/lib/ai/firebase-tts").streamSpeechWithFirebaseAi
+  | null {
+  try {
+    const fn = (
+      firebaseTtsNamespace as {
+        streamSpeechWithFirebaseAi?: typeof import("@/lib/ai/firebase-tts").streamSpeechWithFirebaseAi;
+      }
+    ).streamSpeechWithFirebaseAi;
+    return typeof fn === "function" ? fn : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface VoiceServerCapabilities {
   lugandaTts: boolean;
@@ -22,10 +45,45 @@ const DEFAULT_CAPABILITIES: VoiceServerCapabilities = {
 
 let cachedCapabilities: VoiceServerCapabilities | null = null;
 let capabilitiesPromise: Promise<VoiceServerCapabilities> | null = null;
+const VOICE_CAPS_STORAGE_KEY = "uw:voice-caps:v1";
+
+function readStoredVoiceCapabilities(): VoiceServerCapabilities | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage?.getItem(VOICE_CAPS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<VoiceServerCapabilities>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      lugandaTts: Boolean(parsed.lugandaTts),
+      lugandaStt: Boolean(parsed.lugandaStt),
+      lugandaTranslation: Boolean(parsed.lugandaTranslation),
+      englishNeuralTts: Boolean(parsed.englishNeuralTts),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredVoiceCapabilities(caps: VoiceServerCapabilities): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage?.setItem(VOICE_CAPS_STORAGE_KEY, JSON.stringify(caps));
+  } catch {
+    // Ignore sessionStorage restrictions in private mode
+  }
+}
 
 export function resetVoiceCapabilitiesForTests(): void {
   cachedCapabilities = null;
   capabilitiesPromise = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage?.removeItem(VOICE_CAPS_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors in tests
+    }
+  }
 }
 
 export async function fetchVoiceCapabilities(
@@ -33,35 +91,74 @@ export async function fetchVoiceCapabilities(
 ): Promise<VoiceServerCapabilities> {
   if (typeof window === "undefined") return DEFAULT_CAPABILITIES;
   if (!forceRefresh && cachedCapabilities) return cachedCapabilities;
-  if (!forceRefresh && capabilitiesPromise) return capabilitiesPromise;
 
-  const task = (async () => {
-    try {
-      const response = await fetch("/api/v1/voice/status", {
-        method: "GET",
-        cache: "no-store",
-      });
-      if (!response.ok) return DEFAULT_CAPABILITIES;
-      const json = (await response.json()) as {
-        data?: Partial<VoiceServerCapabilities>;
+  const stored = !forceRefresh ? readStoredVoiceCapabilities() : null;
+  if (stored) {
+    cachedCapabilities = stored;
+  }
+
+  if (!capabilitiesPromise) {
+    capabilitiesPromise = (async () => {
+      try {
+        const response = await fetch("/api/v1/voice/status", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return cachedCapabilities ?? DEFAULT_CAPABILITIES;
+        const json = (await response.json()) as {
+          data?: Partial<VoiceServerCapabilities>;
+        };
+        const next: VoiceServerCapabilities = {
+          lugandaTts: Boolean(json.data?.lugandaTts),
+          lugandaStt: Boolean(json.data?.lugandaStt),
+          lugandaTranslation: Boolean(json.data?.lugandaTranslation),
+          englishNeuralTts: Boolean(json.data?.englishNeuralTts),
+        };
+        cachedCapabilities = next;
+        writeStoredVoiceCapabilities(next);
+        return next;
+      } catch {
+        return cachedCapabilities ?? DEFAULT_CAPABILITIES;
+      } finally {
+        capabilitiesPromise = null;
+      }
+    })();
+  }
+
+  if (stored) {
+    void capabilitiesPromise;
+    return stored;
+  }
+
+  return capabilitiesPromise;
+}
+
+export function isSlowOrConstrainedNetwork(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const conn = (
+    navigator as Navigator & {
+      connection?: {
+        saveData?: boolean;
+        effectiveType?: string;
+        rtt?: number;
+        downlink?: number;
       };
-      const next: VoiceServerCapabilities = {
-        lugandaTts: Boolean(json.data?.lugandaTts),
-        lugandaStt: Boolean(json.data?.lugandaStt),
-        lugandaTranslation: Boolean(json.data?.lugandaTranslation),
-        englishNeuralTts: Boolean(json.data?.englishNeuralTts),
-      };
-      cachedCapabilities = next;
-      return next;
-    } catch {
-      return cachedCapabilities ?? DEFAULT_CAPABILITIES;
-    } finally {
-      capabilitiesPromise = null;
     }
-  })();
-
-  capabilitiesPromise = task;
-  return task;
+  ).connection;
+  if (!conn) return false;
+  if (conn.saveData === true) return true;
+  const effective = (conn.effectiveType ?? "").toLowerCase();
+  if (effective === "slow-2g" || effective === "2g") return true;
+  const rc = getAdvisorRemoteConfig();
+  if (typeof conn.rtt === "number" && conn.rtt >= rc.voiceSlowRttMs) return true;
+  if (
+    typeof conn.downlink === "number" &&
+    conn.downlink > 0 &&
+    conn.downlink < rc.voiceSlowDownlinkMbps
+  ) {
+    return true;
+  }
+  return false;
 }
 
 interface SpeechRecognitionAlternativeLike {
@@ -118,19 +215,6 @@ function isBrowserSpeechSynthesisSupported(): boolean {
   );
 }
 
-function hasNativeLugandaVoice(): boolean {
-  if (!isBrowserSpeechSynthesisSupported()) return false;
-  try {
-    const voices = window.speechSynthesis.getVoices?.() ?? [];
-    return voices.some((voice) => {
-      const lang = (voice.lang || "").toLowerCase();
-      return lang === "lg" || lang.startsWith("lg-") || lang === "lug" || lang.startsWith("lug-");
-    });
-  } catch {
-    return false;
-  }
-}
-
 export function isVoiceInputSupported(
   language: SupportedLocale = "en",
   capabilities?: VoiceServerCapabilities,
@@ -146,7 +230,7 @@ export function isVoiceOutputSupported(
   capabilities?: VoiceServerCapabilities,
 ): boolean {
   if (language === "lg") {
-    return Boolean(capabilities?.lugandaTts) || hasNativeLugandaVoice();
+    return Boolean(capabilities?.lugandaTts);
   }
   return Boolean(capabilities?.englishNeuralTts) || isBrowserSpeechSynthesisSupported();
 }
@@ -881,11 +965,72 @@ export function startVoiceInput({
 const SILENT_WAV_DATA_URI =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
-const MAX_CACHED_AUDIO_CLIPS = 12;
 const audioClipCache = new Map<string, Blob>();
 const inflightPrefetches = new Map<string, Promise<Blob | null>>();
+const inflightPrefetchControllers = new Map<string, AbortController>();
 
-function clampSpeechTextOnSentenceBoundary(input: string, maxChars = 1500): string {
+function readClientVoiceInt(
+  raw: string | undefined,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function getClientVoiceLimits() {
+  return {
+    maxTextChars: readClientVoiceInt(
+      process.env.NEXT_PUBLIC_VOICE_MAX_TEXT_CHARS,
+      200,
+      3_000,
+      1_600,
+    ),
+    maxChunks: readClientVoiceInt(process.env.NEXT_PUBLIC_VOICE_MAX_CHUNKS, 2, 24, 8),
+    minFirstChunkChars: readClientVoiceInt(
+      process.env.NEXT_PUBLIC_VOICE_MIN_FIRST_CHUNK_CHARS,
+      12,
+      100,
+      28,
+    ),
+    browserChunkChars: readClientVoiceInt(
+      process.env.NEXT_PUBLIC_VOICE_BROWSER_CHUNK_CHARS,
+      80,
+      400,
+      180,
+    ),
+    maxCachedClips: readClientVoiceInt(
+      process.env.NEXT_PUBLIC_VOICE_MAX_CACHED_CLIPS,
+      4,
+      100,
+      12,
+    ),
+  };
+}
+
+function abortInflightPrefetches(): void {
+  for (const ctrl of inflightPrefetchControllers.values()) {
+    try {
+      ctrl.abort();
+    } catch {
+      // Ignore abort errors
+    }
+  }
+  inflightPrefetchControllers.clear();
+  inflightPrefetches.clear();
+}
+
+export function clearVoiceAudioCacheForTests(): void {
+  audioClipCache.clear();
+  abortInflightPrefetches();
+}
+
+function clampSpeechTextOnSentenceBoundary(
+  input: string,
+  maxChars = getClientVoiceLimits().maxTextChars,
+): string {
   const cleaned = input.trim();
   if (cleaned.length <= maxChars) return cleaned;
   const slice = cleaned.slice(0, maxChars);
@@ -908,15 +1053,18 @@ function clampSpeechTextOnSentenceBoundary(input: string, maxChars = 1500): stri
  */
 export function splitTextForPipelinedSpeech(
   input: string,
-  maxChunkChars = 165,
-  maxChunks = 8,
+  maxChunkChars = getAdvisorRemoteConfig().ttsChunkMaxChars,
+  maxChunks = getClientVoiceLimits().maxChunks,
 ): string[] {
   const cleaned = input.replace(/\s+/g, " ").trim();
   if (!cleaned) return [];
-  if (cleaned.length <= maxChunkChars) return [cleaned];
+  const firstChunkMax = Math.min(getAdvisorRemoteConfig().ttsFirstChunkMaxChars, maxChunkChars);
+  const minFirstChunkChars = getClientVoiceLimits().minFirstChunkChars;
+  if (cleaned.length <= firstChunkMax) return [cleaned];
 
   const rawSentences = cleaned
-    .split(/(?<=[.!?])\s+/)
+    .replace(/([.!?])\s+/g, "$1\n")
+    .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
 
@@ -932,32 +1080,46 @@ export function splitTextForPipelinedSpeech(
 
   for (const sentence of rawSentences) {
     if (chunks.length >= maxChunks) break;
-    if (sentence.length > maxChunkChars) {
-      pushCurrent();
-      // Split an extra-long sentence cleanly on commas or word boundaries
-      const clauses = sentence.split(/(?<=,|;)\s+/);
-      for (const clause of clauses) {
-        if (chunks.length >= maxChunks) break;
-        if (current && current.length + 1 + clause.length <= maxChunkChars) {
-          current = `${current} ${clause}`;
-        } else {
-          pushCurrent();
-          if (clause.length <= maxChunkChars) {
-            current = clause;
+    const isOpeningSentence = chunks.length === 0 && !current;
+    const clauseThreshold = isOpeningSentence ? firstChunkMax : maxChunkChars;
+    if (sentence.length > clauseThreshold) {
+      const clauses = sentence.replace(/([,;:])\s+/g, "$1\n").split("\n");
+      if (sentence.length > maxChunkChars || clauses.length > 1) {
+        pushCurrent();
+        for (const clause of clauses) {
+          if (chunks.length >= maxChunks) break;
+          const activeLimit = chunks.length === 0 ? firstChunkMax : maxChunkChars;
+          if (current && current.length + 1 + clause.length <= activeLimit) {
+            current = `${current} ${clause}`;
           } else {
-            chunks.push(clampSpeechTextOnSentenceBoundary(clause, maxChunkChars));
+            pushCurrent();
+            if (clause.length <= maxChunkChars) {
+              current = clause;
+              if (chunks.length === 0 && current.length >= minFirstChunkChars) {
+                pushCurrent();
+              }
+            } else {
+              chunks.push(clampSpeechTextOnSentenceBoundary(clause, maxChunkChars));
+            }
           }
         }
+        pushCurrent();
+        continue;
       }
-      pushCurrent();
-      continue;
     }
 
-    // Keep chunk 1 extra short (<= 110 chars) for fastest time-to-first-audio
-    const targetMax = chunks.length === 0 ? Math.min(110, maxChunkChars) : maxChunkChars;
+    const targetMax = chunks.length === 0 ? firstChunkMax : maxChunkChars;
     if (!current) {
       current = sentence;
-    } else if (current.length + 1 + sentence.length <= targetMax) {
+    } else if (
+      (chunks.length > 0 || current.length < minFirstChunkChars) &&
+      current.length + 1 + sentence.length <= targetMax
+    ) {
+      current = `${current} ${sentence}`;
+    } else if (
+      chunks.length === 0 &&
+      current.length + 1 + sentence.length <= firstChunkMax
+    ) {
       current = `${current} ${sentence}`;
     } else {
       pushCurrent();
@@ -968,21 +1130,57 @@ export function splitTextForPipelinedSpeech(
   return chunks.slice(0, maxChunks);
 }
 
-const FIRST_PART_MAX_CHARS = 180;
-
-/** Splits only once, and never drops words: part one is the first sentence
-    (or the first 180 characters, cut at a space), and part two is exactly
-    everything after it. */
+/** Splits only once, and never drops words: part one is the opening phrase
+    (up to the Remote Config opening chunk limit, cut cleanly at a sentence,
+    clause, or word boundary), and part two is everything after it. */
 export function twoPartSpeech(text: string): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
-  const sentenceEnd = trimmed.search(/[.!?](\s|$)/);
-  let cut = sentenceEnd >= 0 && sentenceEnd < FIRST_PART_MAX_CHARS ? sentenceEnd + 1 : -1;
-  if (cut < 0) {
-    if (trimmed.length <= FIRST_PART_MAX_CHARS) return [trimmed];
-    const space = trimmed.lastIndexOf(" ", FIRST_PART_MAX_CHARS);
-    cut = space > 0 ? space : FIRST_PART_MAX_CHARS;
+  const firstPartMaxChars = getAdvisorRemoteConfig().ttsFirstChunkMaxChars + 5;
+  const minFirstPartChars = getClientVoiceLimits().minFirstChunkChars;
+
+  let cut = -1;
+  let firstShortSentenceCut = -1;
+  const sentenceRe = /[.!?](?=\s|$)/g;
+  for (let match = sentenceRe.exec(trimmed); match !== null; match = sentenceRe.exec(trimmed)) {
+    const endIdx = match.index + 1;
+    if (endIdx > firstPartMaxChars) break;
+    if (firstShortSentenceCut < 0) firstShortSentenceCut = endIdx;
+    if (endIdx >= minFirstPartChars) {
+      cut = endIdx;
+      break;
+    }
   }
+
+  if (cut < 0 && trimmed.length <= firstPartMaxChars) {
+    if (firstShortSentenceCut >= 12 && firstShortSentenceCut < trimmed.length) {
+      cut = firstShortSentenceCut;
+    } else {
+      return [trimmed];
+    }
+  }
+
+  if (cut < 0) {
+    const clauseRe = /[,;:](?=\s)/g;
+    for (let match = clauseRe.exec(trimmed); match !== null; match = clauseRe.exec(trimmed)) {
+      const endIdx = match.index + 1;
+      if (endIdx > firstPartMaxChars) break;
+      if (endIdx >= minFirstPartChars) {
+        cut = endIdx;
+        break;
+      }
+    }
+  }
+
+  if (cut < 0 && firstShortSentenceCut >= 12) {
+    cut = firstShortSentenceCut;
+  }
+
+  if (cut < 0) {
+    const space = trimmed.lastIndexOf(" ", firstPartMaxChars);
+    cut = space > 0 ? space : firstPartMaxChars;
+  }
+
   const first = trimmed.slice(0, cut).trim();
   const rest = trimmed.slice(cut).trim();
   return rest ? [first, rest] : [first];
@@ -994,21 +1192,43 @@ interface NeuralVoiceRoute {
   serverBackupForEnglish: boolean;
 }
 
-/** Picks the most natural voice available. English tries the Firebase AI
-    Logic Gemini voice first, then the server voice if one is set up, and
-    only then the browser voice. Luganda uses the server voice. */
+function hasStoredDailyGeminiPause(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const value = Number(window.localStorage.getItem("uw:gemini-voice-paused-until"));
+    return Number.isFinite(value) && value > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+/** Picks the most natural voice available. On slow or data-saving mobile
+    connections, or when Offline mode is active, English uses the device's
+    built-in voice right away so reading starts with zero network wait.
+    Luganda strictly uses the server neural voice chain (Gemini 3.8 Flash TTS
+    streaming first, Sunbird AI Luganda backup) and never falls back to a
+    robotic browser voice. */
 function selectNeuralVoiceRoute(
   language: SupportedLocale,
   capabilities: VoiceServerCapabilities | undefined,
   isOnline: boolean,
+  preferLocalVoice = false,
 ): NeuralVoiceRoute {
-  if (!isOnline) return { useFirebase: false, useServer: false, serverBackupForEnglish: false };
+  if (!isOnline || preferLocalVoice) {
+    return { useFirebase: false, useServer: false, serverBackupForEnglish: false };
+  }
   if (language === "lg") {
     return {
       useFirebase: false,
       useServer: Boolean(capabilities?.lugandaTts),
       serverBackupForEnglish: false,
     };
+  }
+  if (hasStoredDailyGeminiPause() && isBrowserSpeechSynthesisSupported()) {
+    return { useFirebase: false, useServer: false, serverBackupForEnglish: false };
+  }
+  if (isSlowOrConstrainedNetwork() && isBrowserSpeechSynthesisSupported()) {
+    return { useFirebase: false, useServer: false, serverBackupForEnglish: false };
   }
   const englishServerReady = Boolean(capabilities?.englishNeuralTts);
   const useFirebase = isFirebaseNeuralTtsAvailable();
@@ -1031,36 +1251,46 @@ export function prefetchVoiceClip({
   capabilities?: VoiceServerCapabilities;
 }): void {
   if (typeof window === "undefined") return;
+  // When Web Audio PCM streaming is available, clicking Listen streams the first
+  // audio frames in ~0.8s-1.2s directly; firing a full unary synthesis on hover
+  // would waste voice quota and queue a slow non-streaming call behind the cursor.
+  if (isWebAudioStreamSupported()) return;
   const isOnline = typeof navigator === "undefined" ? true : navigator.onLine !== false;
   if (!isOnline) return;
-  const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
-  if (nav.connection?.saveData) return;
+  if (isSlowOrConstrainedNetwork()) return;
 
-  const route = selectNeuralVoiceRoute(language, capabilities, true);
+  const route = selectNeuralVoiceRoute(language, capabilities, true, false);
   const shouldUseServer = route.useServer;
   const shouldUseFirebaseNeuralTts = route.useFirebase;
   if (!shouldUseServer && !shouldUseFirebaseNeuralTts) return;
 
   const cleaned = text.trim();
   if (!cleaned) return;
+  const limits = getClientVoiceLimits();
+  if (inflightPrefetches.size >= limits.maxCachedClips) return;
+
   const payloadText = clampSpeechTextOnSentenceBoundary(
     language === "en" ? formatTextForSpeech(cleaned) : cleaned,
-    1500,
+    limits.maxTextChars,
   );
-  // Prefetch the first short sentence chunk so clicking Listen starts speaking instantly
-  const firstChunk =
-    (shouldUseFirebaseNeuralTts ? twoPartSpeech(payloadText)[0] : splitTextForPipelinedSpeech(payloadText)[0])
-    ?? payloadText;
-  const cacheKey = `${shouldUseFirebaseNeuralTts ? "fb-tts" : (sourceLanguage ?? language)}:${language}:${firstChunk}`;
+  const cacheKey = `${shouldUseFirebaseNeuralTts ? "fb-tts" : (sourceLanguage ?? language)}:${language}:${payloadText}`;
   if (audioClipCache.has(cacheKey) || inflightPrefetches.has(cacheKey)) return;
+
+  const prefetchController = new AbortController();
+  inflightPrefetchControllers.set(cacheKey, prefetchController);
 
   const work: Promise<Blob | null> = (
     shouldUseFirebaseNeuralTts
-      ? synthesizeSpeechWithFirebaseAi({ text: firstChunk, isPrefetch: true })
+      ? synthesizeSpeechWithFirebaseAi({
+          text: payloadText,
+          isPrefetch: true,
+          signal: prefetchController.signal,
+        })
       : fetch("/api/v1/voice/speak", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: firstChunk, language, sourceLanguage }),
+          body: JSON.stringify({ text: payloadText, language, sourceLanguage }),
+          signal: prefetchController.signal,
         }).then(async (res) => {
           if (!res.ok) return null;
           const blob = await res.blob();
@@ -1077,6 +1307,7 @@ export function prefetchVoiceClip({
     .catch(() => null)
     .finally(() => {
       inflightPrefetches.delete(cacheKey);
+      inflightPrefetchControllers.delete(cacheKey);
     });
 
   inflightPrefetches.set(cacheKey, work);
@@ -1130,6 +1361,7 @@ function primeSharedAudioForGesture(): HTMLAudioElement | null {
 
 export function primeVoicePlaybackForGesture(): void {
   primeSharedAudioForGesture();
+  primePcmStreamAudioForGesture();
 }
 
 function revokeActiveAudioUrl(): void {
@@ -1144,6 +1376,7 @@ function revokeActiveAudioUrl(): void {
 }
 
 function releaseActiveAudio(): void {
+  stopActivePcmStream();
   if (sharedAudio) {
     try {
       sharedAudio.onended = null;
@@ -1159,7 +1392,8 @@ function releaseActiveAudio(): void {
 }
 
 function rememberAudioClip(key: string, blob: Blob): void {
-  if (audioClipCache.size >= MAX_CACHED_AUDIO_CLIPS) {
+  const { maxCachedClips } = getClientVoiceLimits();
+  if (audioClipCache.size >= maxCachedClips) {
     const oldestKey = audioClipCache.keys().next().value;
     if (oldestKey) audioClipCache.delete(oldestKey);
   }
@@ -1171,6 +1405,9 @@ function stopVoiceOutputInternal(skipIdleSpeechCancel: boolean): void {
   stopHumanBargeInMonitor();
   activeSpeakAbort?.abort();
   activeSpeakAbort = null;
+  if (!skipIdleSpeechCancel) {
+    abortInflightPrefetches();
+  }
   releaseActiveAudio();
   activeUtterances.clear();
   if (isBrowserSpeechSynthesisSupported()) {
@@ -1324,6 +1561,81 @@ export function isHandsFreeCutInCommand(
   return false;
 }
 
+const PAUSE_OR_WAIT_CUT_IN_RE =
+  /^(wait|hold\s+on|hang\s+on|pause|quiet|silence|enough|excuse\s+me|lindako|siriikirira)$/i;
+
+const INTERIM_QUESTION_OPENER_RE =
+  /^(what|what's|how|how's|when|where|will|can|could|should|is\s+it|are\s+there|tell\s+me|check|that\s+of|that\s+in|that\s+for|and\s+what|and\s+in|weather\s+in|weather\s+for|forecast\s+for|wait\b|hold\s+on|actually\b)/i;
+
+const TELEMETRY_READOUT_ECHO_RE =
+  /\b(degrees\s+celsius|degrees\s+fahrenheit|kilometers\s+per\s+hour|millimeters|millibars|saved\s+forecast|made\s+from\s+the\s+saved\s+numbers|without\s+ai|next,?\s+you\s+can\s+say\s+one)\b/i;
+
+export function isPauseOnlyVoiceCommand(transcript: string): boolean {
+  const cleaned = transcript
+    .replace(/[!?.:,;]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return PAUSE_OR_WAIT_CUT_IN_RE.test(cleaned);
+}
+
+/**
+ * Determines whether speech heard while a reply is playing is a real human
+ * interruption (barge-in) rather than speaker echo of the Advisor's own voice.
+ * - `isFinal === false` (interim): triggers early barge-in as soon as the user
+ *   says a clear stop/choice/pause command (excluding ambiguous single-word "to")
+ *   or starts a non-echo question ("What about...", "That of..."), silencing
+ *   playback immediately while the user finishes speaking.
+ * - `isFinal === true`: accepts choices, stop/pause commands, and any non-echo,
+ *   non-telemetry user question or place query.
+ */
+export function isHumanBargeInUtterance({
+  transcript,
+  spokenReply,
+  followUps = [],
+  isFinal,
+}: {
+  transcript: string;
+  spokenReply: string;
+  followUps?: readonly string[];
+  isFinal: boolean;
+}): boolean {
+  const cleaned = transcript
+    .replace(/[!?.:,;]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return false;
+  const lower = cleaned.toLowerCase();
+
+  if (PAUSE_OR_WAIT_CUT_IN_RE.test(lower)) {
+    return true;
+  }
+
+  if (isHandsFreeCutInCommand(cleaned, followUps)) {
+    // A reply sentence starting with "To ..." emits interim "To" first; wait
+    // for finalization on bare "to"/"too" so the speaker never cuts itself off.
+    if (!isFinal && /^(to|too)$/i.test(lower)) {
+      return false;
+    }
+    return true;
+  }
+
+  if (isEchoOfSpokenReply(cleaned, spokenReply)) {
+    return false;
+  }
+
+  const words = lower.split(/\s+/).filter(Boolean);
+  const hasQuestionOpener = INTERIM_QUESTION_OPENER_RE.test(lower) || transcript.includes("?");
+
+  if (TELEMETRY_READOUT_ECHO_RE.test(lower) && !hasQuestionOpener) {
+    return false;
+  }
+
+  if (!isFinal) {
+    return (hasQuestionOpener && words.length >= 2) || words.length >= 4;
+  }
+
+  return words.length >= 2 || hasQuestionOpener;
+}
 /** Hands free voice (listening during the reply and opening the mic again
     after it) needs live speech to text, which browsers only offer for
     English. Luganda is recorded and sent to a paid service, so Luganda voice
@@ -1450,11 +1762,15 @@ function speakWithBrowserVoice({
   generation: number;
   onEnd?: () => void;
 }): boolean {
-  if (!isBrowserSpeechSynthesisSupported()) return false;
-  if (language === "lg" && !hasNativeLugandaVoice()) return false;
+  if (language !== "en" || !isBrowserSpeechSynthesisSupported()) return false;
   try {
-    const spokenText = language === "en" ? formatTextForSpeech(text) : text.trim();
-    const chunks = splitTextForPipelinedSpeech(spokenText, 180, 12);
+    const limits = getClientVoiceLimits();
+    const spokenText = formatTextForSpeech(text);
+    const chunks = splitTextForPipelinedSpeech(
+      spokenText,
+      limits.browserChunkChars,
+      Math.max(12, limits.maxChunks),
+    );
     if (chunks.length === 0) return false;
 
     const synth = window.speechSynthesis;
@@ -1483,7 +1799,7 @@ function speakWithBrowserVoice({
         utterance.lang = chosenVoice.lang;
       } else {
         // Use widely supported en-GB fallback when mobile getVoices() is empty on first tap
-        utterance.lang = language === "lg" ? "lg-UG" : "en-GB";
+        utterance.lang = "en-GB";
       }
       utterance.rate = 0.98;
       utterance.pitch = 1;
@@ -1521,16 +1837,20 @@ export function speakAdvisorReply({
   language,
   sourceLanguage,
   capabilities,
+  preferLocalVoice = false,
   onStateChange,
   onEnd,
+  onError,
   onInterrupted,
 }: {
   text: string;
   language: SupportedLocale;
   sourceLanguage?: SupportedLocale;
   capabilities?: VoiceServerCapabilities;
+  preferLocalVoice?: boolean;
   onStateChange?: (state: VoicePlaybackState) => void;
   onEnd?: () => void;
+  onError?: () => void;
   onInterrupted?: () => void;
 }): boolean {
   const cleaned = text.trim();
@@ -1562,7 +1882,7 @@ export function speakAdvisorReply({
   }
 
   const isOnline = typeof navigator === "undefined" ? true : navigator.onLine !== false;
-  const route = selectNeuralVoiceRoute(language, capabilities, isOnline);
+  const route = selectNeuralVoiceRoute(language, capabilities, isOnline, preferLocalVoice);
   const shouldUseServer = route.useServer;
   const shouldUseFirebaseNeuralTts = route.useFirebase;
 
@@ -1576,29 +1896,28 @@ export function speakAdvisorReply({
     });
     if (!started) {
       notifyFinished();
+      onError?.();
     }
     return started;
   }
 
-  // Unlock the shared HTMLAudioElement synchronously inside the user gesture
-  // so neural audio plays reliably even if synthesis takes several seconds.
+  // Unlock shared HTMLAudioElement + Web Audio synchronously inside the user gesture
+  // so streamed neural audio plays unmuted on iOS Safari and Android Chrome.
   const audio = primeSharedAudioForGesture();
+  primePcmStreamAudioForGesture();
   const payloadText = clampSpeechTextOnSentenceBoundary(
     language === "en" ? formatTextForSpeech(cleaned) : cleaned,
-    1500,
+    getClientVoiceLimits().maxTextChars,
   );
 
-  // The Gemini voice allows only a few requests a minute, so it gets the
-  // answer in two parts at most: a short first sentence so speech starts fast,
-  // then everything else in one request.
-  const chunks = shouldUseFirebaseNeuralTts
-    ? twoPartSpeech(payloadText)
-    : shouldUseServer
-      ? splitTextForPipelinedSpeech(payloadText)
-      : [payloadText];
+  // Send the entire English or Luganda text in one single Gemini request so
+  // streaming starts in ~0.6s-1.4s with seamless prosody and 1 RPM call.
+  const chunks = [payloadText];
 
   const makeCacheKey = (chunkText: string) =>
     `${shouldUseFirebaseNeuralTts ? "fb-tts" : (sourceLanguage ?? language)}:${language}:${chunkText}`;
+  const fullKey = makeCacheKey(payloadText);
+  const serverKey = `${sourceLanguage ?? language}:${language}:${payloadText}`;
 
   const playBlobOnce = (blob: Blob): Promise<void> =>
     new Promise((resolve, reject) => {
@@ -1662,27 +1981,89 @@ export function speakAdvisorReply({
 
   const controller = new AbortController();
   activeSpeakAbort = controller;
+  const rc = getAdvisorRemoteConfig();
+  const FIRST_CHUNK_TIMEOUT_MS = rc.ttsFirstChunkTimeoutMs;
+  const SKIP_BACKUP_AFTER_MS = Math.max(800, Math.round(FIRST_CHUNK_TIMEOUT_MS / 3));
+  const canFallbackToBrowser = language === "en" && isBrowserSpeechSynthesisSupported();
 
-  const fetchChunkBlob = async (chunkText: string): Promise<Blob> => {
+  const fetchChunkBlob = async (chunkText: string, chunkIndex: number): Promise<Blob> => {
     const key = makeCacheKey(chunkText);
     const cached = audioClipCache.get(key);
     if (cached) return cached;
 
-    // Deduplicate against any in-flight background prefetch for this exact chunk
+    const useFastFirstChunkGuard = chunkIndex === 0 && canFallbackToBrowser;
+    const deadlineAt = useFastFirstChunkGuard ? Date.now() + FIRST_CHUNK_TIMEOUT_MS : Infinity;
+
+    const raceWithDeadline = async <T>(
+      work: Promise<T>,
+      onCancel?: () => void,
+    ): Promise<T> => {
+      if (!useFastFirstChunkGuard) {
+        return work;
+      }
+      const remainingMs = Math.max(0, deadlineAt - Date.now());
+      if (remainingMs === 0 || controller.signal.aborted) {
+        onCancel?.();
+        throw new Error("FIRST_CHUNK_TIMEOUT");
+      }
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let abortListener: (() => void) | null = null;
+      try {
+        return await Promise.race<T>([
+          work,
+          new Promise<never>((_, reject) => {
+            abortListener = () => {
+              onCancel?.();
+              reject(new Error("FIRST_CHUNK_TIMEOUT"));
+            };
+            controller.signal.addEventListener("abort", abortListener, { once: true });
+            timer = setTimeout(() => {
+              onCancel?.();
+              reject(new Error("FIRST_CHUNK_TIMEOUT"));
+            }, remainingMs);
+          }),
+        ]);
+      } finally {
+        if (timer !== null) clearTimeout(timer);
+        if (abortListener) {
+          controller.signal.removeEventListener("abort", abortListener);
+        }
+      }
+    };
+
+    // Deduplicate against any in-flight background prefetch for this exact chunk,
+    // while still enforcing the fast first-chunk timeout so pointerdown prefetches
+    // on stalled mobile networks cannot bypass the fallback timer.
     const inflight = inflightPrefetches.get(key);
     if (inflight) {
-      const prefetchedBlob = await inflight;
+      const prefetchedBlob = await raceWithDeadline(inflight, () => {
+        inflightPrefetchControllers.get(key)?.abort();
+        inflightPrefetchControllers.delete(key);
+        inflightPrefetches.delete(key);
+      });
       if (prefetchedBlob && prefetchedBlob.size > 0) {
         return prefetchedBlob;
       }
     }
+
+    const chunkController = useFastFirstChunkGuard ? new AbortController() : null;
+    const onParentAbort = () => chunkController?.abort();
+    if (chunkController) {
+      if (controller.signal.aborted) {
+        chunkController.abort();
+      } else {
+        controller.signal.addEventListener("abort", onParentAbort, { once: true });
+      }
+    }
+
+    const activeSignal = chunkController ? chunkController.signal : controller.signal;
 
     const fetchServerBlob = () =>
       fetch("/api/v1/voice/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: chunkText, language, sourceLanguage }),
-        signal: controller.signal,
+        signal: activeSignal,
       }).then(async (response) => {
         if (!response.ok) {
           throw new Error(`HTTP_${response.status}`);
@@ -1690,52 +2071,256 @@ export function speakAdvisorReply({
         return response.blob();
       });
 
-    let blob: Blob;
-    if (shouldUseFirebaseNeuralTts) {
-      const firebaseBlob = await synthesizeSpeechWithFirebaseAi({
-        text: chunkText,
-        signal: controller.signal,
-      });
-      if (firebaseBlob) {
-        blob = firebaseBlob;
-      } else if (route.serverBackupForEnglish && !controller.signal.aborted) {
-        // Firebase voice is busy or out of quota: use the server's natural
-        // voice before falling back to the more robotic browser voice.
-        blob = await fetchServerBlob();
+    const synthesizeNetworkBlob = async (): Promise<Blob> => {
+      let blob: Blob;
+      if (shouldUseFirebaseNeuralTts) {
+        const startedAt = Date.now();
+        const firebaseBlob = await synthesizeSpeechWithFirebaseAi({
+          text: chunkText,
+          signal: activeSignal,
+        });
+        const allowBackupAttempt =
+          route.serverBackupForEnglish &&
+          !activeSignal.aborted &&
+          (!useFastFirstChunkGuard || Date.now() - startedAt < SKIP_BACKUP_AFTER_MS);
+        if (firebaseBlob) {
+          blob = firebaseBlob;
+        } else if (allowBackupAttempt) {
+          blob = await fetchServerBlob();
+        } else {
+          throw new Error("FIREBASE_TTS_EMPTY");
+        }
       } else {
-        throw new Error("FIREBASE_TTS_EMPTY");
+        blob = await fetchServerBlob();
       }
-    } else {
-      blob = await fetchServerBlob();
-    }
 
-    rememberAudioClip(key, blob);
-    return blob;
+      rememberAudioClip(key, blob);
+      return blob;
+    };
+
+    try {
+      const task = synthesizeNetworkBlob();
+      void task.catch(() => {});
+      return await raceWithDeadline(task, () => chunkController?.abort());
+    } finally {
+      if (chunkController) {
+        controller.signal.removeEventListener("abort", onParentAbort);
+      }
+    }
   };
 
-  if (!audioClipCache.has(makeCacheKey(chunks[0] ?? payloadText))) {
+  const cachedImmediate = audioClipCache.get(fullKey) ?? audioClipCache.get(serverKey);
+  const streamFirebaseFn = shouldUseFirebaseNeuralTts ? getStreamSpeechWithFirebaseAi() : null;
+  const canStreamWebAudio =
+    !cachedImmediate &&
+    isWebAudioStreamSupported() &&
+    (Boolean(streamFirebaseFn) || shouldUseServer || route.serverBackupForEnglish);
+
+  if (!cachedImmediate) {
     onStateChange?.("loading");
   }
 
-  // Pipelined neural playback: always use studio-grade neural voice (Firebase AI
-  // Logic Neural TTS for English, Sunbird Neural TTS for Luganda) when online,
-  // fetching chunk i+1 while chunk i plays. Browser speechSynthesis is strictly
-  // an offline / error fallback and is never triggered mid-flight alongside audio.
+  if (canStreamWebAudio) {
+    // Cancel any unfinished unary hover prefetch for this sentence so streaming
+    // starts immediately without competing for bandwidth or quota.
+    for (const k of [fullKey, serverKey]) {
+      const pendingCtrl = inflightPrefetchControllers.get(k);
+      if (pendingCtrl) {
+        pendingCtrl.abort();
+        inflightPrefetchControllers.delete(k);
+        inflightPrefetches.delete(k);
+      }
+    }
+
+    void (async () => {
+      let firstAudioTimer: ReturnType<typeof setTimeout> | null = null;
+      const clearFirstAudioTimer = () => {
+        if (firstAudioTimer !== null) {
+          clearTimeout(firstAudioTimer);
+          firstAudioTimer = null;
+        }
+      };
+
+      const pcmSession = createPcmStreamSession({
+        onFirstPlay: () => {
+          clearFirstAudioTimer();
+          if (generation === speakGeneration) {
+            onStateChange?.("playing");
+          }
+        },
+      });
+
+      if (!pcmSession) {
+        onError?.();
+        notifyFinished();
+        return;
+      }
+
+      if (isBrowserSpeechSynthesisSupported()) {
+        try {
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+          }
+        } catch {
+          // Ignore cancel errors
+        }
+      }
+
+      if (canFallbackToBrowser) {
+        firstAudioTimer = setTimeout(() => {
+          firstAudioTimer = null;
+          if (!pcmSession.hasStartedPlayback()) {
+            controller.abort();
+          }
+        }, FIRST_CHUNK_TIMEOUT_MS);
+      }
+
+      try {
+        if (shouldUseFirebaseNeuralTts && streamFirebaseFn) {
+          const startedAt = Date.now();
+          const streamed = await streamFirebaseFn({
+            text: payloadText,
+            signal: controller.signal,
+            onPcmChunk: (bytes, rate) => {
+              clearFirstAudioTimer();
+              pcmSession.pushPcm16(bytes, rate);
+            },
+          });
+
+          if (streamed) {
+            clearFirstAudioTimer();
+            const wavBlob = await pcmSession.finish();
+            if (wavBlob && wavBlob.size > 0) {
+              rememberAudioClip(fullKey, wavBlob);
+            }
+            if (generation === speakGeneration) {
+              notifyFinished();
+            }
+            return;
+          }
+
+          const allowBackupAttempt =
+            route.serverBackupForEnglish &&
+            !controller.signal.aborted &&
+            !pcmSession.hasStartedPlayback() &&
+            (!canFallbackToBrowser || Date.now() - startedAt < SKIP_BACKUP_AFTER_MS);
+          if (!allowBackupAttempt) {
+            throw new Error("FIREBASE_STREAM_EMPTY");
+          }
+        }
+
+        const response = await fetch("/api/v1/voice/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: payloadText, language, sourceLanguage, stream: true }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP_${response.status}`);
+        }
+
+        const contentType = (response.headers?.get?.("content-type") ?? "").toLowerCase();
+        if (
+          (contentType.includes("audio/l16") || contentType.includes("audio/pcm")) &&
+          response.body
+        ) {
+          const rateMatch = /rate=(\d+)/i.exec(contentType);
+          const sampleRate = rateMatch ? Number(rateMatch[1]) || 24_000 : 24_000;
+          const reader = response.body.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              if (generation !== speakGeneration) {
+                pcmSession.abort();
+                return;
+              }
+              if (value && value.byteLength > 0) {
+                clearFirstAudioTimer();
+                pcmSession.pushPcm16(value, sampleRate);
+              }
+            }
+          } finally {
+            try {
+              reader.releaseLock();
+            } catch {
+              // Ignore reader release errors
+            }
+          }
+
+          clearFirstAudioTimer();
+          const wavBlob = await pcmSession.finish();
+          if (wavBlob && wavBlob.size > 0) {
+            rememberAudioClip(serverKey, wavBlob);
+            rememberAudioClip(fullKey, wavBlob);
+          }
+          if (generation === speakGeneration) {
+            notifyFinished();
+          }
+          return;
+        }
+
+        // Cached WAV hit or Sunbird WAV/MP3 fallback response
+        clearFirstAudioTimer();
+        pcmSession.abort();
+        const blob = await response.blob();
+        if (generation !== speakGeneration) return;
+        rememberAudioClip(serverKey, blob);
+        rememberAudioClip(fullKey, blob);
+        await playBlobOnce(blob);
+        if (generation === speakGeneration) {
+          notifyFinished();
+        }
+      } catch {
+        clearFirstAudioTimer();
+        const hadStarted = pcmSession.hasStartedPlayback();
+        pcmSession.abort();
+        if (generation !== speakGeneration) return;
+        controller.abort();
+        releaseActiveAudio();
+        if (isBrowserSpeechSynthesisSupported()) {
+          try {
+            window.speechSynthesis.cancel();
+          } catch {
+            // Ignore cancel errors
+          }
+        }
+        const fellBack =
+          !hadStarted && canFallbackToBrowser
+            ? speakWithBrowserVoice({
+                text: cleaned,
+                language,
+                generation,
+                onEnd: notifyFinished,
+              })
+            : false;
+        if (fellBack) {
+          onStateChange?.("playing");
+        } else {
+          notifyFinished();
+          onError?.();
+        }
+      }
+    })();
+
+    return true;
+  }
+
+  // Fallback blob playback path (cached clips and environments without Web Audio)
   void (async () => {
     let currentChunkIndex = 0;
     try {
-      let nextPromise: Promise<Blob> | null = chunks[0] ? fetchChunkBlob(chunks[0]) : null;
+      let nextPromise: Promise<Blob> | null = chunks[0] ? fetchChunkBlob(chunks[0], 0) : null;
       for (let i = 0; i < chunks.length; i += 1) {
         currentChunkIndex = i;
         if (generation !== speakGeneration || !nextPromise) return;
         const currentPromise = nextPromise;
-        // Kick off synthesis of the next chunk concurrently while waiting/playing current chunk
-        nextPromise = i + 1 < chunks.length ? fetchChunkBlob(chunks[i + 1]!) : null;
-        // Prevent unhandled rejection if aborted before next chunk is awaited
-        if (nextPromise) void nextPromise.catch(() => {});
-
         const blob = await currentPromise;
         if (generation !== speakGeneration) return;
+
+        nextPromise = i + 1 < chunks.length ? fetchChunkBlob(chunks[i + 1]!, i + 1) : null;
+        if (nextPromise) void nextPromise.catch(() => {});
+
         await playBlobOnce(blob);
       }
       if (generation === speakGeneration) {
@@ -1765,8 +2350,11 @@ export function speakAdvisorReply({
             onEnd: notifyFinished,
           })
         : false;
-      if (!fellBack) {
+      if (fellBack) {
+        onStateChange?.("playing");
+      } else {
         notifyFinished();
+        onError?.();
       }
     }
   })();

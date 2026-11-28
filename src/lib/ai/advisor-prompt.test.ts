@@ -19,6 +19,8 @@ describe("advisor-prompt", () => {
     expect(fisherLg).toContain("lake safety");
     expect(fisherLg).toContain("Empandiika y'Oluganda Entongole");
     expect(fisherLg).toContain("Gyebaleko");
+    expect(fisherLg).toContain("Never start a non-greeting weather answer");
+    expect(fisherLg).toContain("cite exact Luganda equatorial hours");
     expect(fisherLg).toContain("Essaawa ki ezisinga obulungi leero?");
     expect(fisherLg).toContain("earlier messages in the conversation history were written in English");
   });

@@ -23,13 +23,13 @@ export function PressureWidget({ weather }: { weather: WeatherBundle }) {
       <p className="text-[34px] font-medium text-white">
         {uiLanguage === "lg" ? (
           <>
-            <span className="mr-1 text-[18px] font-normal text-white/75">mb</span>
+            <span className="text-[18px] font-normal text-white/75">mb</span>{" "}
             {weather.pressureMb}
           </>
         ) : (
           <>
-            {weather.pressureMb}
-            <span className="ml-1 text-[18px] font-normal text-white/75">mb</span>
+            {weather.pressureMb}{" "}
+            <span className="text-[18px] font-normal text-white/75">mb</span>
           </>
         )}
       </p>
