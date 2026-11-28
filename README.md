@@ -123,18 +123,24 @@ Here is more of what Firebase does in this app.
 - When you compare two districts, the cloud model can look up the second district by itself (function calling).
 - Every weather answer carries a Go, Caution, or Wait safety verdict checked against the forecast rain and wind thresholds.
 - The rules the AI follows can be stored on Firebase as server prompt templates, so they do not ship inside the app.
-- Remote Config lets me change the AI model or the voice, or pause the advisor, without releasing a new version (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`).
+- Remote Config lets me change the cloud AI model, client English voice model and speaker, opening timeout, chunk sizes, or slow network thresholds, or pause the advisor, without releasing a new version (`src/lib/ai/remote-config.ts`, `remoteconfig.template.json`).
 - App Check with reCAPTCHA Enterprise makes sure the AI is only used by this app.
-- The English voice comes from Gemini through Firebase AI Logic, with a server voice backup and your browser's own voice after that, plus hands free listening while a reply plays so you can say a choice or stop at any time. Luganda voice is tap to talk and read aloud through Sunbird AI so replies are never sent for paid transcription.
+- The English voice streams the whole forecast or reply in one Gemini 3.8 Flash TTS request through Firebase AI Logic (played right away through Web Audio as the first PCM frames arrive and cached in browser memory for the open tab), with a server streaming Gemini backup and your device's built in English voice as fallback when offline, on slow 2G and data saving connections, or if the opening audio takes longer than the configured timeout, plus hands free listening while a reply plays so speaking a question, district, choice, or stop interrupts playback right away (with phonetic Ugandan district matching such as `"That of Waukesha"` asking `"Did you mean Wakiso?"`). Luganda voice is tap to talk for speech input via Sunbird AI, and read aloud on the server by streaming Gemini 3.8 Flash TTS first with automatic fallback to Sunbird AI Luganda speech (or Sunbird AI directly when only the Sunbird token is set, never falling back to a robotic English voice). Server WAV clips step down to 12 kHz to halve data use and are saved in shared Upstash Redis across visitors.
 
 ```mermaid
 flowchart LR
   Speak["You speak a question"] --> SpeakLang{"Which language?"}
-  SpeakLang -->|"English"| EngMic["Browser speech to text, hands free during replies, with Gemini backup"]
+  SpeakLang -->|"English"| EngMic["Browser speech to text, hands free barge in during replies, with Gemini backup"]
   SpeakLang -->|"Luganda"| LugMic["Tap to talk sends one short clip to Sunbird AI"]
-  Listen["You tap Listen on a forecast or answer"] --> ListenLang{"Which language?"}
-  ListenLang -->|"English"| EngVoice["Gemini voice, then server voice backup, then browser voice"]
-  ListenLang -->|"Luganda"| LugVoice["Sunbird AI Luganda voice, or browser voice if installed"]
+  Listen["You tap Listen on a forecast or answer"] --> ListenLang{"Which language and network?"}
+  ListenLang -->|"English offline, 2G, or data saver"| PhoneVoice["Device built in English voice right away, zero data used"]
+  ListenLang -->|"English online"| EngVoice["Whole text streamed via Firebase AI Logic Gemini 3.8 Flash TTS, server backup, or device voice fallback"]
+  ListenLang -->|"Luganda"| ServerCache{"Clip in server memory or Upstash Redis?"}
+  ServerCache -->|"Yes"| PlayLg["Plays saved 12 kHz audio right away"]
+  ServerCache -->|"No"| LugPrimary["Streams Gemini 3.8 Flash TTS Luganda audio right away"]
+  LugPrimary -->|"Ready"| PlayLg
+  LugPrimary -->|"Error or Sunbird only"| LugBackup["Sunbird AI Luganda voice fallback, never robotic English"]
+  LugBackup --> PlayLg
 ```
 
 The summary used when no AI can answer is in `src/lib/ai/offline-briefing.ts`. The privacy checks are in `src/lib/ai/advisor-guard.ts` and `src/lib/ai/advisor-image.ts`.
@@ -148,18 +154,18 @@ The summary used when no AI can answer is in `src/lib/ai/offline-briefing.ts`. T
 
 ## What existed before, and what I built for the hackathon
 
-Uganda Weather existed before November 11, 2026, as a weather site and app for all 152 districts, with towns, villages, lakes, parks, mountains, airport weather, and English and Luganda screens. That is what keeps the advisor honest. It answers from real Ugandan forecasts and known local dangers.
+Uganda Weather existed before November 11, 2026, as a free public weather site (`uganda-weather.com`, first released in July 2026) and app wrapper for all 152 districts, with towns, villages, lakes, parks, mountains, airport weather, and English and Luganda screens. Public usage note: the live site has no user accounts, sign ups, or paid tiers, and serves early organic public visitors looking up Ugandan district forecasts (cookieless Vercel Web Analytics only, with zero personal user records). That existing weather foundation is what keeps the advisor honest. It answers from real Ugandan forecasts and known local dangers.
 
 Between November 11 and 30, 2026, I built
 
-- the whole Hybrid AI Weather Safety Advisor on Firebase AI Logic, with routing, streaming, function calling, safety verdicts, server prompt templates, Remote Config, and App Check,
+- the whole Hybrid AI Weather Safety Advisor on Firebase AI Logic, with routing, automatic network mode detection and floating Online and Offline mode selector, streaming, function calling, safety verdicts, server prompt templates, Remote Config, and App Check,
 - answers that still work offline on phones without an AI model, and when the cloud AI fails,
 - the privacy protections for questions and photos,
 - English and Luganda read aloud, hands free voice in English, and tap to talk voice in Luganda,
 - the photo checks and the live camera,
 - the low data page, SMS and WhatsApp sharing, the large text and high contrast switches, and community safety warnings (sun protection for people with albinism, livestock heat and water in Karamoja, and landslide watch on mountain slopes),
 - layouts checked from tiny feature phone screens to desktop,
-- and 748 automated unit tests plus 40 browser tests.
+- and 772 automated unit tests plus 40 browser tests.
 
 ## Try it offline
 
@@ -184,6 +190,7 @@ Then put your Firebase web settings in `.env.local`.
 - `NEXT_PUBLIC_FIREBASE_RECAPTCHA_ENTERPRISE_SITE_KEY` turns on App Check. While testing, you can use `NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN=true` instead.
 - `WEATHERAPI_KEY` is optional. Without it the app uses Open-Meteo, which needs no key.
 - `WEATHER_PRIMARY_PROVIDER=open-meteo` asks Open-Meteo first and keeps WeatherAPI as the backup. This is what the live hybrid site does.
+- `SUNBIRD_API_TOKEN` (or `VOICE_API_TOKEN`), `GEMINI_API_KEY`, and `UPSTASH_REDIS_REST_URL` plus `UPSTASH_REDIS_REST_TOKEN` (or Vercel's `KV_REST_API_URL` and `KV_REST_API_TOKEN`) are optional and turn on Gemini 3.8 Flash TTS streaming for Luganda and English server backup, Sunbird AI Luganda speech input and Luganda voice fallback, and shared voice caching across visitors. Every voice model, speaker, timeout, sample rate, and cache TTL can be changed through `.env.local` and Firebase Remote Config without editing code.
 
 Start the app.
 

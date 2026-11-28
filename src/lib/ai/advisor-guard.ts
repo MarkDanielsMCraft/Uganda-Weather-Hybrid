@@ -37,7 +37,7 @@ export interface RateLimitResult {
 }
 
 const RATE_LIMIT_STORAGE_KEY = "uw:advisor-rate:v1";
-const MIN_INTERVAL_MS = 2_000;
+const MIN_INTERVAL_MS = 800;
 const WINDOW_MS = 60_000;
 const MAX_PER_MINUTE = 8;
 const DAY_MS = 86_400_000;
@@ -127,15 +127,24 @@ export function sanitizeUserMessage(raw: string): string {
   return normalizeInput(raw).replace(/[\u0000-\u001F\u007F]/g, "");
 }
 
-const PII_REDACTION_PATTERNS: readonly RegExp[] = [
+const PII_REDACTION_RULES: ReadonlyArray<{
+  pattern: RegExp;
+  preservePrefix?: boolean;
+}> = [
   // Email addresses
-  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   // Uganda National ID (NIN: CM/CF + 12 alphanumeric chars)
-  /\b(?:CM|CF)[A-Z0-9]{12}\b/gi,
-  // Ugandan mobile numbers (+256 7XX XXX XXX or 07XX XXX XXX)
-  /(?<!\d)(?:\+?256[\s.-]?|0)7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g,
-  // International phone numbers (+CC XXX XXX XXXX)
-  /(?<!\d)\+\d{1,3}[\s.-]?\d{3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}(?!\d)/g,
+  { pattern: /\b(?:CM|CF)[A-Z0-9]{12}\b/gi },
+  // Ugandan mobile numbers (+256 7XX XXX XXX or 07XX XXX XXX) without regex lookbehind so iOS 15 Safari loads cleanly
+  {
+    pattern: /(^|[^\d])(?:\+?256[\s.-]?|0)7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g,
+    preservePrefix: true,
+  },
+  // International phone numbers (+CC XXX XXX XXXX) without regex lookbehind
+  {
+    pattern: /(^|[^\d])\+\d{1,3}[\s.-]?\d{3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}(?!\d)/g,
+    preservePrefix: true,
+  },
 ];
 
 /**
@@ -149,11 +158,11 @@ export function redactPiiForCloud(raw: string): {
 } {
   let sanitized = raw;
   let redactedCount = 0;
-  for (const pattern of PII_REDACTION_PATTERNS) {
-    pattern.lastIndex = 0;
-    sanitized = sanitized.replace(pattern, () => {
+  for (const rule of PII_REDACTION_RULES) {
+    rule.pattern.lastIndex = 0;
+    sanitized = sanitized.replace(rule.pattern, (_match, prefix?: string) => {
       redactedCount += 1;
-      return "[redacted]";
+      return rule.preservePrefix ? `${prefix ?? ""}[redacted]` : "[redacted]";
     });
   }
   return { sanitized, redactedCount };
@@ -375,6 +384,36 @@ const LOCATION_STOPWORDS = new Set([
   "from",
   "that",
   "this",
+  "when",
+  "where",
+  "which",
+  "whose",
+  "have",
+  "does",
+  "going",
+  "outside",
+  "indoors",
+  "another",
+  "question",
+  "umbrella",
+  "clothes",
+  "jacket",
+  "harvest",
+  "planting",
+  "spraying",
+  "drying",
+  "sunrise",
+  "sunset",
+  "degrees",
+  "celsius",
+  "humidity",
+  "pressure",
+  "warning",
+  "warnings",
+  "advisory",
+  "summary",
+  "uganda",
+  "ugandan",
   "embeera",
   "obudde",
   "enkuba",
@@ -425,29 +464,141 @@ const LOCATION_STOPWORDS = new Set([
   "ekibuga",
 ]);
 
+const KNOWN_EXTERNAL_PLACES = new Set([
+  "kenya",
+  "tanzania",
+  "rwanda",
+  "burundi",
+  "congo",
+  "sudan",
+  "ethiopia",
+  "somalia",
+  "nigeria",
+  "ghana",
+  "egypt",
+  "morocco",
+  "america",
+  "england",
+  "nairobi",
+  "mombasa",
+  "kisumu",
+  "kigali",
+  "bujumbura",
+  "juba",
+  "kinshasa",
+  "goma",
+  "dodoma",
+  "arusha",
+  "lusaka",
+  "harare",
+  "johannesburg",
+  "lagos",
+  "accra",
+  "cairo",
+  "london",
+  "paris",
+  "dubai",
+  "tokyo",
+  "beijing",
+  "washington",
+  "chicago",
+  "boston",
+]);
+
+/** Common US/UK SpeechRecognition homophones when Ugandan place names are spoken aloud. */
+const ASR_UGANDA_MISHEARINGS: Readonly<Record<string, string>> = {
+  waukesha: "wakiso",
+  wakisho: "wakiso",
+  wakisso: "wakiso",
+  waikato: "wakiso",
+  ginger: "jinja",
+  aruba: "arua",
+  aruwa: "arua",
+  embarara: "mbarara",
+  umbarara: "mbarara",
+  barara: "mbarara",
+  embale: "mbale",
+  umbali: "mbale",
+  ntebe: "entebbe",
+  antebe: "entebbe",
+  mykonos: "mukono",
+  mokono: "mukono",
+  totoro: "tororo",
+  sarasota: "soroti",
+  sorotti: "soroti",
+  calangala: "kalangala",
+  casese: "kasese",
+  cabale: "kabale",
+  lyra: "lira",
+  leera: "lira",
+  hoyma: "hoima",
+  eganga: "iganga",
+  hulu: "gulu",
+  zulu: "gulu",
+};
+
+/** Normalizes English ASR spelling quirks (wau->wa, sh->s, ph->f, ck->k, doubled
+    letters, and unstressed e/i and a/o vowels) into a Ugandan Bantu phonetic key. */
+function ugandaPhoneticKey(word: string): string {
+  const base = word
+    .toLowerCase()
+    .replace(/[^a-z]/g, "")
+    .replace(/^wau/, "wa")
+    .replace(/au|aw/g, "o")
+    .replace(/sh/g, "s")
+    .replace(/ph/g, "f")
+    .replace(/ck|q/g, "k")
+    .replace(/c(?=[aoulr])/g, "k")
+    .replace(/wh/g, "w")
+    .replace(/kh/g, "k")
+    .replace(/gh/g, "g")
+    .replace(/th/g, "t")
+    .replace(/(.)\1+/g, "$1");
+  if (base.length <= 2) return base;
+  return (
+    base[0]! +
+    base
+      .slice(1)
+      .replace(/[ei]/g, "i")
+      .replace(/[ao]/g, "a")
+  );
+}
+
+function consonantSkeleton(word: string): string {
+  const phonetic = ugandaPhoneticKey(word);
+  return phonetic.replace(/[aeiou]/g, "");
+}
+
 /** Resolves a Uganda district, national park, mountain peak, or airport
     referenced in a user's chat message, including bare district queries,
-    4+ character prefixes ("What of Bukoma" -> "Bukomansimbi"), and typo
-    corrections ("Kampalla" -> "Kampala", "Entebe" -> "Entebbe"). */
+    4+ character prefixes ("What of Bukoma" -> "Bukomansimbi"), typo
+    corrections ("Kampalla" -> "Kampala", "Entebe" -> "Entebbe"), and spoken
+    ASR mishearings ("That of Waukesha" -> "Wakiso"). */
 export function resolveReferencedUgandaLocation(
   raw: string,
 ): ResolvedAdvisorLocation | null {
-  const cleaned = stripTrailingPunctuation(sanitizeUserMessage(raw));
+  const sanitized = sanitizeUserMessage(raw).replace(/[!?.:,;]+$/g, "").trim();
+  const cleaned = sanitized.toLowerCase();
   if (!cleaned) return null;
 
   const districts = getAllDistricts();
   const allPlaces = [...NATIONAL_PARKS, ...MOUNTAIN_PEAKS, ...AIRPORTS];
 
+  const leadingPhraseRe =
+    /^(?:and\s+)?(?:what\s+is\s+the\s+weather\s+(?:in|for|at)|what's\s+the\s+weather\s+(?:in|for|at)|how\s+is\s+the\s+weather\s+(?:in|for|at)|how's\s+the\s+weather\s+(?:in|for|at)|what\s+about|what\s+of|that\s+of|that\s+for|that\s+in|how\s+about|how\s+is|how's|what's|weather\s+in|weather\s+for|forecast\s+for|forecast\s+in|and\s+in|and\s+for|embeera\s+y'obudde\s+e|obudde\s+bw'e|obudde\s+e|enkuba\s+e|empewo\s+e|ate\s+e|ate)\s+/i;
+
   // Strip common leading weather phrasing to check if the user is asking
   // specifically about a named district or place.
-  const strippedCandidate = cleaned
-    .replace(
-      /^(what\s+is\s+the\s+weather\s+in|how\s+is\s+the\s+weather\s+in|what\s+about|what\s+of|how\s+about|how\s+is|weather\s+in|weather\s+for|forecast\s+for|forecast\s+in|embeera\s+y'obudde\s+e|obudde\s+bw'e|obudde\s+e|enkuba\s+e|empewo\s+e|ate\s+e|ate)\s+/i,
-      "",
-    )
-    .trim();
+  const strippedOriginal = sanitized.replace(leadingPhraseRe, "").trim();
+  const strippedCandidate = strippedOriginal.toLowerCase();
+
+  const hasTopicOrTimeQualifier =
+    /\b(today|tonight|tomorrow|morning|afternoon|evening|night|rain|raining|wind|windy|storm|storms|safe|farm|farming|crop|crops|drying|spraying|planting|fishing|lake|trail|leero|enkya|ekiro|enkuba|empewo)\b/i.test(
+      strippedCandidate,
+    );
 
   const isBareLocationQuery =
+    !hasTopicOrTimeQualifier &&
     strippedCandidate.split(/\s+/).length <= 3 &&
     (strippedCandidate === cleaned || strippedCandidate.length < cleaned.length);
 
@@ -522,15 +673,40 @@ export function resolveReferencedUgandaLocation(
     }
   }
 
-  // 4. Prefix or fuzzy spelling match on candidate words (e.g. "What of Bukoma"
-  // -> "Bukomansimbi", "How is Kampalla" -> "Kampala", "Entebe" -> "Entebbe").
-  const candidateTokens = strippedCandidate
+  // 4. Prefix, ASR homophone, or fuzzy phonetic/spelling match on candidate words
+  // (e.g. "What of Bukoma" -> "Bukomansimbi", "That of Waukesha" -> "Wakiso").
+  const rawTokens = strippedOriginal
     .split(/[^a-z0-9'-]+/i)
-    .map((token) => token.trim().toLowerCase())
-    .filter((token) => token.length >= 4 && !LOCATION_STOPWORDS.has(token));
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 4);
 
-  // Prefer prefix matches first (e.g. "bukoma" -> "Bukomansimbi", "bwindi" -> "Bwindi")
-  for (const token of candidateTokens) {
+  const candidatePairs = rawTokens
+    .map((original) => ({ original, lower: original.toLowerCase() }))
+    .filter(
+      ({ lower }) =>
+        !LOCATION_STOPWORDS.has(lower) && !KNOWN_EXTERNAL_PLACES.has(lower),
+    );
+
+  // Known ASR homophones of Ugandan districts (e.g. "Waukesha" -> "Wakiso")
+  for (const { original, lower } of candidatePairs) {
+    const mappedSlug = ASR_UGANDA_MISHEARINGS[lower];
+    if (mappedSlug) {
+      const mappedDistrict = getDistrictBySlug(mappedSlug);
+      if (mappedDistrict) {
+        return {
+          kind: "district",
+          slug: mappedDistrict.slug,
+          name: mappedDistrict.name,
+          isBareLocationQuery,
+          matchedBySpellingCorrection: true,
+          typedTerm: original,
+        };
+      }
+    }
+  }
+
+  // Prefer prefix matches next (e.g. "bukoma" -> "Bukomansimbi", "bwindi" -> "Bwindi")
+  for (const { original, lower: token } of candidatePairs) {
     const prefixDistrict = districts.find(
       (d) =>
         d.name.toLowerCase().startsWith(token) ||
@@ -543,7 +719,7 @@ export function resolveReferencedUgandaLocation(
         name: prefixDistrict.name,
         isBareLocationQuery,
         matchedBySpellingCorrection: true,
-        typedTerm: token,
+        typedTerm: original,
       };
     }
 
@@ -572,16 +748,19 @@ export function resolveReferencedUgandaLocation(
             .toLowerCase()
             .split(/\s+/)
             .some((word) => word === token),
-        typedTerm: token,
+        typedTerm: original,
       };
     }
   }
 
   // Fuzzy Levenshtein edit-distance match for misspelled district names
-  let bestDistrict: { district: (typeof districts)[number]; dist: number; token: string } | null =
-    null;
+  let bestDistrict: {
+    district: (typeof districts)[number];
+    dist: number;
+    typed: string;
+  } | null = null;
 
-  for (const token of candidateTokens) {
+  for (const { original, lower: token } of candidatePairs) {
     const maxDist = token.length >= 6 ? 2 : 1;
     for (const district of districts) {
       const baseName = district.name.toLowerCase().replace(/\s+city$/i, "");
@@ -589,7 +768,7 @@ export function resolveReferencedUgandaLocation(
       if (baseName[0] !== token[0]) continue;
       const dist = levenshteinDistance(token, baseName);
       if (dist <= maxDist && (!bestDistrict || dist < bestDistrict.dist)) {
-        bestDistrict = { district, dist, token };
+        bestDistrict = { district, dist, typed: original };
       }
     }
   }
@@ -601,7 +780,52 @@ export function resolveReferencedUgandaLocation(
       name: bestDistrict.district.name,
       isBareLocationQuery,
       matchedBySpellingCorrection: true,
-      typedTerm: bestDistrict.token,
+      typedTerm: bestDistrict.typed,
+    };
+  }
+
+  // Phonetic & consonant-skeleton match for spoken Ugandan district names
+  // transcribed with English orthography (e.g. "Waukesha" / "Wakisho" -> "Wakiso").
+  let bestPhonetic: {
+    district: (typeof districts)[number];
+    score: number;
+    typed: string;
+  } | null = null;
+
+  for (const { original, lower: token } of candidatePairs) {
+    if (token.length < 5) continue;
+    const tokenPhonetic = ugandaPhoneticKey(token);
+    const tokenConsonants = consonantSkeleton(token);
+    if (tokenConsonants.length < 3) continue;
+
+    for (const district of districts) {
+      const baseName = district.name.toLowerCase().replace(/\s+city$/i, "");
+      if (baseName.length < 4) continue;
+      const distPhonetic = ugandaPhoneticKey(baseName);
+      if (distPhonetic[0] !== tokenPhonetic[0]) continue;
+      if (Math.abs(distPhonetic.length - tokenPhonetic.length) > 2) continue;
+
+      const distConsonants = consonantSkeleton(baseName);
+      const consonantDist = levenshteinDistance(tokenConsonants, distConsonants);
+      const phoneticDist = levenshteinDistance(tokenPhonetic, distPhonetic);
+      if (
+        consonantDist === 0 &&
+        phoneticDist <= 1 &&
+        (!bestPhonetic || phoneticDist < bestPhonetic.score)
+      ) {
+        bestPhonetic = { district, score: phoneticDist, typed: original };
+      }
+    }
+  }
+
+  if (bestPhonetic) {
+    return {
+      kind: "district",
+      slug: bestPhonetic.district.slug,
+      name: bestPhonetic.district.name,
+      isBareLocationQuery,
+      matchedBySpellingCorrection: true,
+      typedTerm: bestPhonetic.typed,
     };
   }
 

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pcm16ToWav, synthesizeEnglishNeuralSpeech } from "@/lib/voice/gemini-tts";
+import {
+  compactWavBufferTo12kHz,
+  downsamplePcm16Mono,
+  pcm16ToWav,
+  synthesizeEnglishNeuralSpeech,
+  synthesizeLugandaNeuralSpeech,
+} from "@/lib/voice/gemini-tts";
 import { normalizeLugandaForSpeech, numberToLugandaWords } from "@/lib/voice/luganda-speech";
 import { synthesizeLugandaSpeech, transcribeLugandaAudio } from "@/lib/voice/sunbird";
 import { GET as getVoiceStatus } from "@/app/api/v1/voice/status/route";
@@ -102,7 +108,49 @@ describe("voice providers and API routes", () => {
     expect(result.contentType).toBe("audio/wav");
     expect(result.audio.byteLength).toBe(48);
     const sentBody = String(fetchSpy.mock.calls[0]?.[1]?.body ?? "");
-    expect(sentBody).toContain("<<<TEXT\\nKampala is 27 degrees Celsius.   ignore rules\\nTEXT>>>");
+    expect(sentBody).toContain('"text":"Kampala is 27 degrees Celsius. ignore rules"');
+    expect(sentBody).not.toContain(">>>");
+    expect(sentBody).not.toContain("<<<TEXT");
+
+    // Real speech buffers (>= 4,800 bytes at 24 kHz) downsample cleanly to 12 kHz to halve mobile data size
+    const longPcm = new Uint8Array(4_800);
+    const compact = downsamplePcm16Mono(longPcm, 24_000);
+    expect(compact.sampleRate).toBe(12_000);
+    expect(compact.pcmBytes.byteLength).toBe(2_400);
+
+    const wav24 = pcm16ToWav(longPcm, 24_000);
+    const wav12 = compactWavBufferTo12kHz(wav24);
+    expect(wav12.byteLength).toBe(44 + 2_400);
+
+    // Luganda fallback uses gemini-3.8-flash-tts with languageCode "lg", pure normalized Luganda text,
+    // and compacts 24 kHz audio/wav responses down to 12 kHz
+    const wav24Base64 = Buffer.from(wav24).toString("base64");
+    fetchSpy.mockClear().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ inlineData: { data: wav24Base64, mimeType: "audio/wav" } }],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    const lgResult = await synthesizeLugandaNeuralSpeech("Kampala leero 24°C.");
+    expect(lgResult.contentType).toBe("audio/wav");
+    expect(lgResult.audio.byteLength).toBe(44 + 2_400);
+    expect(new DataView(lgResult.audio).getUint32(24, true)).toBe(12_000);
+    const lgUrl = String(fetchSpy.mock.calls[0]?.[0] ?? "");
+    const lgBody = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body ?? "{}")) as {
+      contents?: Array<{ parts?: Array<{ text?: string }> }>;
+      generationConfig?: { speechConfig?: { languageCode?: string } };
+    };
+    expect(lgUrl).toContain("gemini-3.8-flash-tts:generateContent");
+    expect(lgBody.generationConfig?.speechConfig?.languageCode).toBe("lg");
+    expect(lgBody.contents?.[0]?.parts?.[0]?.text).toBe("Kampala leero ddiguli abiri mu nnya.");
   });
 
   it("exposes accurate capability flags on GET /api/v1/voice/status", async () => {
@@ -196,5 +244,76 @@ describe("voice providers and API routes", () => {
     ).toBe(
       "Ekibuga Mbarara. Ebbugumu ddiguli abiri mu nnya, enkuba ebitundu kyenda mu mukaaga ku kikumi, empewo kilomiita mukaaga buli ssaawa.",
     );
+
+    const start = performance.now();
+    const adversarialSpaces = `${" ".repeat(50_000)}Mbarara (Equator) · 24°C`;
+    expect(normalizeLugandaForSpeech(adversarialSpaces)).toBe(
+      "Mbarara, ddiguli abiri mu nnya",
+    );
+    expect(performance.now() - start).toBeLessThan(100);
+  });
+
+  it("reads Luganda TTS model, voice, language code, and sample rate dynamically from environment variables", async () => {
+    const prevLgModel = process.env.GEMINI_LUGANDA_TTS_MODEL;
+    const prevLgVoice = process.env.GEMINI_LUGANDA_TTS_VOICE;
+    const prevLgLang = process.env.GEMINI_LUGANDA_LANGUAGE_CODE;
+    const prevCompactRate = process.env.VOICE_COMPACT_SAMPLE_RATE;
+
+    try {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+      process.env.GEMINI_LUGANDA_TTS_MODEL = "custom-luganda-tts-model";
+      process.env.GEMINI_LUGANDA_TTS_VOICE = "Aoede";
+      process.env.GEMINI_LUGANDA_LANGUAGE_CODE = "lg-UG";
+      process.env.VOICE_COMPACT_SAMPLE_RATE = "24000";
+
+      const wav24 = pcm16ToWav(new Uint8Array(4_800), 24_000);
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      inlineData: {
+                        data: Buffer.from(wav24).toString("base64"),
+                        mimeType: "audio/wav",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+      const res = await synthesizeLugandaNeuralSpeech("Gulu leero nteefu.");
+      expect(new DataView(res.audio).getUint32(24, true)).toBe(24_000);
+      const calledUrl = String(fetchSpy.mock.calls[0]?.[0] ?? "");
+      const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body ?? "{}")) as {
+        generationConfig?: {
+          speechConfig?: {
+            languageCode?: string;
+            voiceConfig?: { prebuiltVoiceConfig?: { voiceName?: string } };
+          };
+        };
+      };
+      expect(calledUrl).toContain("custom-luganda-tts-model:generateContent");
+      expect(body.generationConfig?.speechConfig?.languageCode).toBe("lg-UG");
+      expect(
+        body.generationConfig?.speechConfig?.voiceConfig?.prebuiltVoiceConfig?.voiceName,
+      ).toBe("Aoede");
+    } finally {
+      if (prevLgModel === undefined) delete process.env.GEMINI_LUGANDA_TTS_MODEL;
+      else process.env.GEMINI_LUGANDA_TTS_MODEL = prevLgModel;
+      if (prevLgVoice === undefined) delete process.env.GEMINI_LUGANDA_TTS_VOICE;
+      else process.env.GEMINI_LUGANDA_TTS_VOICE = prevLgVoice;
+      if (prevLgLang === undefined) delete process.env.GEMINI_LUGANDA_LANGUAGE_CODE;
+      else process.env.GEMINI_LUGANDA_LANGUAGE_CODE = prevLgLang;
+      if (prevCompactRate === undefined) delete process.env.VOICE_COMPACT_SAMPLE_RATE;
+      else process.env.VOICE_COMPACT_SAMPLE_RATE = prevCompactRate;
+    }
   });
 });

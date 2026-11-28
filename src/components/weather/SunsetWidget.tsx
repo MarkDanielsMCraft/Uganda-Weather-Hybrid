@@ -37,7 +37,9 @@ function SunsetDetailContent({ weather }: { weather: WeatherBundle }) {
             <div>
               <p className="text-white/40">{s.sunrise}</p>
               <p className={valueTextClass}>
-                {formatClockLabelForLanguage(sunrise, uiLanguage, "medium")}
+                {isLuganda
+                  ? `ssaawa ${formatClockLabelForLanguage(sunrise, uiLanguage, "medium")}`
+                  : formatClockLabelForLanguage(sunrise, uiLanguage, "medium")}
               </p>
             </div>
             <div>
@@ -49,7 +51,9 @@ function SunsetDetailContent({ weather }: { weather: WeatherBundle }) {
             <div>
               <p className="text-white/40">{s.sunset}</p>
               <p className={valueTextClass}>
-                {formatClockLabelForLanguage(sunset, uiLanguage, "medium")}
+                {isLuganda
+                  ? `ssaawa ${formatClockLabelForLanguage(sunset, uiLanguage, "medium")}`
+                  : formatClockLabelForLanguage(sunset, uiLanguage, "medium")}
               </p>
             </div>
           </div>
@@ -78,7 +82,7 @@ export function SunsetWidget({ weather }: { weather: WeatherBundle }) {
   return (
     <WidgetTile
       title={dict.metrics.sunset}
-      footer={`${dict.metrics.sunrise}: ${formattedSunrise}`}
+      footer={`${dict.metrics.sunrise}: ${isLuganda ? `ssaawa ${formattedSunrise}` : formattedSunrise}`}
       theme={weather.condition.theme}
       detail={sunsetDetail(weather)}
     >

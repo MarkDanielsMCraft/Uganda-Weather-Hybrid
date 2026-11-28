@@ -11,7 +11,7 @@ export async function GET() {
 
   return jsonResponse(
     {
-      lugandaTts: cloudVoiceReady,
+      lugandaTts: cloudVoiceReady || englishNeuralTts,
       lugandaStt: cloudVoiceReady,
       lugandaTranslation: cloudVoiceReady,
       englishNeuralTts,

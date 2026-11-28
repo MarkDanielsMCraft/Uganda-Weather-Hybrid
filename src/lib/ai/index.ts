@@ -24,6 +24,7 @@ export {
   getFirebaseApp,
   isAppCheckActive,
   isFirebaseAiConfigured,
+  warmFirebaseAiClient,
 } from "./firebase-client";
 export {
   getAdvisorRemoteConfig,

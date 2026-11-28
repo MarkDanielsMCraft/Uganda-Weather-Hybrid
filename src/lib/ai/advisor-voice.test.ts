@@ -112,8 +112,9 @@ describe("advisor-voice", () => {
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(speak).toHaveBeenCalledTimes(1);
 
+    // Luganda never uses local robotic browser speechSynthesis voices, even if advertised
     getVoices.mockReturnValueOnce([{ lang: "lg-UG", name: "Luganda" }]);
-    expect(isVoiceOutputSupported("lg")).toBe(true);
+    expect(isVoiceOutputSupported("lg")).toBe(false);
 
     stopVoiceOutput();
     expect(cancel).toHaveBeenCalledTimes(2);
@@ -550,5 +551,389 @@ describe("isHandsFreeCutInCommand and SpeechRecognition abort hygiene", () => {
 
     expect(stopTrack).toHaveBeenCalledTimes(1);
     expect(onEnd).toHaveBeenCalled();
+  });
+});
+
+describe("weak Ugandan mobile network voice start-speed safeguards", () => {
+  afterEach(() => {
+    stopVoiceOutput();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("downloads chunk 0 alone before starting chunk 1 so weak connections do not split bandwidth", async () => {
+    const { clearVoiceAudioCacheForTests } = await import("./advisor-voice");
+    clearVoiceAudioCacheForTests();
+
+    const requestedTexts: string[] = [];
+    let resolveFirstFetch = undefined as ((res: Response) => void) | undefined;
+    let playFirstAudio = undefined as (() => void) | undefined;
+
+    class MockAudio {
+      src = "";
+      preload = "";
+      muted = false;
+      playsInline = false;
+      onplay: (() => void) | null = null;
+      onended: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      setAttribute = vi.fn();
+      pause = vi.fn();
+      play = vi.fn(() => {
+        if (this.src.startsWith("blob:")) {
+          this.onplay?.();
+          playFirstAudio = () => this.onended?.();
+        }
+        return Promise.resolve();
+      });
+    }
+
+    vi.stubGlobal("Audio", MockAudio);
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:https://hybrid.uganda-weather.com/clip"),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: unknown, init?: RequestInit) => {
+        const parsed = JSON.parse(String(init?.body ?? "{}")) as { text?: string };
+        requestedTexts.push(parsed.text ?? "");
+        if (requestedTexts.length === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirstFetch = resolve;
+          });
+        }
+        return Promise.resolve(
+          new Response(new TextEncoder().encode("chunk-2"), {
+            status: 200,
+            headers: { "Content-Type": "audio/mpeg" },
+          }),
+        );
+      }),
+    );
+
+    const longLuganda =
+      "Embeera y'obudde mu Kampala leero: Ekiddedde. Ebbugumu liri ku ddiguli abiri mu nnya, waggulu abiri mu musanvu ate wansi kkumi na mwenda. Omukisa gw'enkuba mu ssaawa mukaaga eziddako guli ku makumi ana ku kikumi.";
+
+    const onEnd = vi.fn();
+    speakAdvisorReply({
+      text: longLuganda,
+      language: "lg",
+      capabilities: { lugandaTts: true, lugandaStt: true, englishNeuralTts: false },
+      onEnd,
+    });
+
+    // Whole text is sent in one single request so streaming starts fast with 1 quota call
+    expect(requestedTexts.length).toBe(1);
+    expect(requestedTexts[0]).toBe(longLuganda);
+
+    resolveFirstFetch?.(
+      new Response(new TextEncoder().encode("chunk-1"), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      }),
+    );
+    await vi.waitFor(() => {
+      expect(playFirstAudio).toBeDefined();
+    });
+    playFirstAudio?.();
+    await vi.waitFor(() => {
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("streams Web Audio PCM chunks immediately on arrival and fires onEnd only after the last audio buffer finishes", async () => {
+    const { clearVoiceAudioCacheForTests } = await import("./advisor-voice");
+    const { resetPcmStreamPlayerForTests } = await import("@/lib/voice/pcm-stream-player");
+    clearVoiceAudioCacheForTests();
+    resetPcmStreamPlayerForTests();
+
+    const scheduledNodes: Array<{ onended: (() => void) | null }> = [];
+    class MockAudioContext {
+      state = "running";
+      currentTime = 0;
+      destination = {};
+      resume = vi.fn().mockResolvedValue(undefined);
+      createBuffer(_c: number, length: number, sampleRate: number) {
+        const ch = new Float32Array(length);
+        return { length, sampleRate, duration: length / sampleRate, getChannelData: () => ch };
+      }
+      createBufferSource() {
+        const node = {
+          buffer: null as { length: number } | null,
+          onended: null as (() => void) | null,
+          connect: () => undefined,
+          disconnect: () => undefined,
+          start: () => {
+            if ((node.buffer?.length ?? 0) > 1) {
+              scheduledNodes.push(node);
+            }
+          },
+          stop: () => undefined,
+        };
+        return node;
+      }
+    }
+    vi.stubGlobal("AudioContext", MockAudioContext);
+
+    let pushNextStreamChunk: ((chunk: Uint8Array | null) => void) | undefined;
+    const pcmStream = new ReadableStream<Uint8Array>({
+      start(ctrl) {
+        pushNextStreamChunk = (chunk) => {
+          if (chunk) ctrl.enqueue(chunk);
+          else ctrl.close();
+        };
+      },
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(pcmStream, {
+          status: 200,
+          headers: { "Content-Type": "audio/L16;rate=24000;channels=1" },
+        }),
+      ),
+    );
+
+    const states: string[] = [];
+    const onEnd = vi.fn();
+    speakAdvisorReply({
+      text: "Enkuba esuubirwa mu Kampala akawungeezi kano.",
+      language: "lg",
+      capabilities: { lugandaTts: true, lugandaStt: true, englishNeuralTts: false },
+      onStateChange: (s) => states.push(s),
+      onEnd,
+    });
+
+    expect(states).toContain("loading");
+    await vi.waitFor(() => {
+      expect(pushNextStreamChunk).toBeDefined();
+    });
+
+    // Push first 6000 bytes (125ms @ 24kHz) -> playback starts BEFORE stream ends!
+    pushNextStreamChunk?.(new Uint8Array(6000));
+    await vi.waitFor(() => {
+      expect(states).toContain("playing");
+    });
+    expect(onEnd).not.toHaveBeenCalled();
+
+    // Finish network stream -> onEnd still waits for physical audio buffer completion
+    pushNextStreamChunk?.(null);
+    await Promise.resolve();
+    expect(onEnd).not.toHaveBeenCalled();
+
+    for (const node of scheduledNodes) {
+      node.onended?.();
+    }
+    await vi.waitFor(() => {
+      expect(onEnd).toHaveBeenCalledTimes(1);
+    });
+    expect(states[states.length - 1]).toBe("idle");
+    resetPcmStreamPlayerForTests();
+  });
+
+  it("uses instant device English speech on 2G or data-saver networks while keeping Luganda on Sunbird", async () => {
+    const { clearVoiceAudioCacheForTests, isSlowOrConstrainedNetwork } = await import(
+      "./advisor-voice"
+    );
+    clearVoiceAudioCacheForTests();
+
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { effectiveType: "2g", saveData: false, rtt: 950, downlink: 0.2 },
+    });
+    expect(isSlowOrConstrainedNetwork()).toBe(true);
+
+    const speak = vi.fn();
+    vi.stubGlobal("speechSynthesis", {
+      speak,
+      cancel: vi.fn(),
+      getVoices: () => [{ lang: "en-GB", name: "English" }],
+      speaking: false,
+      pending: false,
+      paused: false,
+    });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        text: string;
+        lang = "";
+        rate = 1;
+        pitch = 1;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(t: string) {
+          this.text = t;
+        }
+      },
+    );
+    const fetchSpy = vi.fn(
+      async () =>
+        new Response(new TextEncoder().encode("lg-bytes"), {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const states: string[] = [];
+    speakAdvisorReply({
+      text: "Kampala. Currently 24 degrees and clear skies.",
+      language: "en",
+      capabilities: { lugandaTts: true, lugandaStt: true, englishNeuralTts: true },
+      onStateChange: (s) => states.push(s),
+    });
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(states[0]).toBe("playing");
+
+    // Luganda has no built-in phone voice, so it still uses Sunbird on 2G
+    speakAdvisorReply({
+      text: "Embeera y'obudde mu Kampala leero: Ekiddedde.",
+      language: "lg",
+      capabilities: { lugandaTts: true, lugandaStt: true, englishNeuralTts: true },
+    });
+    await vi.waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+
+  it("falls back to instant English browser voice after 4.5s even after pointerdown prefetch, updating state to playing and firing onEnd for hands-free", async () => {
+    vi.useFakeTimers();
+    const { clearVoiceAudioCacheForTests, prefetchVoiceClip } = await import("./advisor-voice");
+    clearVoiceAudioCacheForTests();
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: undefined,
+    });
+
+    const utterances: Array<{ onend: (() => void) | null }> = [];
+    const speak = vi.fn((u: { onend: (() => void) | null }) => {
+      utterances.push(u);
+    });
+    vi.stubGlobal("speechSynthesis", {
+      speak,
+      cancel: vi.fn(),
+      getVoices: () => [{ lang: "en-GB", name: "English" }],
+      speaking: false,
+      pending: false,
+      paused: false,
+    });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        text: string;
+        lang = "";
+        rate = 1;
+        pitch = 1;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(t: string) {
+          this.text = t;
+        }
+      },
+    );
+    // Simulate a hung mobile connection that never resolves
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+
+    const text = "Gulu. Currently 26 degrees and partly cloudy. Next, say one for tomorrow.";
+    const caps = { lugandaTts: true, lugandaStt: true, englishNeuralTts: true };
+
+    // Simulate mobile pointerdown firing prefetch milliseconds before tap
+    prefetchVoiceClip({ text, language: "en", capabilities: caps });
+
+    const states: string[] = [];
+    const onEnd = vi.fn();
+    speakAdvisorReply({
+      text,
+      language: "en",
+      capabilities: caps,
+      onStateChange: (s) => states.push(s),
+      onEnd,
+    });
+
+    expect(states).toContain("loading");
+    expect(speak).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(4_600);
+
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(states).toContain("playing");
+
+    // Completing the browser utterance must fire onEnd so hands-free listening resumes
+    for (const u of utterances) {
+      u.onend?.();
+    }
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(states[states.length - 1]).toBe("idle");
+  });
+
+  it("distinguishes human barge-in interruptions from speaker echo and interim 'To'", async () => {
+    const { isHumanBargeInUtterance, isPauseOnlyVoiceCommand } = await import("./advisor-voice");
+    const spoken =
+      "Kampala City is clear tonight at 24 degrees Celsius. Next, you can say one for: Will it rain tomorrow, or say two for: Wind speed tomorrow, or say stop to end.";
+    const followUps = ["Will it rain tomorrow?", "Wind speed tomorrow?"];
+
+    // Speaker echo and telemetry echo must never cut in
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "Kampala City is clear tonight at 24 degrees Celsius",
+        spokenReply: spoken,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBe(false);
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "twenty seven degrees celsius and some clouds later on",
+        spokenReply: spoken,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBe(false);
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "To",
+        spokenReply: spoken,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBe(false);
+
+    // Real user barge-ins (interim question openers, final questions, choices, and pause words) cut in immediately
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "That of",
+        spokenReply: spoken,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBe(true);
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "That of Waukesha",
+        spokenReply: spoken,
+        followUps,
+        isFinal: true,
+      }),
+    ).toBe(true);
+    expect(
+      isHumanBargeInUtterance({
+        transcript: "two",
+        spokenReply: spoken,
+        followUps,
+        isFinal: false,
+      }),
+    ).toBe(true);
+    expect(isPauseOnlyVoiceCommand("Wait")).toBe(true);
+    expect(isPauseOnlyVoiceCommand("That of Waukesha")).toBe(false);
   });
 });

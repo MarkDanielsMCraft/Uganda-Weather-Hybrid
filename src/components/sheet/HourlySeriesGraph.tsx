@@ -236,7 +236,7 @@ export function HourlySeriesGraph({
     activePoint != null ? Math.min(100, Math.max(0, (activePoint.x / WIDTH) * 100)) : 50;
 
   return (
-    <div className="mt-1">
+    <div className="mt-1" data-no-narrate>
       {(directionOf || showDayNightIcons) && (
         <div className="mb-1 flex justify-between">
           {(directionOf ? directionSamples : dayNightSamples).map((sample, i) => (

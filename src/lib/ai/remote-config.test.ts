@@ -58,8 +58,13 @@ describe("advisor remote-config", () => {
       maxOutputTokens: 512,
       preferOnDevice: true,
       ttsEnabled: true,
-      ttsModel: "gemini-3.1-flash-tts-preview",
+      ttsModel: "gemini-3.8-flash-tts",
       ttsVoiceName: "Kore",
+      ttsFirstChunkTimeoutMs: 4500,
+      ttsFirstChunkMaxChars: 90,
+      ttsChunkMaxChars: 165,
+      voiceSlowRttMs: 800,
+      voiceSlowDownlinkMbps: 0.4,
       promptTemplateId: "",
       source: "default",
     });
@@ -80,7 +85,15 @@ describe("advisor remote-config", () => {
       if (key === "advisor_prompt_template_id") return "uganda-weather-advisor-v1";
       return "";
     });
-    getNumberMock.mockReturnValue(768);
+    getNumberMock.mockImplementation((_rc: unknown, key: string) => {
+      if (key === "advisor_max_output_tokens") return 768;
+      if (key === "advisor_tts_first_chunk_timeout_ms") return 3800;
+      if (key === "advisor_tts_first_chunk_max_chars") return 85;
+      if (key === "advisor_tts_chunk_max_chars") return 170;
+      if (key === "advisor_voice_slow_rtt_ms") return 750;
+      if (key === "advisor_voice_slow_downlink_mbps") return 0.5;
+      return 0;
+    });
 
     const snapshot = await syncAdvisorRemoteConfig();
     expect(snapshot).toEqual({
@@ -91,6 +104,11 @@ describe("advisor remote-config", () => {
       ttsEnabled: true,
       ttsModel: "gemini-3.1-flash-tts-preview",
       ttsVoiceName: "Aoede",
+      ttsFirstChunkTimeoutMs: 3800,
+      ttsFirstChunkMaxChars: 85,
+      ttsChunkMaxChars: 170,
+      voiceSlowRttMs: 750,
+      voiceSlowDownlinkMbps: 0.5,
       promptTemplateId: "uganda-weather-advisor-v1",
       source: "remote",
     });

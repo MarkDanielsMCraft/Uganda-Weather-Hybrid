@@ -37,7 +37,7 @@
     },
     "advisor_tts_model": {
       "defaultValue": {
-        "value": "gemini-3.1-flash-tts-preview"
+        "value": "gemini-3.8-flash-tts"
       },
       "description": "Gemini TTS model used via Firebase AI Logic for natural spoken English output.",
       "valueType": "STRING"
@@ -48,6 +48,41 @@
       },
       "description": "Prebuilt neural voice persona for Firebase AI Logic English speech synthesis.",
       "valueType": "STRING"
+    },
+    "advisor_tts_first_chunk_timeout_ms": {
+      "defaultValue": {
+        "value": "4500"
+      },
+      "description": "Maximum wait in milliseconds for the opening English neural voice chunk before switching to the device voice.",
+      "valueType": "NUMBER"
+    },
+    "advisor_tts_first_chunk_max_chars": {
+      "defaultValue": {
+        "value": "90"
+      },
+      "description": "Maximum character length of the opening sentence chunk so spoken replies start early on mobile networks.",
+      "valueType": "NUMBER"
+    },
+    "advisor_tts_chunk_max_chars": {
+      "defaultValue": {
+        "value": "165"
+      },
+      "description": "Maximum character length for pipelined follow-up speech chunks.",
+      "valueType": "NUMBER"
+    },
+    "advisor_voice_slow_rtt_ms": {
+      "defaultValue": {
+        "value": "800"
+      },
+      "description": "Round-trip latency threshold in milliseconds above which English switches immediately to the built-in device voice.",
+      "valueType": "NUMBER"
+    },
+    "advisor_voice_slow_downlink_mbps": {
+      "defaultValue": {
+        "value": "0.4"
+      },
+      "description": "Downlink bandwidth threshold in Mbps below which English switches immediately to the built-in device voice.",
+      "valueType": "NUMBER"
     },
     "advisor_prompt_template_id": {
       "defaultValue": {

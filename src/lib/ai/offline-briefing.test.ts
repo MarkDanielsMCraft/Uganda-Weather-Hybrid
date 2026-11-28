@@ -101,9 +101,42 @@ describe("buildSavedForecastBriefing", () => {
 
     expect(result.verdict.labelLg).toBe("Linda / Obulabe bwa maanyi");
     expect(result.text).toContain("Toli ku mutimbagano kati.");
-    expect(result.text).toContain("Omukisa gw'enkuba 80%");
+    expect(result.text).toContain("Omukisa gw'enkuba 80% gwe gusinga mu ssaawa 12 eziddako, ku ssaawa");
+    expect(result.text).toContain("mu kibuyaga");
     expect(result.text).toContain("Toyanika birime wabweru kati.");
+    expect(result.text).toContain("byazziddwa obuggya ku ssaawa");
     expect(result.text).toContain("tebukozesezza AI");
     expect(result.text).not.toMatch(/without AI|Rain|Wind/);
+  });
+
+  it("includes active alerts in Luganda and avoids daytime crop-drying advice at night", () => {
+    const alert: WeatherAlert = {
+      id: "kampala-demo-storm",
+      title: "Severe storm watch",
+      description: "Storm expected.",
+      severity: "warning" as WeatherAlert["severity"],
+      source: "UNMA",
+      issuedAt: "2026-11-24T18:00:00Z",
+    };
+    const nightWeather = makeWeatherBundle({
+      isDay: false,
+      hourly: withRain([5, 5, 5, 5, 0, 0, 0, 0]),
+      alerts: [alert],
+    });
+
+    const lgNight = buildSavedForecastBriefing({
+      weather: nightWeather,
+      audience: "farmer",
+      language: "lg",
+    });
+    const enNight = buildSavedForecastBriefing({
+      weather: nightWeather,
+      audience: "farmer",
+      language: "en",
+    });
+
+    expect(lgNight.text).toContain("Okulabula okuliwo: Okulabula ku kibuyaga.");
+    expect(lgNight.text).toContain("Obudde bw'ekiro buteefu. Kuuma ebirime ebikungule mu nnyumba");
+    expect(enNight.text).toContain("Skies are calm tonight. Keep harvested crops covered indoors");
   });
 });

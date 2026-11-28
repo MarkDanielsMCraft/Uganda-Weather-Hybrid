@@ -44,7 +44,7 @@ export function computeFarmWorkWindows(
     return {
       dryingStatus: "wait",
       dryingSummary: isLg
-        ? "Obudde bw'ekiro: yanula ebirime ebikalu obitereke mu nnyumba okwewala omume."
+        ? "Obudde bw'ekiro: yanula ebirime ebikalu obitereke mu nnyumba okwewala omusulo gw'ekiro."
         : "Nighttime: keep harvested crops covered indoors away from night moisture.",
       sprayingStatus: "wait",
       sprayingSummary: isLg

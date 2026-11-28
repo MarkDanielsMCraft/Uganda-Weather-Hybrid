@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import dynamic from "next/dynamic";
+import { primeVoicePlaybackForGesture } from "@/lib/ai/advisor-voice";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 
 /** Loaded on first open, not on first paint. The sheet is the only thing on
     the home screen that pulls in framer-motion (~47 kB over the wire, ~144 kB
@@ -78,6 +80,9 @@ export function DetailSheetProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openSheet = useCallback((options: OpenSheetOptions) => {
+    if (usePreferencesStore.getState().voiceMode) {
+      primeVoicePlaybackForGesture();
+    }
     setHasOpened(true);
     setSheet((prev) => {
       if (

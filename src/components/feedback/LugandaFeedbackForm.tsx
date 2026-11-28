@@ -382,6 +382,7 @@ export function LugandaFeedbackForm() {
         </p>
         <button
           type="button"
+          data-no-narrate
           onClick={handleResetNew}
           className="mt-5 min-h-[44px] w-full rounded-full bg-brand-green/65 px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.99] motion-reduce:transition-none"
         >
@@ -407,6 +408,7 @@ export function LugandaFeedbackForm() {
         </p>
         <button
           type="button"
+          data-no-narrate
           onClick={handleRetryAfterFailure}
           className="mt-5 min-h-[44px] w-full rounded-full bg-brand-green/65 px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.99] motion-reduce:transition-none"
         >
@@ -430,14 +432,15 @@ export function LugandaFeedbackForm() {
         {dict.lugandaBeta.formIntro}
       </p>
 
-      <div>
-        <label
-          id={`${idPrefix}-category-label`}
-          htmlFor={`${idPrefix}-category`}
-          className="mb-1.5 block text-[13px] font-medium text-white/85"
-        >
-          {dict.lugandaBeta.categoryLabel}
-        </label>
+      <div data-no-narrate className="space-y-3.5">
+        <div>
+          <label
+            id={`${idPrefix}-category-label`}
+            htmlFor={`${idPrefix}-category`}
+            className="mb-1.5 block text-[13px] font-medium text-white/85"
+          >
+            {dict.lugandaBeta.categoryLabel}
+          </label>
         <GlassSelect
           id={`${idPrefix}-category`}
           ariaLabelledBy={`${idPrefix}-category-label`}
@@ -622,12 +625,13 @@ export function LugandaFeedbackForm() {
         </div>
       )}
 
-      <button
-        type="submit"
-        className="min-h-[44px] w-full rounded-full bg-brand-green/65 px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.99] motion-reduce:transition-none sm:text-[14px]"
-      >
-        {dict.lugandaBeta.submitButton}
-      </button>
+        <button
+          type="submit"
+          className="min-h-[44px] w-full rounded-full bg-brand-green/65 px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(13,144,59,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl transition hover:bg-brand-green/80 active:scale-[0.99] motion-reduce:transition-none sm:text-[14px]"
+        >
+          {dict.lugandaBeta.submitButton}
+        </button>
+      </div>
     </form>
   );
 }

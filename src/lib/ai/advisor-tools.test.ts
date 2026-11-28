@@ -110,7 +110,7 @@ describe("advisor-tools", () => {
     ]);
   });
 
-  it("strips misspelled or multiline [FOLLOWOPS: ...] directives so internal tags never leak", () => {
+  it("strips misspelled or multiline [FOLLOWOPS: ...] and Luganda [EBIBUUZO: ...] directives so internal tags never leak", () => {
     const raw =
       "Bikuume mu kifo ekikalu obitereke obulungi.\n\n[FOLLOWOPS: Nnyinza okufuuyira ebirime ddi leero? |\nEbika by'ebirime ki ebyetaaga okukuumibwa ku nkuba eno?]";
     const parsed = parseAgentStructuredDirectives(raw);
@@ -119,6 +119,16 @@ describe("advisor-tools", () => {
     expect(parsed.followUps).toEqual([
       "Nnyinza okufuuyira ebirime ddi leero?",
       "Ebika by'ebirime ki ebyetaaga okukuumibwa ku nkuba eno?",
+    ]);
+
+    const rawLgTag =
+      "Enkya enjuba evaayo ku ssaawa 12:34 ezokumakya.\n[OKUSALAWO: bulungi | Obudde bulungi okwanika]\n[EBIBUUZO: Enkuba esuubirwa ssaawa mmeka? | Empewo ejja kuba ya maanyi gatya?]";
+    const parsedLgTag = parseAgentStructuredDirectives(rawLgTag);
+    expect(parsedLgTag.cleanText).toBe("Enkya enjuba evaayo ku ssaawa 12:34 ezokumakya.");
+    expect(parsedLgTag.verdict?.level).toBe("go");
+    expect(parsedLgTag.followUps).toEqual([
+      "Enkuba esuubirwa ssaawa mmeka?",
+      "Empewo ejja kuba ya maanyi gatya?",
     ]);
   });
 

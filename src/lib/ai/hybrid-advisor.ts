@@ -195,18 +195,35 @@ function nextWithAbort<T>(
   });
 }
 
-function sanitizeBriefingText(raw: string, language: SupportedLocale = "en"): string {
+function hasUserGreeting(question?: string): boolean {
+  if (!question) return false;
+  return /\b(gyebaleko|gyebale|wasuze|osiibye|agafa|oli\s+otya|koddi|hi|hello|hey|good\s+(?:morning|afternoon|evening))\b/i.test(
+    question,
+  );
+}
+
+function sanitizeBriefingText(
+  raw: string,
+  language: SupportedLocale = "en",
+  userGreeted = false,
+): string {
   let cleaned = raw
     .replace(/[—–]/g, ", ")
     .replace(/[←→⇐⇒⬅➡]/g, " to ")
     .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/(?<![\w°])(-?\d+(?:\.\d+)?)\s*C\b/g, "$1°C")
+    .replace(/(^|[^\w°])(-?\d+(?:\.\d+)?)\s*C\b/g, "$1$2°C")
     .replace(/(\d+(?:\.\d+)?)\s+kilomet(?:er|re)s?\s+per\s+hour\b/gi, "$1 km/h")
     .replace(/(\d+(?:\.\d+)?)\s+kilomet(?:er|re)s?\b/gi, "$1 km")
     .replace(/(\d+(?:\.\d+)?)\s+millimet(?:er|re)s?\b/gi, "$1 mm")
     .trim();
 
   if (language === "lg") {
+    if (!userGreeted) {
+      cleaned = cleaned.replace(
+        /^(?:Kale,\s*)?we+bale(?:\s+(?:nnyo|kubuuza))?[.!]\s*/i,
+        "",
+      );
+    }
     cleaned = cleaned
       // Convert any stray English "mu <Name> District" or "<Name> District" into authentic Luganda
       .replace(/\bmu\s+([A-Z][A-Za-z'-]+)\s+District\b/g, "mu Disitulikiti y'e $1")
@@ -222,12 +239,36 @@ function sanitizeBriefingText(raw: string, language: SupportedLocale = "en"): st
           return formatted !== clock.trim() ? `ssaawa ${formatted}` : full;
         },
       )
-      // Fix common NMT/LLM lexical slips in Luganda weather prose
+      // Fix common NMT/LLM lexical and orthography slips in Luganda weather prose
       .replace(/\bmu\s+ssaawa\s+ezikaddewo\b/gi, "mu ssaawa eziddako")
-      .replace(/\bomusana\s+(?:ogw'amaanyi\s+)?ogw'ekiro\b/gi, "omume gw'ekiro");
+      .replace(/\bomusana\s+(?:ogw'amaanyi\s+)?ogw'ekiro\b/gi, "omusulo gw'ekiro")
+      .replace(/\bomume\b/gi, "omusulo")
+      .replace(/\b([Ww])ebale\b/g, "$1eebale")
+      .replace(/\bgukyakyali\b/gi, "gukyali")
+      .replace(/\bobudde\s+bw'enkya\s+enkya\b/gi, "obudde bw'enkya")
+      .replace(/\b([Nn]g')omunsana\b/g, "$1omusana")
+      .replace(/\bomunsana\b/gi, "omusana")
+      .replace(/\b([Nn]g)a\s+([aeiou][a-z'])/g, "$1'$2")
+      .replace(/\b(ez|ey|ogw|olw|ak|obw)'okumakya\b/gi, "$1'oku makya");
   }
 
   return cleaned;
+}
+
+function ensureSpellingCorrectionPrefix(
+  text: string,
+  language: SupportedLocale,
+  spellingCorrection?: { typed: string; resolvedName: string },
+): string {
+  if (!spellingCorrection || !text.trim()) return text;
+  if (/did\s+you\s+mean|obadde\s+otegeeza/i.test(text)) {
+    return text;
+  }
+  const prefix =
+    language === "lg"
+      ? `Obadde otegeeza ${spellingCorrection.resolvedName}? `
+      : `Did you mean ${spellingCorrection.resolvedName}? `;
+  return `${prefix}${text}`;
 }
 
 /** Answer built only from the forecast numbers. Used when no model can
@@ -238,12 +279,14 @@ function savedForecastOutcome(
   audience: AdvisorAudience,
   language: SupportedLocale,
   notice: SavedForecastNotice,
+  spellingCorrection?: { typed: string; resolvedName: string },
 ): WeatherBriefingOutcome {
   const briefing = buildSavedForecastBriefing({
     weather,
     audience,
     language,
     notice,
+    spellingCorrection,
   });
   return {
     ok: true,
@@ -324,21 +367,6 @@ export async function generateHybridWeatherBriefing({
     }
   }
 
-  const rateLimit = checkAndRecordAdvisorRateLimit();
-  if (!rateLimit.allowed) {
-    const waitSeconds = rateLimit.retryAfterSeconds ?? 5;
-    console.warn("[ai-advisor] action blocked action=generate code=RATE_LIMITED");
-    return {
-      ok: false,
-      error: {
-        code: "rate_limited",
-        message: isLg
-          ? `Osabye emirundi mingi mu kaseera katono. Linda sikonda ${waitSeconds} oddemu okubuuza.`
-          : `Please wait ${waitSeconds} seconds before asking again.`,
-      },
-    };
-  }
-
   const ai = getFirebaseAiClient();
   if (!ai && !isOnline) {
     // The offline summary needs no Firebase client, so a missing or broken
@@ -348,6 +376,7 @@ export async function generateHybridWeatherBriefing({
       parsed.data.audience,
       parsed.data.language,
       parsed.data.customQuestion ? "offline" : "none",
+      spellingCorrection,
     );
   }
   if (!ai) {
@@ -392,6 +421,7 @@ export async function generateHybridWeatherBriefing({
       parsed.data.audience,
       parsed.data.language,
       parsed.data.customQuestion ? "offline" : "none",
+      spellingCorrection,
     );
   }
 
@@ -409,8 +439,24 @@ export async function generateHybridWeatherBriefing({
     };
   }
 
+  const rateLimit = checkAndRecordAdvisorRateLimit();
+  if (!rateLimit.allowed) {
+    const waitSeconds = rateLimit.retryAfterSeconds ?? 5;
+    console.warn("[ai-advisor] action blocked action=generate code=RATE_LIMITED");
+    return {
+      ok: false,
+      error: {
+        code: "rate_limited",
+        message: isLg
+          ? `Osabye emirundi mingi mu kaseera katono. Linda sikonda ${waitSeconds} oddemu okubuuza.`
+          : `Please wait ${waitSeconds} seconds before asking again.`,
+      },
+    };
+  }
+
   const generationLanguage = parsed.data.language;
   const rawQuestion = parsed.data.customQuestion;
+  const userGreeted = hasUserGreeting(rawQuestion);
   const hasImage = Boolean(image?.base64);
   const wantsMultiDistrictTool = Boolean(rawQuestion && isMultiLocationQuery(rawQuestion));
   const shouldEnableTools = isOnline && !hasImage && wantsMultiDistrictTool;
@@ -459,15 +505,19 @@ export async function generateHybridWeatherBriefing({
   try {
     onPhaseChange?.("thinking");
 
+    const minTokenBudget =
+      generationLanguage === "lg"
+        ? Math.max(remoteConfig.maxOutputTokens, 1024)
+        : remoteConfig.maxOutputTokens;
     const inCloudGenerationConfig = cloudModelName.includes("flash-lite")
       ? {
-          maxOutputTokens: remoteConfig.maxOutputTokens,
+          maxOutputTokens: minTokenBudget,
           thinkingConfig: {
             thinkingLevel: ThinkingLevel.MINIMAL,
           },
         }
       : {
-          maxOutputTokens: Math.max(remoteConfig.maxOutputTokens, 1024),
+          maxOutputTokens: Math.max(minTokenBudget, 1024),
           thinkingConfig: {
             thinkingLevel: ThinkingLevel.LOW,
           },
@@ -527,7 +577,7 @@ export async function generateHybridWeatherBriefing({
         onPhaseChange,
         onRawChunk: (accumulated) => {
           const visibleStream = parseAgentStructuredDirectives(
-            sanitizeBriefingText(accumulated, generationLanguage),
+            sanitizeBriefingText(accumulated, generationLanguage, userGreeted),
           ).cleanText;
           if (visibleStream) {
             onChunk?.(visibleStream);
@@ -586,7 +636,9 @@ export async function generateHybridWeatherBriefing({
       }
 
       notes.push(
-        "Combine what you actually see in the photo with the live forecast only when time and location match. Use plain, simple everyday English.",
+        generationLanguage === "lg"
+          ? "Combine what you actually see in the photo with the live forecast only when time and location match. Write your reply in natural, standard Luganda (Empandiika y'Oluganda Entongole)."
+          : "Combine what you actually see in the photo with the live forecast only when time and location match. Use plain, simple everyday English.",
       );
       return notes.join(" ");
     };
@@ -634,7 +686,7 @@ export async function generateHybridWeatherBriefing({
             }
             rawText += piece;
             const visibleStream = parseAgentStructuredDirectives(
-              sanitizeBriefingText(rawText, generationLanguage),
+              sanitizeBriefingText(rawText, generationLanguage, userGreeted),
             ).cleanText;
             if (visibleStream) {
               onChunk?.(visibleStream);
@@ -675,7 +727,11 @@ export async function generateHybridWeatherBriefing({
         onPhaseChange?.("writing");
         rawText = result.response.text();
         inferenceSource = result.response.inferenceSource;
-        onChunk?.(parseAgentStructuredDirectives(sanitizeBriefingText(rawText, generationLanguage)).cleanText);
+        onChunk?.(
+          parseAgentStructuredDirectives(
+            sanitizeBriefingText(rawText, generationLanguage, userGreeted),
+          ).cleanText,
+        );
       }
     } else if (!rawText) {
       if (shouldEnableTools && typeof model.startChat === "function") {
@@ -712,12 +768,20 @@ export async function generateHybridWeatherBriefing({
         inferenceSource = result.response.inferenceSource;
       }
       onPhaseChange?.("writing");
-      onChunk?.(parseAgentStructuredDirectives(sanitizeBriefingText(rawText, generationLanguage)).cleanText);
+      onChunk?.(
+        parseAgentStructuredDirectives(
+          sanitizeBriefingText(rawText, generationLanguage, userGreeted),
+        ).cleanText,
+      );
     }
 
-    const sanitizedRaw = sanitizeBriefingText(rawText, generationLanguage);
+    const sanitizedRaw = sanitizeBriefingText(rawText, generationLanguage, userGreeted);
     const parsedDirectives = parseAgentStructuredDirectives(sanitizedRaw);
-    const responseText = parsedDirectives.cleanText;
+    const responseText = ensureSpellingCorrectionPrefix(
+      parsedDirectives.cleanText,
+      generationLanguage,
+      spellingCorrection,
+    );
     const resolvedVerdict = parsedDirectives.verdictExplicitlyNone
       ? undefined
       : (parsedDirectives.verdict ?? deriveSafetyVerdict(weather, sanitizedRaw));
@@ -725,7 +789,13 @@ export async function generateHybridWeatherBriefing({
 
     if (!responseText) {
       console.warn("[ai-advisor] action blocked action=generate code=EMPTY_REPLY_FALLBACK");
-      return savedForecastOutcome(weather, parsed.data.audience, generationLanguage, "ai_unavailable");
+      return savedForecastOutcome(
+        weather,
+        parsed.data.audience,
+        generationLanguage,
+        "ai_unavailable",
+        spellingCorrection,
+      );
     }
 
     if (containsInternalPromptLeakage(responseText)) {
@@ -781,6 +851,7 @@ export async function generateHybridWeatherBriefing({
         parsed.data.audience,
         parsed.data.language,
         parsed.data.customQuestion ? "offline" : "none",
+        spellingCorrection,
       );
     }
 
@@ -848,6 +919,12 @@ export async function generateHybridWeatherBriefing({
 
     // The failure is logged and reported above. The person still gets a
     // summary of the real forecast instead of a dead end.
-    return savedForecastOutcome(weather, parsed.data.audience, parsed.data.language, "ai_unavailable");
+    return savedForecastOutcome(
+      weather,
+      parsed.data.audience,
+      parsed.data.language,
+      "ai_unavailable",
+      spellingCorrection,
+    );
   }
 }
