@@ -258,12 +258,12 @@ export function formatFeelsLikeFooterLg(diff: number): string {
 
 export function formatHumidityFooterLg(humidity: number, dewPoint: number): string {
   if (humidity >= 75) {
-    return `Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omume kiri ku ${dewPoint}°.`;
+    return `Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omusulo kiri ku ${dewPoint}°.`;
   }
   if (humidity <= 35) {
-    return `Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omume kiri ku ${dewPoint}°.`;
+    return `Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omusulo kiri ku ${dewPoint}°.`;
   }
-  return `Ekipimo ky'omume kiri ku ${dewPoint}° mu kaseera kano.`;
+  return `Ekipimo ky'omusulo kiri ku ${dewPoint}° mu kaseera kano.`;
 }
 
 export function formatUvFooterLg(uvIndex: number): string {

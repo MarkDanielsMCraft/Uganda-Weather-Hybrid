@@ -88,6 +88,7 @@ export function WindCompass({ degree, size = 96 }: { degree: number; size?: numb
 
   return (
     <div
+      data-no-narrate
       className="relative shrink-0 select-none"
       style={{ height: safeSize, width: safeSize }}
       role="img"

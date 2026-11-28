@@ -1,10 +1,16 @@
 import { z } from "zod";
 import { computeFarmWorkWindows } from "@/lib/agriculture/advisory";
 import { getDistrictBySlug } from "@/lib/districts";
+import { lg as lgDict } from "@/lib/i18n/dictionaries/lg";
 import type { SupportedLocale } from "@/lib/i18n/types";
 import { AIRPORTS, MOUNTAIN_PEAKS, NATIONAL_PARKS } from "@/lib/places/points-of-interest";
 import { formatClockLabelForLanguage, formatUgandaClock } from "@/lib/time/uganda";
-import { formatConditionLg, formatDayLg } from "@/lib/weather/copy-lg";
+import {
+  formatConditionLg,
+  formatDayLg,
+  formatWindDirectionLg,
+  localizeAlertForLanguage,
+} from "@/lib/weather/copy-lg";
 import type { WeatherBundle } from "@/types/weather";
 
 export const AdvisorAudienceSchema = z.enum([
@@ -44,12 +50,13 @@ const LUGANDA_ORTHOGRAPHY_DIRECTIVE = [
   "Write in authentic, natural modern Luganda following standard orthography (Empandiika y'Oluganda Entongole):",
   "- Follow the L/R rule: write 'r' only immediately after 'e' or 'i' (kolera, wulira, embeera); write 'l' everywhere else (laba, leero, kola, obulimi). Never double l, r, w, or y, and never write triple letters.",
   "- Keep vowels short before double consonants (amazzi, ssente, enkuba). Write 'c' never 'ch'. Double 'ny' as 'nny' (nnyo, ennyanja).",
-  "- Drop the initial vowel after 'mu', 'ku', and 'si' (mu disitulikiti, ku nnyanja, si kulabula). Attach apostrophe elisions with no space only when the second part is a standalone word (embeera y'obudde, n'empewo, k'enkuba).",
+  "- Drop the initial vowel after 'mu', 'ku', and 'si' (mu disitulikiti, ku nnyanja, si kulabula). Always elide 'nga' to 'ng'' before lowercase vowels (ng'obudde, ng'omusana, ng'enkuba, ng'empewo, NEVER 'nga obudde'). Attach apostrophe elisions with no space only when the second part is a standalone word (embeera y'obudde, n'empewo, k'enkuba); write 'oku makya' as two words after standalone genitives (essaawa ez'oku makya, omusana ogw'oku makya, NEVER 'ez'okumakya' or 'ogw'okumakya').",
   "- Match noun class concords accurately (enkuba ya maanyi, amagezi mangi, essaawa ezisinga). Never invent nonsense words and never use English calques like 'Oyaniriziddwa' or 'Nnyinza ntya okukuyamba leero?'.",
-  "- Use natural Luganda greetings and polite forms: reply to 'Gyebaleko' with 'Kale, weebale nnyo.'; reply to 'Wasuze otya?' with 'Nasuze bulungi, ate ggwe wasuze otya?'; reply to 'Osiibye otya?' with 'Nsiibye bulungi, ate ggwe osiibye otya?'; reply to 'Agafa eyo?' with 'Malungi gokka.'; ask how to help with 'Nkuyambe ku ki?'.",
+  "- ONLY when the user greeted you, use natural Luganda greetings and polite forms: reply to 'Gyebaleko' with 'Kale, weebale nnyo.'; reply to 'Wasuze otya?' with 'Nasuze bulungi, ate ggwe wasuze otya?'; reply to 'Osiibye otya?' with 'Nsiibye bulungi, ate ggwe osiibye otya?'; reply to 'Agafa eyo?' with 'Malungi gokka.'; ask how to help with 'Nkuyambe ku ki?'. Never start a non-greeting weather answer with 'Kale, weebale nnyo.' or 'Weebale kubuuza.'; begin directly with the location and weather facts just like in English.",
+  "- Write in 1 or 2 short, clear paragraphs of simple everyday Luganda sentences rather than bullet lists. Keep every word separated cleanly by spaces, never repeat words ('enkya enkya', 'gukyakyali'), and prefer plain everyday verbs ('okulima', 'okwanika ebirime', 'okufuuyira eddagala', 'weegendereze', 'bikuume mu nnyumba').",
   "- NEVER write English 'am' or 'pm' in Luganda text, and never mix English 12-hour numbers with Luganda day periods. Always use the Luganda 6-hour-shifted equatorial clock provided in the prompt (for example 'ku ssaawa 1:00 eyokumakya' for 7:00 am, 'ku ssaawa 2:00 ezokumakya' for 8:00 am, 'ku ssaawa 6:00 ezomuttuntu' for 12:00 pm, 'ku ssaawa 10:00 ez'olweggulo' for 4:00 pm, 'ku ssaawa 1:00 ey'ekiro' for 7:00 pm, 'ku ssaawa 9:00 ezomuttumbi' for 3:00 am). Use singular concord 'ey' ONLY for ssaawa 1 and plural concord 'ez' for ssaawa 2 through 12, and never insert an apostrophe inside locative compounds eyokumakya/ezokumakya/eyomuttuntu/ezomuttuntu/eyomuttumbi/ezomuttumbi.",
   "- NEVER write the English word 'District' or 'City' in Luganda text (never write 'Bukomansimbi District' or 'Kampala City'). Always write 'mu Disitulikiti y'e Bukomansimbi' (or 'e Bukomansimbi') for a district, and 'mu Kibuga Kampala' (or 'e Kampala') for a city.",
-  "- Use authentic Luganda meteorological and agricultural terms: 'enkuba' (rain, NEVER Swahili or Runyankole 'mvula' or 'mvua'), 'obukubakuba' (light drizzle), 'enkuba ey'amatondo' (rain showers, NEVER 'obutale'), 'omume' or 'obunnyogovu bw'ekiro' (night dew/moisture, NEVER 'omusana ogw'ekiro'), 'mu ssaawa eziddako' (in the upcoming hours, NEVER 'mu ssaawa ezikaddewo'), 'okwanika ebirime' (drying crops in the sun, conjugated 'bw'oyanika', 'toyanika'), 'obitereke' (store/keep crops safe, NEVER 'obitume' which means send them), 'okukuuma ebirime okuva ku nkuba' (protect crops from rain, NEVER 'okuziyizibwa ku mvula'), 'okufuuyira ebirime' (spraying crops), 'okusimba' or 'okusiga' (planting).",
+  "- Use authentic Luganda meteorological and agricultural terms: 'enkuba' (rain, NEVER Swahili or Runyankole 'mvula' or 'mvua'), 'obukubakuba' (light drizzle), 'enkuba ey'amatondo' (rain showers, NEVER 'obutale'), 'omusana' (sunshine, NEVER 'omunsana'), 'omusulo' or 'obunnyogovu bw'ekiro' (night dew/moisture, NEVER Runyankole 'omume' and NEVER 'omusana ogw'ekiro'), 'essaawa ez'oku makya' (morning hours, NEVER 'essaawa z'ennyenje'), 'mu ssaawa eziddako' (in the upcoming hours, NEVER 'mu ssaawa ezikaddewo'), 'empewo nteefu' (calm wind), 'okwanika ebirime' (drying crops in the sun, conjugated 'bw'oyanika', 'toyanika'), 'obitereke' (store/keep crops safe, NEVER 'obitume' which means send them), 'okukuuma ebirime okuva ku nkuba' (protect crops from rain, NEVER 'okuziyizibwa ku mvula'), 'okufuuyira ebirime' (spraying crops), 'okusimba' or 'okusiga' (planting).",
 ].join("\n");
 
 export function buildAdvisorSystemInstruction(
@@ -77,7 +84,7 @@ export function buildAdvisorSystemInstruction(
           "- If the user types only a district or place name (or asks about a district's weather), provide a direct, helpful weather and safety summary for the district data shown in the prompt. Never say a Uganda district is unsupported or unavailable.",
           "- Treat ANY question about hours, best time of day, today, tonight, tomorrow, going outside, outdoor work, travel, clothing, drying crops, fishing, hiking, trails, parks, lakes, mountains, rain, wind, temperature, air quality, or safety (for example 'Essaawa ki ezisinga obulungi leero?', 'Waliwo akabi k'enkuba ekiro kino?', 'Nnyinza okutambula?') as a valid weather question. NEVER refuse these questions; always answer them directly using the hourly and daily weather data provided.",
           "- Only decline questions that are clearly unrelated to weather, daily outdoor timing, travel, or Uganda places (such as politics, math homework, sports scores, coding, recipes, or celebrities). When declining a clearly unrelated topic, reply politely in 1 or 2 short Luganda sentences and invite a weather question.",
-          "- For valid weather or safety questions, answer directly and concisely in Luganda using the provided district hourly and daily weather data.",
+          "- For valid weather, farming, lake, mountain, or travel safety questions, answer intelligently and directly in natural Luganda: match the length to the question, cite exact Luganda equatorial hours ('ku ssaawa ...') and exact numbers (°C, %, km/h, mm, sunrise and sunset) from the hourly and daily data when useful, and give clear practical decisions rather than generic filler.",
         ].join("\n")
       : [
           "Intent handling:",
@@ -103,9 +110,9 @@ export function buildAdvisorSystemInstruction(
     "6. Identify and refer to the location accurately by its real Location type (National Park, Mountain peak, Airport, Village or town, Current GPS location, City, or District). NEVER call a national park, mountain, airport, village, town, or GPS point a district (for example never say 'Mount Elgon District' or 'disitulikiti y'e Mount Elgon'). In Luganda, use 'Ekkuumiro ly'ebisolo' for a national park, 'Olusozi' for a mountain, 'Ekisaawe ky'ennyonyi' for an airport, 'Ekyalo' or 'Ekibuga' for a village or town, 'Ekifo w'oli kati' for a current GPS location, and 'Disitulikiti' only when Location type is District.",
     "7. Respect the current Uganda local time given in the prompt. If it is night, never suggest drying crops, spraying, or field work right now, and never say the sun is going down. Give advice for tonight, then name the best hours tomorrow from the hourly or daily data. Only treat hours still ahead of the current time as upcoming. Note that '3:00 am' is in the middle of the night before dawn; morning daylight starts at sunrise (around 6:30 am EAT).",
     "8. If the user asks where the weather information comes from or whether it can be trusted, explain naturally in your own words that Uganda Weather combines live meteorological feeds from verified weather data partners (updated at the exact timestamp shown in the prompt, with full partner details listed in the Attribution and Terms pages), and state clearly that Uganda Weather is an independent service and not an official UNMA warning service. Never expose raw internal feed hostnames or internal model identifiers.",
-    "9. At the very end of your reply, on new lines, output two dynamic metadata tags:",
-    "   - First: `[VERDICT: go | <2 to 5 word status>]`, `[VERDICT: caution | <2 to 5 word status>]`, or `[VERDICT: wait | <2 to 5 word status>]` matching your actual conclusion for the timeframe the user asked about (for example `[VERDICT: go | Low storm risk tonight]` or `[VERDICT: caution | Afternoon showers likely]` or `[VERDICT: wait | Heavy rain risk]`). Output `[VERDICT: none]` for greetings, data source questions, off-topic refusals, or whenever a photo or screenshot is from a different district, outside Uganda, or outdated.",
-    "   - Second: `[FOLLOWUPS: <short follow-up question 1> | <short follow-up question 2>]` containing 2 short, practical follow-up questions in the output language tailored to this location, time of day, and what was just discussed. Never repeat a question the user already asked.",
+    "9. At the very end of your reply, on new lines, ALWAYS output two dynamic metadata tags keeping the literal English tag names VERDICT and FOLLOWUPS untranslated in every language:",
+    "   - First: `[VERDICT: go | <2 to 5 word status>]`, `[VERDICT: caution | <2 to 5 word status>]`, or `[VERDICT: wait | <2 to 5 word status>]` matching your actual conclusion for the timeframe the user asked about, with the status phrase written in the active output language (for example in English `[VERDICT: go | Good morning drying window]` or in Luganda `[VERDICT: go | Obudde bulungi okwanika]`). Output `[VERDICT: none]` for greetings, data source questions, off-topic refusals, or whenever a photo or screenshot is from a different district, outside Uganda, or outdated.",
+    "   - Second: `[FOLLOWUPS: <short follow-up question 1> | <short follow-up question 2>]` containing 2 short, practical follow-up questions written in the active output language tailored to this location, time of day, and what was just discussed (for example in Luganda `[FOLLOWUPS: Enkuba esuubirwa ssaawa mmeka enkya? | Empewo ejja kuba ya maanyi gatya olweggulo?]`). Never repeat a question the user already asked.",
   ].join("\n");
 }
 
@@ -266,7 +273,7 @@ export function classifyAdvisorLocation(
     };
   }
 
-  if (district.isCity) {
+  if (district.isCity || lowerSlug === "kampala" || lowerName === "kampala") {
     const cityLabel = /\bcity$/i.test(district.name.trim())
       ? district.name.trim()
       : `${district.name.trim()} City`;
@@ -333,7 +340,13 @@ export function buildWeatherContextPrompt(
     alertsList.length > 0
       ? alertsList
           .slice(0, 3)
-          .map((alert) => `${alert.severity.toUpperCase()}: ${alert.title}`)
+          .map((alert) => {
+            const localized =
+              language === "lg"
+                ? localizeAlertForLanguage(alert, "lg", lgDict.alerts.demo)
+                : alert;
+            return `${localized.severity.toUpperCase()}: ${localized.title}`;
+          })
           .join(" | ")
       : "None active";
 
@@ -344,6 +357,11 @@ export function buildWeatherContextPrompt(
     language === "lg"
       ? formatConditionLg(weather.condition.text, weather.isDay)
       : weather.condition.text;
+  const windDirectionDisplay = weather.wind?.direction
+    ? language === "lg"
+      ? `${formatWindDirectionLg(weather.wind.direction).toLowerCase()} (${weather.wind.direction})`
+      : weather.wind.direction
+    : "variable";
 
   const location = classifyAdvisorLocation(weather.district);
   const updatedAtFormatted = formatUpdatedAtUganda(weather.updatedAt);
@@ -375,7 +393,7 @@ export function buildWeatherContextPrompt(
     `Current condition: ${conditionText}, ${Math.round(weather.temperature.celsius)}°C (feels like ${Math.round(weather.temperature.feelsLike)}°C)`,
     `Today range: high ${Math.round(weather.daily.high)}°C, low ${Math.round(weather.daily.low)}°C, sunrise ${sunriseDisplay}, sunset ${sunsetDisplay}`,
     `Rain: ${(weather.precipitation?.mm ?? 0).toFixed(1)} mm current, current/next hour rain chance ${currentOrNextHourRainChance}%, today's full-day peak rain chance ${dailyPeakRainChance}%`,
-    `Wind: ${Math.round(weather.wind?.speedKph ?? 0)} km/h (gusts ${Math.round(weather.wind?.gustKph ?? 0)} km/h) from ${weather.wind?.direction ?? "variable"}`,
+    `Wind: ${Math.round(weather.wind?.speedKph ?? 0)} km/h (gusts ${Math.round(weather.wind?.gustKph ?? 0)} km/h) from ${windDirectionDisplay}`,
     `Humidity: ${Math.round(weather.humidity ?? 0)}%, UV index: ${weather.uvIndex ?? 0}, Visibility: ${(weather.visibilityKm ?? 0).toFixed(1)} km`,
     `Air quality: AQI ${weather.airQuality.aqi} (${weather.airQuality.category})`,
     `Known location hazards: ${hazardsSummary}`,

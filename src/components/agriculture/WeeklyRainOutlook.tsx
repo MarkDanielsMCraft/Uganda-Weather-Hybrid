@@ -40,7 +40,7 @@ export function WeeklyRainOutlook({
         </p>
       </div>
       {isLg ? (
-        <div className="mt-3 space-y-2">
+        <div data-no-narrate className="mt-3 space-y-2">
           {outlook.map((day) => {
             const chance = day.rainChance ?? 0;
             const widthPct = Math.max(8, Math.round((chance / maxChance) * 100));
@@ -67,7 +67,7 @@ export function WeeklyRainOutlook({
           })}
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-7 gap-2">
+        <div data-no-narrate className="mt-4 grid grid-cols-7 gap-2">
           {outlook.map((day) => {
             const chance = day.rainChance ?? 0;
             const height = Math.max(8, Math.round((chance / maxChance) * 56));

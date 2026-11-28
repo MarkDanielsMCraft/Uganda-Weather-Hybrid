@@ -10,10 +10,12 @@ const UPSTASH_TIMEOUT_MS = 3_000;
 function getRedisCredentials() {
   const url =
     process.env.UPSTASH_REDIS_REST_URL ||
-    process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
+    process.env.UPSTASH_REDIS_REST_KV_REST_API_URL ||
+    process.env.KV_REST_API_URL;
   const token =
     process.env.UPSTASH_REDIS_REST_TOKEN ||
-    process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
+    process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN ||
+    process.env.KV_REST_API_TOKEN;
 
   return url && token ? { url, token } : null;
 }
@@ -22,7 +24,10 @@ function redisConfigured() {
   return getRedisCredentials() !== null;
 }
 
-async function redisCommand<T = unknown>(command: (string | number)[]): Promise<T | null> {
+async function redisCommand<T = unknown>(
+  command: (string | number)[],
+  timeoutMs = UPSTASH_TIMEOUT_MS,
+): Promise<T | null> {
   const credentials = getRedisCredentials();
   if (!credentials) return null;
 
@@ -38,7 +43,7 @@ async function redisCommand<T = unknown>(command: (string | number)[]): Promise<
         cache: "no-store",
         signal,
       }),
-    UPSTASH_TIMEOUT_MS,
+    timeoutMs,
   );
 
   if (!response.ok) {
@@ -51,8 +56,11 @@ async function redisCommand<T = unknown>(command: (string | number)[]): Promise<
   return result as T;
 }
 
-async function redisGetJsonInternal<T>(key: string): Promise<T | null> {
-  const raw = await redisCommand<string | T>(["GET", key]);
+async function redisGetJsonInternal<T>(
+  key: string,
+  timeoutMs = UPSTASH_TIMEOUT_MS,
+): Promise<T | null> {
+  const raw = await redisCommand<string | T>(["GET", key], timeoutMs);
   if (!raw) return null;
   if (typeof raw === "string") {
     return JSON.parse(raw) as T;
@@ -64,11 +72,16 @@ export function getRedisClient(): boolean {
   return redisConfigured();
 }
 
-export async function redisSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
+export async function redisSet(
+  key: string,
+  value: string,
+  ttlSeconds?: number,
+  timeoutMs = UPSTASH_TIMEOUT_MS,
+): Promise<void> {
   if (!redisConfigured()) return;
   const command: (string | number)[] =
     ttlSeconds != null ? ["SET", key, value, "EX", ttlSeconds] : ["SET", key, value];
-  await redisCommand(command);
+  await redisCommand(command, timeoutMs);
 }
 
 export async function redisDel(...keys: string[]): Promise<void> {
@@ -109,8 +122,11 @@ export async function redisSmembers(key: string): Promise<string[]> {
   return Array.isArray(members) ? members : [];
 }
 
-export async function redisGetJson<T>(key: string): Promise<T | null> {
-  return redisGetJsonInternal<T>(key);
+export async function redisGetJson<T>(
+  key: string,
+  timeoutMs = UPSTASH_TIMEOUT_MS,
+): Promise<T | null> {
+  return redisGetJsonInternal<T>(key, timeoutMs);
 }
 
 export async function getCachedRedis<T>(

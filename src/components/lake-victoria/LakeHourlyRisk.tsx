@@ -22,6 +22,23 @@ export function LakeHourlyRisk({ weather }: { weather: WeatherBundle }) {
     (hour) => hour.theme === "thunder" || hour.theme === "rain",
   );
 
+  const formatStormHoursPhrase = () => {
+    if (!isLg) {
+      return stormHours.map((h) => formatLabel(h.label, "medium")).join(", ");
+    }
+    const startsWithNow = stormHours[0]?.label.trim().toLowerCase() === "now";
+    const clockParts = (startsWithNow ? stormHours.slice(1) : stormHours).map((h) =>
+      formatClockLabelForLanguage(h.label, "lg", "medium"),
+    );
+    if (startsWithNow && clockParts.length === 0) {
+      return "kati";
+    }
+    if (startsWithNow) {
+      return `kati ne ku ssaawa ${clockParts.join(", ")}`;
+    }
+    return `ku ssaawa ${clockParts.join(", ")}`;
+  };
+
   return (
     <div>
       <p className="text-[13px] font-semibold text-white/55">
@@ -31,7 +48,7 @@ export function LakeHourlyRisk({ weather }: { weather: WeatherBundle }) {
         <p className="mt-2 text-[15px] leading-relaxed text-white/80">
           {dict.marine.rainOrStormsPossible.replace(
             "{hours}",
-            stormHours.map((h) => formatLabel(h.label, "medium")).join(", "),
+            formatStormHoursPhrase(),
           )}
         </p>
       ) : (
@@ -41,6 +58,7 @@ export function LakeHourlyRisk({ weather }: { weather: WeatherBundle }) {
       )}
       <div
         ref={trackRef}
+        data-no-narrate
         className="mt-3 flex justify-between gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {hours.map((hour, index) => (

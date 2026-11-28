@@ -92,12 +92,12 @@ describe("Luganda weather copy formatters", () => {
     expect(formatFeelsLikeFooterLg(-3)).toBe("Liwulirwa nga likendeddeko 3° olw'empewo.");
 
     expect(formatHumidityFooterLg(80, 21)).toBe(
-      "Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omume kiri ku 21°.",
+      "Empewo ezitowa olw'obunnyogovu obungi. Ekipimo ky'omusulo kiri ku 21°.",
     );
     expect(formatHumidityFooterLg(30, 14)).toBe(
-      "Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omume kiri ku 14°.",
+      "Empewo nkalu. Nywa amazzi ng'oli ebweru. Ekipimo ky'omusulo kiri ku 14°.",
     );
-    expect(formatHumidityFooterLg(50, 18)).toBe("Ekipimo ky'omume kiri ku 18° mu kaseera kano.");
+    expect(formatHumidityFooterLg(50, 18)).toBe("Ekipimo ky'omusulo kiri ku 18° mu kaseera kano.");
 
     expect(formatUvFooterLg(1)).toBe(
       "Omusana teguli gw'amaanyi mu kiseera ky'olunaku ekisigaddeyo.",

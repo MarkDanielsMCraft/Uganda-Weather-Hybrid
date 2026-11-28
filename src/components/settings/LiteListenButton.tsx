@@ -20,7 +20,6 @@ export function LiteListenButton({
   spokenTextLg: string;
   language: "en" | "lg";
 }) {
-  const voiceMode = usePreferencesStore((state) => state.voiceMode);
   const setVoiceMode = usePreferencesStore((state) => state.setVoiceMode);
   const [serverCapabilities, setServerCapabilities] = useState<VoiceServerCapabilities>({
     lugandaTts: false,
@@ -107,6 +106,7 @@ export function LiteListenButton({
       capabilities: serverCapabilities,
       onStateChange: (nextState) => setPlaybackState(nextState),
       onEnd: () => setPlaybackState("idle"),
+      onError: () => setPlaybackState("idle"),
     });
     if (!started) {
       setPlaybackState("idle");
@@ -135,9 +135,7 @@ export function LiteListenButton({
       className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border backdrop-blur-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-[0.95] ${
         isSpeaking
           ? "border-white/25 bg-brand-green/75 text-white shadow-[0_6px_18px_rgba(13,144,59,0.35)]"
-          : voiceMode
-            ? "border-brand-green/50 bg-brand-green/25 text-white hover:bg-brand-green/35"
-            : "border-white/15 bg-white/10 text-white/90 hover:border-white/25 hover:bg-white/[0.16]"
+          : "border-white/15 bg-white/10 text-white/90 hover:border-white/25 hover:bg-white/[0.16]"
       }`}
     >
       <svg
